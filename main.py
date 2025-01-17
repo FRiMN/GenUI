@@ -13,6 +13,8 @@ from workflows import get_workflows, load_workflow
 from ws_api import server_address, client_id, get_images, interrupt
 
 SCALE_FACTOR = 1.05
+MAX_SCALE = 100
+MIN_SCALE = 100
 
 ASPECT_RATIOS = (
     "1:1",
@@ -117,19 +119,19 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._pinned = bool(enable)
 
     def zoom(self, step):
-        zoom = max(0, self._zoom + (step := int(step)))
+        zoom = self._zoom + (step := int(step))
         if zoom == self._zoom:
             return
 
+        if not (MIN_SCALE < zoom < MAX_SCALE):
+            return
+
         self._zoom = zoom
-        if self._zoom > 0:
-            if step > 0:
-                factor = SCALE_FACTOR ** step
-            else:
-                factor = 1 / SCALE_FACTOR ** abs(step)
-            self.scale(factor, factor)
+        if step > 0:
+            factor = SCALE_FACTOR ** step
         else:
-            self.resetView()
+            factor = 1 / SCALE_FACTOR ** abs(step)
+        self.scale(factor, factor)
 
     def wheelEvent(self, event):
         delta = event.angleDelta().y()
