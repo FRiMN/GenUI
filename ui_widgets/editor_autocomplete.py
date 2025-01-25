@@ -23,17 +23,31 @@ def load_words() -> list[str]:
     return words
 
 
+class LastSelectedCompleter(QCompleter):
+    insertText = QtCore.pyqtSignal(str)
+
+    def __init__(self, *args, **kwargs):
+        QCompleter.__init__(self, *args, **kwargs)
+        self.highlighted.connect(self.setHighlighted)
+
+    def setHighlighted(self, text):
+        self.lastSelected = text
+
+    def getSelected(self):
+        return self.lastSelected
+
+
 class AwesomeTextEdit(QPlainTextEdit):
     def __init__(self, parent=None):
         super(AwesomeTextEdit, self).__init__(parent)
 
-        self.completer = MyCompleter(load_words(), parent)
+        self.completer = LastSelectedCompleter(load_words(), parent)
         self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setWidget(self)
-        self.completer.insertText.connect(self.insertCompletion)
+        self.completer.insertText.connect(self.insert_completion)
 
-    def insertCompletion(self, completion):
+    def insert_completion(self, completion):
         tc = self.textCursor()
         extra = (len(completion) - len(self.completer.completionPrefix()))
         tc.movePosition(QTextCursor.MoveOperation.Left)
@@ -53,9 +67,10 @@ class AwesomeTextEdit(QPlainTextEdit):
 
         tc = self.textCursor()
         # print(f"{tc.hasSelection()=}")
+        popup = self.completer.popup()
 
         if (
-                event.key() == Qt.Key.Key_Return and self.completer.popup().isVisible()
+                event.key() == Qt.Key.Key_Return and popup.isVisible()
                 and not tc.hasSelection()
         ):
             self.completer.insertText.emit(self.completer.getSelected())
@@ -64,7 +79,7 @@ class AwesomeTextEdit(QPlainTextEdit):
 
         if (
                 event.key() == Qt.Key.Key_Up and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-                and not self.completer.popup().isVisible() and tc.hasSelection()
+                and not popup.isVisible() and tc.hasSelection()
         ):
             selected_text = tc.selectedText()
             print(f"{selected_text=}")
@@ -93,8 +108,9 @@ class AwesomeTextEdit(QPlainTextEdit):
         selected_text = tc.selectedText()
         if len(selected_text) > 2:
             self.completer.setCompletionPrefix(selected_text)
-            popup = self.completer.popup()
-            popup.setCurrentIndex(self.completer.completionModel().index(0, 0))
+
+            cur_index = self.completer.completionModel().index(0, 0)
+            popup.setCurrentIndex(cur_index)
 
             cr = self.cursorRect()
             cr.setWidth(
@@ -103,18 +119,4 @@ class AwesomeTextEdit(QPlainTextEdit):
             )
             self.completer.complete(cr)
         else:
-            self.completer.popup().hide()
-
-
-class MyCompleter(QCompleter):
-    insertText = QtCore.pyqtSignal(str)
-
-    def __init__(self, *args, **kwargs):
-        QCompleter.__init__(self, *args, **kwargs)
-        self.highlighted.connect(self.setHighlighted)
-
-    def setHighlighted(self, text):
-        self.lastSelected = text
-
-    def getSelected(self):
-        return self.lastSelected
+            popup.hide()
