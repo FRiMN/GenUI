@@ -9,7 +9,7 @@ from PyQt6.QtGui import QTextCursor
 
 def load_words() -> list[str]:
     words = []
-    path = Path("./autocomplete.txt")
+    path = Path("ui_widgets/autocomplete.txt")
     with path.open() as f:
         lines = f.readlines()
 
