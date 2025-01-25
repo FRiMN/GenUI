@@ -1,0 +1,10 @@
+PyQt6
+websocket-client
+pillow
+diffusers
+torch >= 2.5.1
+# xformers >= 0.0.29.post1
+transformers
+accelerate >= 0.17.0
+DeepCache
+torchsde
