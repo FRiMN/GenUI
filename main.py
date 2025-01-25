@@ -155,7 +155,7 @@ class Window(QtWidgets.QMainWindow):
         bse.setMinimum(512)
         bse.setMaximum(8192)
         bse.setSingleStep(128)
-        bse.setValue(1024)
+        bse.setValue(1280)
         bse.setToolTip("Base size")
         bse.valueChanged.connect(self.handle_change_base_size)
 
@@ -169,6 +169,19 @@ class Window(QtWidgets.QMainWindow):
     def _build_prompt_editors(self):
         self.prompt_editor = AwesomeTextEdit()
         self.negative_editor = AwesomeTextEdit()
+
+    def _build_scheduler_widgets(self):
+        self.scheduler_selector = ss = QtWidgets.QComboBox()
+        self.schedulers_map = get_schedulers_map(self.pipline)
+        self.scheduler_config = get_scheduler_config(self.pipline)
+        schedulers = sorted(self.schedulers_map.keys())
+        default_scheduler = next((x for x in schedulers if x.endswith("(Default)")))
+        ss.addItems(schedulers)
+        ss.setCurrentText(default_scheduler)
+        ss.currentTextChanged.connect(self.handle_change_scheduler)
+
+        self.clip_skip = cs = QtWidgets.QSpinBox()
+        cs.setValue(1)
 
     def _createToolBars(self):
         action_toolbar = QtWidgets.QToolBar("Action", self)
@@ -218,7 +231,6 @@ class Window(QtWidgets.QMainWindow):
         self.addToolBar(scheduler_toolbar)
 
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, progress_toolbar)
-        self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, workflow_toolbar)
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, zoom_toolbar)
 
     def handle_change_scheduler(self, text: str):
@@ -254,10 +266,15 @@ class Window(QtWidgets.QMainWindow):
             else:
                 h *= ratio
 
-            self.size = (
-                round(w),
-                round(h)
-            )
+            w = round(w)
+            h = round(h)
+
+            while w % 8:
+                w += 1
+            while h % 8:
+                h += 1
+
+            self.size = (w, h)
 
         self.label_size.setText(f"{self.size[0]} x {self.size[1]}")
 
