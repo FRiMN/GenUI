@@ -1,20 +1,14 @@
 import random
-from io import BytesIO
+import time
 from pathlib import Path
 
-import websocket    #NOTE: websocket-client (https://github.com/websocket-client/websocket-client)
 from PIL import Image
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
-from PyQt6.QtGui import QPainter
 
-from editor_autocomplete import AwesomeTextEdit
-from workflows import get_workflows, load_workflow
-from ws_api import server_address, client_id, get_images, interrupt
-
-SCALE_FACTOR = 1.05
-MAX_SCALE = 100
-MIN_SCALE = 100
+from ui_widgets.editor_autocomplete import AwesomeTextEdit
+from generator.sd_2 import load_pipline, generate, get_schedulers_map, set_scheduler, get_scheduler_config
+from ui_widgets.photo_viewer import PhotoViewer
 
 ASPECT_RATIOS = (
     "1:1",
@@ -33,158 +27,35 @@ ASPECT_RATIOS = (
 )
 
 
-class PhotoViewer(QtWidgets.QGraphicsView):
-    repainted = QtCore.pyqtSignal()
-    zoomed = QtCore.pyqtSignal()
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self._zoom = 0
-        self._pinned = False
-        self._empty = True
-        self._original_size = (0, 0)
-
-        self._scene = QtWidgets.QGraphicsScene(self)
-        self._photo = QtWidgets.QGraphicsPixmapItem()
-        self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
-        self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
-        self._scene.addItem(self._photo)
-        self.setScene(self._scene)
-
-        self.setTransformationAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setResizeAnchor(QtWidgets.QGraphicsView.ViewportAnchor.AnchorUnderMouse)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
-        self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
-
-    def hasPhoto(self):
-        return not self._empty
-
-    def resetView(self, scale: float = 1.0):
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
-        if rect.isNull():
-            return
-
-        self.setSceneRect(rect)
-        if (scale := max(1.0, scale)) == 1:
-            self._zoom = 0
-
-        if self.hasPhoto():
-            viewrect = self.viewport().rect()
-            scenerect = self.transform().mapRect(rect)
-
-            factor = min(
-                viewrect.width() / scenerect.width(),
-                viewrect.height() / scenerect.height()
-            ) * scale
-            self.scale(factor, factor)
-
-            if not self.zoomPinned():
-                self.centerOn(self._photo)
-
-            self._scene.views()[0].viewport().repaint()
-            self.repainted.emit()
-
-    def setPhoto(self, pixmap=None):
-        if pixmap and not pixmap.isNull():
-            self._empty = False
-            self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
-            self._photo.setPixmap(pixmap)
-        else:
-            self._empty = True
-            self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
-            self._photo.setPixmap(QtGui.QPixmap())
-
-        if not (self.zoomPinned() and self.hasPhoto()):
-            self._zoom = 0
-
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
-        self._original_size = (rect.width(), rect.height())
-        self.resetView(SCALE_FACTOR ** self._zoom)
-
-    def zoom_scene_level(self):
-        return SCALE_FACTOR ** self._zoom
-
-    def zoom_image_level(self):
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
-        scenerect = self.transform().mapRect(rect)
-        return scenerect.width() / self._original_size[0]
-
-    def zoomPinned(self):
-        return self._pinned
-
-    def setZoomPinned(self, enable):
-        self._pinned = bool(enable)
-
-    def zoom(self, step):
-        zoom = self._zoom + (step := int(step))
-        if zoom == self._zoom:
-            return
-
-        if not (MIN_SCALE < zoom < MAX_SCALE):
-            return
-
-        self._zoom = zoom
-        if step > 0:
-            factor = SCALE_FACTOR ** step
-        else:
-            factor = 1 / SCALE_FACTOR ** abs(step)
-        self.scale(factor, factor)
-
-    def wheelEvent(self, event):
-        delta = event.angleDelta().y()
-        self.zoom(delta and delta // abs(delta))
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.resetView()
-
-    def scale(self, sx, sy):
-        self.zoomed.emit()
-        return super().scale(sx, sy)
-
-    def toggleDragMode(self):
-        if self.dragMode() == QtWidgets.QGraphicsView.DragMode.ScrollHandDrag:
-            self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
-        elif not self._photo.pixmap().isNull():
-            self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
-
-    # def mouseMoveEvent(self, event):
-    #     self.updateCoordinates(event.position().toPoint())
-    #     super().mouseMoveEvent(event)
-
-    # def leaveEvent(self, event):
-    #     self.coordinatesChanged.emit(QtCore.QPoint())
-    #     super().leaveEvent(event)
-
-
 class Worker(QObject):
     finished = pyqtSignal()
-    progress_preview = pyqtSignal(bytes, int, int)
+    progress_preview = pyqtSignal(bytes, int, int, int, int)
 
-    def __init__(self, ws, prompt):
+    def __init__(self, window):
         super().__init__()
-        self.ws = ws
-        self.prompt = prompt
-        self.steps_count = int(prompt["116"]["inputs"]["steps"])
+        self.window = window
+        self.pipline = window.pipline
         self.step = 0
         self._isRunning = True
 
-    def callback_preview(self, image_data: bytes, step: int):
+    def callback_preview(self, image: Image.Image, step: int):
         self.step = step
-        self.progress_preview.emit(image_data, step, self.steps_count)
+        image_data = image.tobytes()
+        self.progress_preview.emit(image_data, step, 20, image.width, image.height)
         return not self._isRunning
 
     def run(self):
-        images = get_images(
-            self.ws, self.prompt,
-            preview_callback=self.callback_preview,
+        image: Image.Image = generate(
+            self.pipline,
+            self.window.prompt_editor.toPlainText(),
+            self.window.negative_editor.toPlainText(),
+            seed=self.window.seed_editor.value(),
+            size=self.window.size,
+            clip_skip=self.window.clip_skip.value(),
+            callback=self.callback_preview,
         )
-        for node_id in images:
-            for image_data in images[node_id]:
-                self.callback_preview(image_data, self.step)
+        self.callback_preview(image, self.step)
+        self.save_image(image)
 
         self.stop()
 
@@ -193,16 +64,22 @@ class Worker(QObject):
         self._isRunning = False
         self.finished.emit()
 
+    def generate_filepath(self) -> Path:
+        t = time.time()
+        return Path(f"/media/frimn/archive31/ai/stable_diffusion/ComfyUI/output/genui/{t}.jpg")
+
+    def save_image(self, image: Image.Image):
+        p = self.generate_filepath()
+        image.save(p)
+
 
 class Window(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("A new window title")
         self.size = (0, 0)
-        self.loaded_workflow = None
 
-        self.ws = websocket.WebSocket()
-        self.ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))
+        self.pipline = load_pipline("/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/checkpoints/anime/illustrious/obsessionIllustrious_v31.safetensors")
 
         self.viewer = PhotoViewer(self)
         self.viewer.setZoomPinned(True)
@@ -214,6 +91,7 @@ class Window(QtWidgets.QMainWindow):
         self._build_generation_widgets()
         self._build_seed_widgets()
         self._build_size_widgets()
+        self._build_scheduler_widgets()
 
         panel_box = self._build_prompt_panel()
 
@@ -237,14 +115,6 @@ class Window(QtWidgets.QMainWindow):
         self._createToolBars()
 
     def _build_generation_widgets(self):
-        self.workflow_selector = QtWidgets.QComboBox()
-        # TODO: to relative paths
-        workflows = tuple(map(str, get_workflows()))
-        self.workflow_selector.addItems(workflows)
-        self.workflow_selector.currentTextChanged.connect(self.handle_change_workflow)
-        self.workflow_selector.setCurrentText(workflows[0])
-        self.workflow_selector.currentTextChanged.emit(workflows[0])
-
         self.button_generate = bg = QtWidgets.QPushButton('Generate', self)
         bg.setStyleSheet("background-color: darkblue")
         bg.clicked.connect(self.handle_generate)
@@ -305,9 +175,6 @@ class Window(QtWidgets.QMainWindow):
         action_toolbar.addWidget(self.button_generate)
         action_toolbar.addWidget(self.button_interrupt)
 
-        workflow_toolbar = QtWidgets.QToolBar("Workflow", self)
-        workflow_toolbar.addWidget(self.workflow_selector)
-
         seed_toolbar = QtWidgets.QToolBar("Seed", self)
         seed_label = QtWidgets.QLabel("Seed:")
         seed_label.setContentsMargins(5, 0, 5, 0)
@@ -334,31 +201,28 @@ class Window(QtWidgets.QMainWindow):
         progress_toolbar.addWidget(self.label_status)
 
         self.zoom_label = QtWidgets.QLabel()
+        self.zoom_fit_button = QtWidgets.QPushButton()
+        self.zoom_fit_button.setText("Fit")
+        self.zoom_fit_button.clicked.connect(self.viewer.resetView)
         zoom_toolbar = QtWidgets.QToolBar("Zoom", self)
         zoom_toolbar.addWidget(self.zoom_label)
+        zoom_toolbar.addWidget(self.zoom_fit_button)
+
+        scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
+        scheduler_toolbar.addWidget(self.scheduler_selector)
+        scheduler_toolbar.addWidget(self.clip_skip)
 
         self.addToolBar(action_toolbar)
         self.addToolBar(seed_toolbar)
         self.addToolBar(size_toolbar)
+        self.addToolBar(scheduler_toolbar)
 
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, progress_toolbar)
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, workflow_toolbar)
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, zoom_toolbar)
 
-    def set_workflow(self, workflow: Path):
-        self.loaded_workflow = load_workflow(workflow)
-
-        self.prompt_editor.setPlainText(self.loaded_workflow["121"]["inputs"]["text"])
-        self.negative_editor.setPlainText(self.loaded_workflow["7"]["inputs"]["text"])
-
-        self.label_status.setText(f"Loaded workflow {workflow}")
-
-    def handle_change_workflow(self, text: str):
-        workflows = get_workflows()
-        for workflow in workflows:
-            if str(workflow) == text:
-                self.set_workflow(workflow)
-                break
+    def handle_change_scheduler(self, text: str):
+        set_scheduler(self.pipline, text, self.schedulers_map, self.scheduler_config)
 
     def handle_zoomed(self):
         self.zoom_label.setText(f"Zoom: {self.viewer.zoom_image_level():.2f}")
@@ -381,17 +245,6 @@ class Window(QtWidgets.QMainWindow):
             w, h = s.split(":")
             w = int(w)
             h = int(h)
-            # if algn == "P":
-            #     print(f"{w/h=}; {w/h * base_size}; {round(w/h * base_size)}")
-            #     self.size = (
-            #         round(w/h * base_size),
-            #         base_size
-            #     )
-            # else:
-            #     self.size = (
-            #         base_size,
-            #         round(h/w * base_size)
-            #     )
 
             ratio: float = h / w
             w = base_size
@@ -408,75 +261,80 @@ class Window(QtWidgets.QMainWindow):
 
         self.label_size.setText(f"{self.size[0]} x {self.size[1]}")
 
-    def repaint_image(self, image_bytes: bytes, step: int, steps: int):
+    # @Timer("Repaint")
+    def repaint_image(
+            self,
+            image_bytes: bytes,
+            step: int,
+            steps: int,
+            width: int,
+            height: int
+    ):
         self.label_process.setText(f"Step: {step}/{steps}")
-        bytes_data = BytesIO(image_bytes)
-        image = Image.open(bytes_data)
         base_size = self.base_size_editor.value()
+        image = Image.frombytes(
+            "RGB",
+            (width, height),
+            image_bytes,
+        )
 
         if image.width < base_size and image.height < base_size:
             # We need resize all "latent" images to real size,
             # otherwise position of zoomed image in widget will be reset.
             mw = self.size[0] / image.width
             mh = self.size[1] / image.height
-            resized_data = BytesIO()
 
-            ni = image.resize((int(image.width * mw), int(image.height * mh)))
-            ni.save(resized_data, "PNG")
-            bytes_data = resized_data
+            image = image.resize((int(image.width * mw), int(image.height * mh)))
 
-        pixmap = QtGui.QPixmap()
-        pixmap.loadFromData(bytes_data.getvalue())
+        pixmap = image.toqpixmap()
         self.viewer.setPhoto(pixmap)
 
         s = pixmap.size()
         self.label_current_size.setText(f"{s.width()} x {s.height()}")
 
-    def threated_generate(self, prompt: dict):
-        self.thread = QThread()
-        self.worker = Worker(self.ws, prompt)
-        self.worker.moveToThread(self.thread)
+    def threated_generate(self):
+        # if getattr(self, "thread") and self.thread is not None:
+        #     del self.thread
+        # if getattr(self, "worker") and self.worker is not None:
+        #     del self.worker
 
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.gen_thread = QThread(parent=self)
+        self.gen_worker = Worker(self)
+        self.gen_worker.moveToThread(self.gen_thread)
 
-        self.worker.progress_preview.connect(self.repaint_image)
+        self.gen_thread.started.connect(self.gen_worker.run)
+        self.gen_worker.finished.connect(self.gen_thread.quit)
+        self.gen_worker.finished.connect(self.gen_worker.deleteLater)
+        self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
-        self.worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
-        self.worker.finished.connect(lambda: self.button_generate.setDisabled(False))
-        self.worker.finished.connect(lambda: self.label_status.setText("Done."))
+        self.gen_worker.progress_preview.connect(self.repaint_image)
 
-        self.thread.start()
+        self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
+        self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
+        self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
+
+        self.gen_thread.start()
 
     def handle_generate(self):
         self.label_status.setText("Generation...")
         self.button_generate.setDisabled(True)
         self.button_interrupt.setDisabled(False)
+        # gen_worker = Worker(self)
+        # gen_worker.run()
+        # gen_worker.progress_preview.connect(self.repaint_image)
 
-        # set the text prompt for our positive CLIPTextEncode
-        self.loaded_workflow["121"]["inputs"]["text"] = self.prompt_editor.toPlainText()
-        self.loaded_workflow["7"]["inputs"]["text"] = self.negative_editor.toPlainText()
-
-        # set the seed for our KSampler node
-        self.loaded_workflow["37"]["inputs"]["seed"] = self.seed_editor.value()
-
-        self.loaded_workflow["32"]["inputs"]["width"] = str(self.size[0])
-        self.loaded_workflow["32"]["inputs"]["height"] = str(self.size[1])
-
-        self.threated_generate(self.loaded_workflow)
+        self.threated_generate()
 
     def handle_interrupt(self):
-        interrupt()
-        self.worker.stop()
+        # interrupt()
+        self.gen_worker.stop()
 
     def closeEvent(self, event):
-        self.ws.close()
         event.accept()  # Close the app
 
 
 if __name__ == '__main__':
+    print("starting")
     import sys
     app = QtWidgets.QApplication(sys.argv)
     window = Window()
