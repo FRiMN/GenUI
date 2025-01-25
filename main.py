@@ -76,7 +76,7 @@ class Worker(QObject):
 class Window(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("A new window title")
+        self.setWindowTitle("GenUI")
         self.size = (0, 0)
 
         self.pipline = load_pipline("/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/checkpoints/anime/illustrious/obsessionIllustrious_v31.safetensors")
