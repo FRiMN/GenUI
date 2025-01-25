@@ -6,7 +6,10 @@ from PyQt6.QtWidgets import QCompleter, QPlainTextEdit
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor
 
+from utils import Timer
 
+
+@Timer("Autocomplete words loader")
 def load_words() -> list[str]:
     words = []
     path = Path("ui_widgets/autocomplete.txt")
