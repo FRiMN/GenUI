@@ -7,7 +7,7 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
-from generator.sd_2 import load_pipline, generate, get_schedulers_map, set_scheduler, get_scheduler_config
+from generator.sdxl import load_pipline, generate, get_schedulers_map, set_scheduler, get_scheduler_config
 from ui_widgets.photo_viewer import PhotoViewer
 
 ASPECT_RATIOS = (
