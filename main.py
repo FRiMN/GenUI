@@ -1,5 +1,7 @@
+print("top 1")
 import random
 import time
+from multiprocessing import Manager, Process
 from pathlib import Path
 
 from PIL import Image
@@ -7,8 +9,12 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
-from generator.sdxl import load_pipline, generate, get_schedulers_map, set_scheduler, get_scheduler_config
+from generator.sdxl import load_pipline, generate, get_schedulers_map, set_scheduler, get_scheduler_config, Generator
 from ui_widgets.photo_viewer import PhotoViewer
+# from utils import TraceMem
+# from guppy import hpy
+
+print("top 2")
 
 ASPECT_RATIOS = (
     "1:1",
@@ -25,24 +31,66 @@ ASPECT_RATIOS = (
     "P 9:16",
     "P 9:21",
 )
+MODEL_PATH = "/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/checkpoints/anime/illustrious/obsessionIllustrious_v31.safetensors"
 
 
 class Worker(QObject):
     finished = pyqtSignal()
     progress_preview = pyqtSignal(bytes, int, int, int, int)
 
-    def __init__(self, window):
+    def __init__(
+            self,
+            prompt: str,
+            neg_prompt: str,
+            seed: int,
+            size: tuple[int, int],
+            clip_skip: int,
+    ):
         super().__init__()
-        self.window = window
-        self.pipline = window.pipline
+        self.pipline = load_pipline(MODEL_PATH)
         self.step = 0
-        self._isRunning = True
+        self.prompt = prompt
+        self.neg_prompt = neg_prompt
+        self.seed = seed
+        self.size = size
+        self.clip_skip = clip_skip
 
     def callback_preview(self, image: Image.Image, step: int):
+        # h = hpy()
         self.step = step
         image_data = image.tobytes()
         self.progress_preview.emit(image_data, step, 20, image.width, image.height)
-        return not self._isRunning
+        # print(h.heap())
+
+    def run(self):
+        image: Image.Image = generate(
+            self.pipline,
+            self.prompt,
+            self.neg_prompt,
+            seed=self.seed,
+            size=self.size,
+            clip_skip=self.clip_skip,
+            callback=self.callback_preview,
+        )
+        self.callback_preview(image, self.step)
+        self.save_image(image)
+
+        self.stop()
+
+    def stop(self):
+        print("stopping")
+        self.finished.emit()
+
+    def generate_filepath(self) -> Path:
+        t = time.time()
+        return Path(f"/media/frimn/archive31/ai/stable_diffusion/ComfyUI/output/genui/{t}.jpg")
+
+    def save_image(self, image: Image.Image):
+        p = self.generate_filepath()
+        image.save(p)
+
+
+class PipelineProcess(Process):
 
     def run(self):
         image: Image.Image = generate(
@@ -57,29 +105,20 @@ class Worker(QObject):
         self.callback_preview(image, self.step)
         self.save_image(image)
 
-        self.stop()
-
-    def stop(self):
-        print("stopping")
-        self._isRunning = False
-        self.finished.emit()
-
-    def generate_filepath(self) -> Path:
-        t = time.time()
-        return Path(f"/media/frimn/archive31/ai/stable_diffusion/ComfyUI/output/genui/{t}.jpg")
-
-    def save_image(self, image: Image.Image):
-        p = self.generate_filepath()
-        image.save(p)
-
 
 class Window(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("GenUI")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.setWindowTitle("GenUI")
         self.size = (0, 0)
 
-        self.pipline = load_pipline("/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/checkpoints/anime/illustrious/obsessionIllustrious_v31.safetensors")
+        self.generator = Generator()
+        self.pipline = None
+        self.model_path = None
+        self.model_name = None
+        self.model_path_btn = QtWidgets.QPushButton("Model", self)
+        self.model_path_btn.setToolTip("Model")
+        self.model_path_btn.clicked.connect(self.handle_change_model)
 
         self.viewer = PhotoViewer(self)
         self.viewer.setZoomPinned(True)
@@ -172,16 +211,21 @@ class Window(QtWidgets.QMainWindow):
 
     def _build_scheduler_widgets(self):
         self.scheduler_selector = ss = QtWidgets.QComboBox()
-        self.schedulers_map = get_schedulers_map(self.pipline)
-        self.scheduler_config = get_scheduler_config(self.pipline)
-        schedulers = sorted(self.schedulers_map.keys())
-        default_scheduler = next((x for x in schedulers if x.endswith("(Default)")))
-        ss.addItems(schedulers)
-        ss.setCurrentText(default_scheduler)
+        ss.setToolTip("Scheduler")
         ss.currentTextChanged.connect(self.handle_change_scheduler)
 
         self.clip_skip = cs = QtWidgets.QSpinBox()
         cs.setValue(1)
+
+    def update_scheduler_widgets(self):
+        schedulers_map = get_schedulers_map(self.pipline)
+
+        schedulers = sorted(schedulers_map.keys())
+        default_scheduler = next((x for x in schedulers if x.endswith("(Default)")))
+        print(f"{default_scheduler=}")
+
+        self.scheduler_selector.addItems(schedulers)
+        self.scheduler_selector.setCurrentText(default_scheduler)
 
     def _createToolBars(self):
         action_toolbar = QtWidgets.QToolBar("Action", self)
@@ -224,6 +268,7 @@ class Window(QtWidgets.QMainWindow):
         scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
         scheduler_toolbar.addWidget(self.scheduler_selector)
         scheduler_toolbar.addWidget(self.clip_skip)
+        scheduler_toolbar.addWidget(self.model_path_btn)
 
         self.addToolBar(action_toolbar)
         self.addToolBar(seed_toolbar)
@@ -234,7 +279,12 @@ class Window(QtWidgets.QMainWindow):
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, zoom_toolbar)
 
     def handle_change_scheduler(self, text: str):
-        set_scheduler(self.pipline, text, self.schedulers_map, self.scheduler_config)
+        print(f"{text=}")
+        set_scheduler(
+            self.pipline, text,
+            get_schedulers_map(self.pipline),
+            get_scheduler_config(self.pipline)
+        )
 
     def handle_zoomed(self):
         self.zoom_label.setText(f"Zoom: {self.viewer.zoom_image_level():.2f}")
@@ -278,6 +328,17 @@ class Window(QtWidgets.QMainWindow):
 
         self.label_size.setText(f"{self.size[0]} x {self.size[1]}")
 
+    def handle_change_model(self):
+        print("handle_change_model")
+        self.model_path = QtWidgets.QFileDialog.getOpenFileName(self, "Model")[0]
+        self.model_name = self.model_path.split("/")[-1].split(".")[0]
+        self.model_path_btn.setText(self.model_name)
+
+        # load_modal_win = QtWidgets.QDialog()
+        # load_modal_win.exec()
+        self.pipline = load_pipline(self.model_path)
+        self.update_scheduler_widgets()
+
     # @Timer("Repaint")
     def repaint_image(
             self,
@@ -310,43 +371,57 @@ class Window(QtWidgets.QMainWindow):
         self.label_current_size.setText(f"{s.width()} x {s.height()}")
 
     def threated_generate(self):
-        # if getattr(self, "thread") and self.thread is not None:
-        #     del self.thread
-        # if getattr(self, "worker") and self.worker is not None:
-        #     del self.worker
+        # self.gen_thread = QThread(parent=self)
+        # self.gen_worker = Worker(
+        #     self.prompt_editor.toPlainText(),
+        #     self.negative_editor.toPlainText(),
+        #     self.seed_editor.value(),
+        #     self.size,
+        #     self.clip_skip.value()
+        # )
+        # self.gen_worker.moveToThread(self.gen_thread)
+        #
+        # self.gen_thread.started.connect(self.gen_worker.run)
+        # self.gen_worker.finished.connect(self.gen_thread.quit)
+        # self.gen_worker.finished.connect(self.gen_worker.deleteLater)
+        # self.gen_thread.finished.connect(self.gen_thread.deleteLater)
+        #
+        # self.gen_worker.progress_preview.connect(self.repaint_image)
+        #
+        # self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
+        # self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
+        # self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
+        #
+        # self.gen_thread.start()
 
-        self.gen_thread = QThread(parent=self)
-        self.gen_worker = Worker(self)
-        self.gen_worker.moveToThread(self.gen_thread)
+        prompt = {
+            "prompt": self.prompt_editor.toPlainText(),
+            "neg_prompt": self.negative_editor.toPlainText(),
+            "seed": self.seed_editor.value(),
+            "size": self.size,
+            "clip_skip": self.clip_skip.value()
+        }
+        self.generator.send(("generate", prompt))
 
-        self.gen_thread.started.connect(self.gen_worker.run)
-        self.gen_worker.finished.connect(self.gen_thread.quit)
-        self.gen_worker.finished.connect(self.gen_worker.deleteLater)
-        self.gen_thread.finished.connect(self.gen_thread.deleteLater)
-
-        self.gen_worker.progress_preview.connect(self.repaint_image)
-
-        self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
-        self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
-        self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
-
-        self.gen_thread.start()
 
     def handle_generate(self):
         self.label_status.setText("Generation...")
-        self.button_generate.setDisabled(True)
-        self.button_interrupt.setDisabled(False)
+        # self.button_generate.setDisabled(True)
+        # self.button_interrupt.setDisabled(False)
         # gen_worker = Worker(self)
         # gen_worker.run()
         # gen_worker.progress_preview.connect(self.repaint_image)
 
         self.threated_generate()
 
+        # self.generator.send(time.time())
+
     def handle_interrupt(self):
         # interrupt()
         self.gen_worker.stop()
 
     def closeEvent(self, event):
+        del self.generator
         event.accept()  # Close the app
 
 
@@ -354,7 +429,16 @@ if __name__ == '__main__':
     print("starting")
     import sys
     app = QtWidgets.QApplication(sys.argv)
+    app.setApplicationDisplayName("GenUI")
+
     window = Window()
-    window.setGeometry(500, 300, 800, 600)
+    window.setGeometry(500, 300, 1300, 600)
+
+    # app.setQuitOnLastWindowClosed(True)
+
+    print("show")
     window.show()
+    print("showed")
+    print("exec")
+
     sys.exit(app.exec())
