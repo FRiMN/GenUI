@@ -19,7 +19,6 @@ ASPECT_RATIOS = (
 
 class ImageSizeMixin:
     def __init__(self):
-        print(f"init ImageSizeMixin")
         super().__init__()
 
         self.image_size = (0, 0)

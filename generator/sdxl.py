@@ -1,16 +1,15 @@
+from diffusers.configuration_utils import FrozenDict
+from diffusers.schedulers import KarrasDiffusionSchedulers
+
 import gc
-import importlib
 from functools import lru_cache
-from multiprocessing import Pipe, Process
-from multiprocessing.connection import Connection
-from types import FunctionType
 
 import PIL
+# TODO: slowdown import
 import diffusers
 import torch
 from PIL import Image
 from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
-from torch.distributed.pipelining import pipeline
 
 from utils import Timer
 
@@ -32,7 +31,7 @@ def empty_cache():
 
 
 @lru_cache(maxsize=1)
-def load_pipeline(model_path: str) -> DiffusionPipeline:
+def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
     print("start load pipeline")
     empty_cache()
     with Timer("Pipeline loading") as t:
@@ -57,127 +56,46 @@ def load_pipeline(model_path: str) -> DiffusionPipeline:
         # helper.enable()
 
     print(f"{pipe.scheduler}")
-    print(pipe.scheduler.compatibles)
+    # print(pipe.scheduler.compatibles)
 
     return pipe
 
 def generate(
-        pipeline: StableDiffusionXLPipeline,
+        model_path: str,
+        scheduler_name: str,
         prompt: str,
         neg_prompt: str,
         seed: int,
         size: tuple[int, int],
         clip_skip: int,
-        # callback: callable,
+        callback: callable,
 ) -> PIL.Image.Image:
     # max seed is 2147483647 ?
     torch.Generator("cuda").manual_seed(seed)
+
+    set_scheduler(
+        model_path,
+        scheduler_name,
+        get_scheduler_config(model_path)
+    )
+
+    pipeline = load_pipeline(model_path)
 
     # with torch.inference_mode():
     image = pipeline(
         prompt,
         negative_prompt=neg_prompt,
         num_inference_steps=20,
-        guidance_scale=3,
+        guidance_scale=5,
         width=size[0],
         height=size[1],
-        clip_skip=clip_skip,
-        # callback_on_step_end=callback_factory(callback),
-        # callback_on_step_end_tensor_inputs=["latents"],
+        # clip_skip=clip_skip,
+        callback_on_step_end=callback_factory(callback),
+        callback_on_step_end_tensor_inputs=["latents"],
     ).images[0]
-    empty_cache()
+    # Empty cache corrupt image?
+    # empty_cache()
     return image
-
-
-class Generator(object):
-    def __init__(self):
-        self.model_path = None
-        self.parent_conn, self.child_conn = Pipe()
-        self.process = Process(target=self.loop, args=(self.child_conn,))
-        self.process.start()
-
-    def __del__(self):
-        self.send("stop")
-        self.process.join()
-
-    def send(self, data):
-        self.parent_conn.send(data)
-
-    @staticmethod
-    def stop(conn: Connection) -> bool:
-        conn.close()
-        return True
-
-    # @staticmethod
-    # def load_pipline(conn: Connection, model_path: str):
-    #     load_pipline(model_path)
-    #     conn.send("pipline_loaded")
-
-    @staticmethod
-    def generate(
-            conn: Connection,
-            model_path: str,
-            scheduler_name: str,
-            prompt: str,
-            neg_prompt: str,
-            seed: str,
-            size: tuple[int, int],
-            clip_skip: int,
-            # callback: callable,
-    ):
-        print(f"generate")
-
-        pipeline = load_pipeline(model_path)
-
-        set_scheduler(
-            model_path,
-            scheduler_name,
-            get_scheduler_config(model_path)
-        )
-
-        image = generate(
-            pipeline,
-            prompt,
-            neg_prompt,
-            seed,
-            size,
-            clip_skip,
-            # callback,
-        )
-        conn.send(("result_image", image.tobytes(), image.width, image.height))
-
-    @staticmethod
-    def loop(conn: Connection):
-        print("loop start")
-        while True:
-            data = None
-            command = conn.recv()
-            print(f"{command=}")
-            if isinstance(command, (list, tuple)):
-                command, data = command
-
-            if (
-                    isinstance(command, str)
-                    and hasattr(Generator, command)
-                    and type(getattr(Generator, command)) is FunctionType
-            ):
-                method = getattr(Generator, command)
-                print(f"{method=}")
-
-                if data:
-                    if isinstance(data, dict):
-                        need_break = method(conn, **data)
-                    else:
-                        need_break = method(conn, data)
-                else:
-                    need_break = method(conn)
-
-                print(f"{need_break=}")
-                if need_break:
-                    break
-
-        print("out from loop")
-
 
 def latents_to_rgb(latents):
     # https://huggingface.co/docs/diffusers/using-diffusers/callback
@@ -209,21 +127,13 @@ def callback_factory(callback: callable) -> callable:
 @lru_cache(maxsize=1)
 def get_schedulers_map() -> dict:
     result = {}
-    # schedulers = pipe.scheduler.compatibles
 
-    # compatible_classes_str = (
-    #
-    # )
+    karras_schedulers = [e.name for e in KarrasDiffusionSchedulers]
     schedulers = dir(diffusers.schedulers)
-    print(f"{schedulers=}")
     schedulers = [
         getattr(diffusers.schedulers, x) for x in schedulers if x.endswith("Scheduler")
+        and x in karras_schedulers
     ]
-
-    # schedulers = (
-    #
-    # )
-
 
     for s in schedulers:
         name = s.__name__ if hasattr(s, "__name__") else s.__class__.__name__
@@ -245,16 +155,21 @@ def get_scheduler_config(model_path: str):
 def set_scheduler(
         model_path: str,
         scheduler_name: str,
-        scheduler_config,
+        scheduler_config: FrozenDict,
 ) -> None:
-    pipe: DiffusionPipeline = load_pipeline(model_path)
+    pipeline: DiffusionPipeline = load_pipeline(model_path)
     schedulers_map = get_schedulers_map()
-    print(f"{schedulers_map.keys()=}")
-    scheduler = schedulers_map[scheduler_name]
+    scheduler_class = schedulers_map[scheduler_name]
 
-    if scheduler == pipe.scheduler:
+    is_same_scheduler = isinstance(pipeline.scheduler, scheduler_class)
+    is_same_config = scheduler_config == pipeline.scheduler.config
+
+    print(f"{is_same_scheduler=}; {scheduler_class=}; {pipeline.scheduler=}")
+    print(f"{is_same_config=}; {scheduler_config=}; {pipeline.scheduler.config=}")
+
+    if is_same_scheduler and is_same_config:
         return
 
-    print(f"{scheduler_config=}")
+    print(f"Set new scheduler {scheduler_class} with {scheduler_config=}")
     # scheduler_config["prediction_type"] = "v_prediction"
-    pipe.scheduler = scheduler.from_config(scheduler_config)
+    pipeline.scheduler = scheduler_class.from_config(scheduler_config)

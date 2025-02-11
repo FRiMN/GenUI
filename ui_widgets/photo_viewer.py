@@ -97,7 +97,6 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
     def zoom(self, step):
         zoom = self._zoom + (step := int(step))
-        print(f"{zoom=}")
         if zoom == self._zoom:
             print(f"equal")
             return
@@ -111,7 +110,6 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             factor = SCALE_FACTOR ** step
         else:
             factor = 1 / SCALE_FACTOR ** abs(step)
-        print(f"{factor=}")
         self.scale(factor, factor)
 
     def wheelEvent(self, event):

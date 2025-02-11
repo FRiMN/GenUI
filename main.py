@@ -3,35 +3,13 @@ from ui_widgets.window_mixins.image_size import ImageSizeMixin
 from ui_widgets.window_mixins.seed import SeedMixin
 from worker import Worker
 
-print("top 1")
-
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QThread
 
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
-from generator.sdxl import get_schedulers_map, set_scheduler, get_scheduler_config, Generator
+from generator.sdxl import get_schedulers_map
 from ui_widgets.photo_viewer import PhotoViewer
-# from utils import TraceMem
-# from guppy import hpy
-
-print("top 2")
-
-
-# class PipelineProcess(Process):
-#
-#     def run(self):
-#         image: Image.Image = generate(
-#             self.pipeline,
-#             self.window.prompt_editor.toPlainText(),
-#             self.window.negative_editor.toPlainText(),
-#             seed=self.window.seed_editor.value(),
-#             size=self.window.size,
-#             clip_skip=self.window.clip_skip.value(),
-#             callback=self.callback_preview,
-#         )
-#         self.callback_preview(image, self.step)
-#         self.save_image(image)
 
 
 class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommandMixin):
@@ -39,18 +17,31 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         super().__init__(*args, **kwargs)
         # self.setWindowTitle("GenUI")
 
-        self.generator = Generator()
         self.model_path = None
         self.model_name = None
-        # self.scheduler_name = None
 
         self._generate_method = self.threaded_generate
 
+        self._build_threaded_worker()
         self._build_widgets()
 
     def closeEvent(self, event):
-        del self.generator
+        self.gen_worker.stop()
         event.accept()  # Close the app
+
+    def _build_threaded_worker(self):
+        self.gen_thread = QThread(parent=self)
+        self.gen_worker = Worker()
+        self.gen_worker.moveToThread(self.gen_thread)
+
+        self.gen_thread.started.connect(self.gen_worker.run)
+        self.gen_worker.finished.connect(self.gen_thread.quit)
+        self.gen_worker.finished.connect(self.gen_worker.deleteLater)
+        self.gen_thread.finished.connect(self.gen_thread.deleteLater)
+
+        self.gen_worker.progress_preview.connect(self.repaint_image)
+
+        self.gen_thread.start()
 
     def _build_widgets(self):
         self.model_path_btn = QtWidgets.QPushButton("Model", self)
@@ -176,10 +167,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, progress_toolbar)
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, zoom_toolbar)
 
-    # def handle_change_scheduler(self, text: str):
-    #     print(f"{text=}")
-    #     self.scheduler_name = text
-
     def handle_zoomed(self):
         self.zoom_label.setText(f"Zoom: {self.viewer.zoom_image_level():.2f}")
 
@@ -214,8 +201,8 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         if image.width < base_size and image.height < base_size:
             # We need resize all "latent" images to real size,
             # otherwise position of zoomed image in widget will be reset.
-            mw = self.size[0] / image.width
-            mh = self.size[1] / image.height
+            mw = self.image_size[0] / image.width
+            mh = self.image_size[1] / image.height
 
             image = image.resize((int(image.width * mw), int(image.height * mh)))
 
@@ -227,31 +214,20 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def threaded_generate(self):
         self.label_status.setText("Generation...")
-        self.gen_thread = QThread(parent=self)
-        self.gen_worker = Worker(
-            self.generator,
-            self.prompt_editor.toPlainText(),
-            self.negative_editor.toPlainText(),
-            self.seed_editor.value(),
-            self.image_size,
-            self.clip_skip.value(),
-            self.scheduler_selector.currentText(),
-            self.model_path,
-        )
-        self.gen_worker.moveToThread(self.gen_thread)
 
-        self.gen_thread.started.connect(self.gen_worker.run)
-        self.gen_worker.finished.connect(self.gen_thread.quit)
-        self.gen_worker.finished.connect(self.gen_worker.deleteLater)
-        self.gen_thread.finished.connect(self.gen_thread.deleteLater)
+        # self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
+        # self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
+        # self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
 
-        self.gen_worker.progress_preview.connect(self.repaint_image)
-
-        self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
-        self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
-        self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
-
-        self.gen_thread.start()
+        self.gen_worker.parent_conn.send(dict(
+            model_path=self.model_path,
+            scheduler_name=self.scheduler_selector.currentText(),
+            prompt=self.prompt_editor.toPlainText(),
+            neg_prompt=self.negative_editor.toPlainText(),
+            seed=self.seed_editor.value(),
+            size=self.image_size,
+            clip_skip=self.clip_skip.value(),
+        ))
 
 
 if __name__ == '__main__':
@@ -262,12 +238,6 @@ if __name__ == '__main__':
 
     window = Window()
     window.setGeometry(500, 300, 1300, 600)
-
-    # app.setQuitOnLastWindowClosed(True)
-
-    print("show")
     window.show()
-    print("showed")
-    print("exec")
 
     sys.exit(app.exec())

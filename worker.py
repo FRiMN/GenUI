@@ -1,77 +1,70 @@
+from multiprocessing import Pipe
+from multiprocessing.connection import Connection
+
 import time
 from pathlib import Path
 
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from generator.sdxl import Generator
+from generator.sdxl import generate
 
 
 class Worker(QObject):
     finished = pyqtSignal()
     progress_preview = pyqtSignal(bytes, int, int, int, int)
 
-    def __init__(
-            self,
-            generator: Generator,
-            prompt: str,
-            neg_prompt: str,
-            seed: int,
-            size: tuple[int, int],
-            clip_skip: int,
-            scheduler: str,
-            model_path: str,
-    ):
+    def __init__(self):
         super().__init__()
-        self.generator = generator
+        self._started = False
         self.step = 0
 
-        self.data = dict(
-            model_path=model_path,
-            scheduler_name=scheduler,
-            prompt=prompt,
-            neg_prompt=neg_prompt,
-            seed=seed,
-            size=size,
-            clip_skip=clip_skip,
-            # callback=self.callback_preview,
-        )
+        self.parent_conn: Connection
+        self.child_conn: Connection
+        self.parent_conn, self.child_conn = Pipe()
 
     def callback_preview(self, image: Image.Image, step: int):
-        # h = hpy()
         self.step = step
         image_data = image.tobytes()
         self.progress_preview.emit(image_data, step, 20, image.width, image.height)
-        # print(h.heap())
 
     def run(self):
-        # image: Image.Image = generate(
-        #     self.prompt,
-        #     self.neg_prompt,
-        #     seed=self.seed,
-        #     size=self.size,
-        #     clip_skip=self.clip_skip,
-        #     callback=self.callback_preview,
-        # )
+        """ Run in thread """
+        self._started = True
+        print("loop start")
 
-        self.generator.send(("generate", self.data))
+        while self._started:
+            is_data_exist = self.child_conn.poll(timeout=1)
+            if is_data_exist:
+                data = self.child_conn.recv()
 
-        command, image_bytes, width, height = self.generator.parent_conn.recv()
-        print("res", command, width, height)
+                image: Image.Image = generate(
+                    **data,
+                    callback=self.callback_preview,
+                )
 
-        image = Image.frombytes(
-            "RGB",
-            (width, height),
-            image_bytes,
-        )
+                # self.generator.send(("generate", self.data))
+                #
+                # command, image_bytes, width, height = self.generator.parent_conn.recv()
+                # print("res", command, width, height)
+                #
+                # image = Image.frombytes(
+                #     "RGB",
+                #     (width, height),
+                #     image_bytes,
+                # )
 
-        self.callback_preview(image, self.step)
-        # self.save_image(image)
+                # image_data = image.tobytes()
+                # self.progress_preview.emit(image_data, 20, 20, image.width, image.height)
 
-        self.stop()
+                self.callback_preview(image, 20)
+                # self.save_image(image)
 
     def stop(self):
         print("stopping")
+        self._started = False
+        # This pause needed, because we wait data in pipe (self.child_conn.poll)
+        time.sleep(1)
         self.finished.emit()
 
     def generate_filepath(self) -> Path:

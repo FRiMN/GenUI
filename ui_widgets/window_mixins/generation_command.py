@@ -3,7 +3,6 @@ from PyQt6 import QtWidgets
 
 class GenerationCommandMixin:
     def __init__(self):
-        print(f"init GenerationCommandMixin")
         super().__init__()
 
         self._generate_method = None
@@ -27,8 +26,6 @@ class GenerationCommandMixin:
         # gen_worker.progress_preview.connect(self.repaint_image)
 
         self._generate_method()
-
-        # self.generator.send(time.time())
 
     def handle_interrupt(self):
         # interrupt()

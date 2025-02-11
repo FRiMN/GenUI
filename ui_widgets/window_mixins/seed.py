@@ -5,7 +5,6 @@ from PyQt6 import QtWidgets
 
 class SeedMixin:
     def __init__(self):
-        print(f"init SeedMixin")
         super().__init__()
 
         self.seed_editor = QtWidgets.QSpinBox()
