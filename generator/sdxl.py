@@ -10,6 +10,7 @@ import diffusers
 import torch
 from PIL import Image
 from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
+from torch.distributed.pipelining import pipeline
 
 from utils import Timer
 
@@ -31,10 +32,10 @@ def empty_cache():
 
 
 @lru_cache(maxsize=1)
-def load_pipline(model_path: str) -> DiffusionPipeline:
-    print("start load pipline")
+def load_pipeline(model_path: str) -> DiffusionPipeline:
+    print("start load pipeline")
     empty_cache()
-    with Timer("Pipline loading") as t:
+    with Timer("Pipeline loading") as t:
         pipe = StableDiffusionXLPipeline.from_single_file(
             model_path,
             torch_dtype=torch.float16,
@@ -61,19 +62,19 @@ def load_pipline(model_path: str) -> DiffusionPipeline:
     return pipe
 
 def generate(
-        pipline: StableDiffusionXLPipeline,
+        pipeline: StableDiffusionXLPipeline,
         prompt: str,
         neg_prompt: str,
         seed: int,
         size: tuple[int, int],
         clip_skip: int,
-        callback: callable,
+        # callback: callable,
 ) -> PIL.Image.Image:
     # max seed is 2147483647 ?
     torch.Generator("cuda").manual_seed(seed)
 
     # with torch.inference_mode():
-    image = pipline(
+    image = pipeline(
         prompt,
         negative_prompt=neg_prompt,
         num_inference_steps=20,
@@ -81,8 +82,8 @@ def generate(
         width=size[0],
         height=size[1],
         clip_skip=clip_skip,
-        callback_on_step_end=callback_factory(callback),
-        callback_on_step_end_tensor_inputs=["latents"],
+        # callback_on_step_end=callback_factory(callback),
+        # callback_on_step_end_tensor_inputs=["latents"],
     ).images[0]
     empty_cache()
     return image
@@ -107,14 +108,43 @@ class Generator(object):
         conn.close()
         return True
 
-    @staticmethod
-    def load_pipline(conn: Connection, model_path: str):
-        load_pipline(model_path)
-        conn.send("pipline_loaded")
+    # @staticmethod
+    # def load_pipline(conn: Connection, model_path: str):
+    #     load_pipline(model_path)
+    #     conn.send("pipline_loaded")
 
     @staticmethod
-    def generate(conn: Connection, data: dict):
-        print(f"generate {data=}")
+    def generate(
+            conn: Connection,
+            model_path: str,
+            scheduler_name: str,
+            prompt: str,
+            neg_prompt: str,
+            seed: str,
+            size: tuple[int, int],
+            clip_skip: int,
+            # callback: callable,
+    ):
+        print(f"generate")
+
+        pipeline = load_pipeline(model_path)
+
+        set_scheduler(
+            model_path,
+            scheduler_name,
+            get_scheduler_config(model_path)
+        )
+
+        image = generate(
+            pipeline,
+            prompt,
+            neg_prompt,
+            seed,
+            size,
+            clip_skip,
+            # callback,
+        )
+        conn.send(("result_image", image.tobytes(), image.width, image.height))
 
     @staticmethod
     def loop(conn: Connection):
@@ -133,10 +163,15 @@ class Generator(object):
             ):
                 method = getattr(Generator, command)
                 print(f"{method=}")
+
                 if data:
-                    need_break = method(conn, data)
+                    if isinstance(data, dict):
+                        need_break = method(conn, **data)
+                    else:
+                        need_break = method(conn, data)
                 else:
                     need_break = method(conn)
+
                 print(f"{need_break=}")
                 if need_break:
                     break
@@ -172,7 +207,7 @@ def callback_factory(callback: callable) -> callable:
     return decode_tensors
 
 @lru_cache(maxsize=1)
-def get_schedulers_map(pipe: DiffusionPipeline) -> dict:
+def get_schedulers_map() -> dict:
     result = {}
     # schedulers = pipe.scheduler.compatibles
 
@@ -194,26 +229,32 @@ def get_schedulers_map(pipe: DiffusionPipeline) -> dict:
         name = s.__name__ if hasattr(s, "__name__") else s.__class__.__name__
         if name.endswith("Scheduler"):
             name = name[:-9]
-        if s == pipe.scheduler.__class__:
-            print(f"{s=}; {pipe.scheduler.__class__=}")
-            name = f"{name} (Default)"
+        # if s == pipe.scheduler.__class__:
+        #     print(f"{s=}; {pipe.scheduler.__class__=}")
+        #     name = f"{name} (Default)"
         result[name] = s
 
     print(f"{result.keys()=}")
     return result
 
 @lru_cache(maxsize=1)
-def get_scheduler_config(pipe: DiffusionPipeline):
+def get_scheduler_config(model_path: str):
+    pipe: DiffusionPipeline = load_pipeline(model_path)
     return pipe.scheduler.config
 
 def set_scheduler(
-        pipe: DiffusionPipeline,
+        model_path: str,
         scheduler_name: str,
-        schedulers_map: dict,
         scheduler_config,
 ) -> None:
+    pipe: DiffusionPipeline = load_pipeline(model_path)
+    schedulers_map = get_schedulers_map()
     print(f"{schedulers_map.keys()=}")
     scheduler = schedulers_map[scheduler_name]
+
+    if scheduler == pipe.scheduler:
+        return
+
     print(f"{scheduler_config=}")
     # scheduler_config["prediction_type"] = "v_prediction"
     pipe.scheduler = scheduler.from_config(scheduler_config)

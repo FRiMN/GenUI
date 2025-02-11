@@ -1,121 +1,58 @@
+from ui_widgets.window_mixins.generation_command import GenerationCommandMixin
+from ui_widgets.window_mixins.image_size import ImageSizeMixin
+from ui_widgets.window_mixins.seed import SeedMixin
+from worker import Worker
+
 print("top 1")
-import random
-import time
-from multiprocessing import Manager, Process
-from pathlib import Path
 
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QObject, pyqtSignal, QThread
+from PyQt6.QtCore import QThread
 
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
-from generator.sdxl import load_pipline, generate, get_schedulers_map, set_scheduler, get_scheduler_config, Generator
+from generator.sdxl import get_schedulers_map, set_scheduler, get_scheduler_config, Generator
 from ui_widgets.photo_viewer import PhotoViewer
 # from utils import TraceMem
 # from guppy import hpy
 
 print("top 2")
 
-ASPECT_RATIOS = (
-    "1:1",
-    "L 5:4",
-    "L 4:3",
-    "L 3:2",
-    "L 16:10",
-    "L 16:9",
-    "L 21:9",
-    "P 4:5",
-    "P 3:4",
-    "P 2:3",
-    "P 9:10",
-    "P 9:16",
-    "P 9:21",
-)
-MODEL_PATH = "/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/checkpoints/anime/illustrious/obsessionIllustrious_v31.safetensors"
+
+# class PipelineProcess(Process):
+#
+#     def run(self):
+#         image: Image.Image = generate(
+#             self.pipeline,
+#             self.window.prompt_editor.toPlainText(),
+#             self.window.negative_editor.toPlainText(),
+#             seed=self.window.seed_editor.value(),
+#             size=self.window.size,
+#             clip_skip=self.window.clip_skip.value(),
+#             callback=self.callback_preview,
+#         )
+#         self.callback_preview(image, self.step)
+#         self.save_image(image)
 
 
-class Worker(QObject):
-    finished = pyqtSignal()
-    progress_preview = pyqtSignal(bytes, int, int, int, int)
-
-    def __init__(
-            self,
-            prompt: str,
-            neg_prompt: str,
-            seed: int,
-            size: tuple[int, int],
-            clip_skip: int,
-    ):
-        super().__init__()
-        self.pipline = load_pipline(MODEL_PATH)
-        self.step = 0
-        self.prompt = prompt
-        self.neg_prompt = neg_prompt
-        self.seed = seed
-        self.size = size
-        self.clip_skip = clip_skip
-
-    def callback_preview(self, image: Image.Image, step: int):
-        # h = hpy()
-        self.step = step
-        image_data = image.tobytes()
-        self.progress_preview.emit(image_data, step, 20, image.width, image.height)
-        # print(h.heap())
-
-    def run(self):
-        image: Image.Image = generate(
-            self.pipline,
-            self.prompt,
-            self.neg_prompt,
-            seed=self.seed,
-            size=self.size,
-            clip_skip=self.clip_skip,
-            callback=self.callback_preview,
-        )
-        self.callback_preview(image, self.step)
-        self.save_image(image)
-
-        self.stop()
-
-    def stop(self):
-        print("stopping")
-        self.finished.emit()
-
-    def generate_filepath(self) -> Path:
-        t = time.time()
-        return Path(f"/media/frimn/archive31/ai/stable_diffusion/ComfyUI/output/genui/{t}.jpg")
-
-    def save_image(self, image: Image.Image):
-        p = self.generate_filepath()
-        image.save(p)
-
-
-class PipelineProcess(Process):
-
-    def run(self):
-        image: Image.Image = generate(
-            self.pipline,
-            self.window.prompt_editor.toPlainText(),
-            self.window.negative_editor.toPlainText(),
-            seed=self.window.seed_editor.value(),
-            size=self.window.size,
-            clip_skip=self.window.clip_skip.value(),
-            callback=self.callback_preview,
-        )
-        self.callback_preview(image, self.step)
-        self.save_image(image)
-
-
-class Window(QtWidgets.QMainWindow):
+class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommandMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # self.setWindowTitle("GenUI")
-        self.size = (0, 0)
 
         self.generator = Generator()
-        self.pipline = None
         self.model_path = None
         self.model_name = None
+        # self.scheduler_name = None
+
+        self._generate_method = self.threaded_generate
+
+        self._build_widgets()
+
+    def closeEvent(self, event):
+        del self.generator
+        event.accept()  # Close the app
+
+    def _build_widgets(self):
         self.model_path_btn = QtWidgets.QPushButton("Model", self)
         self.model_path_btn.setToolTip("Model")
         self.model_path_btn.clicked.connect(self.handle_change_model)
@@ -126,11 +63,10 @@ class Window(QtWidgets.QMainWindow):
         self.viewer.repainted.connect(self.handle_zoomed)
 
         self._build_status_widgets()
-        self._build_prompt_editors()
-        self._build_generation_widgets()
-        self._build_seed_widgets()
-        self._build_size_widgets()
         self._build_scheduler_widgets()
+
+        self.prompt_editor = AwesomeTextEdit()
+        self.negative_editor = AwesomeTextEdit()
 
         panel_box = self._build_prompt_panel()
 
@@ -153,18 +89,6 @@ class Window(QtWidgets.QMainWindow):
 
         self._createToolBars()
 
-    def _build_generation_widgets(self):
-        self.button_generate = bg = QtWidgets.QPushButton('Generate', self)
-        bg.setStyleSheet("background-color: darkblue")
-        bg.clicked.connect(self.handle_generate)
-        bg.setShortcut("Ctrl+Return")
-
-        self.button_interrupt = bi = QtWidgets.QPushButton(self)
-        bi.setText('Stop')
-        bi.setStyleSheet("background-color: darkred")
-        bi.setDisabled(True)
-        bi.clicked.connect(self.handle_interrupt)
-
     def _build_prompt_panel(self):
         panel = QtWidgets.QVBoxLayout()
         panel.addWidget(self.prompt_editor)
@@ -180,52 +104,26 @@ class Window(QtWidgets.QMainWindow):
         self.label_current_size.setToolTip("The actual size of the image. It may be less when previewing")
         self.label_status = QtWidgets.QLabel(self)
 
-    def _build_seed_widgets(self):
-        self.seed_editor = QtWidgets.QSpinBox()
-        self.seed_editor.setRange(0, 1_000_000_000)
-        self.seed_editor.setToolTip("Seed")
-
-        self.seed_random_btn = QtWidgets.QPushButton()
-        self.seed_random_btn.setText("RND")
-        self.seed_random_btn.clicked.connect(self.handle_random_seed)
-
-    def _build_size_widgets(self):
-        self.base_size_editor = bse = QtWidgets.QSpinBox()
-        bse.setMinimum(512)
-        bse.setMaximum(8192)
-        bse.setSingleStep(128)
-        bse.setValue(1280)
-        bse.setToolTip("Base size")
-        bse.valueChanged.connect(self.handle_change_base_size)
-
-        self.label_size = QtWidgets.QLabel()
-
-        self.size_aspect_ratio = sar = QtWidgets.QComboBox()
-        sar.addItems(ASPECT_RATIOS)
-        sar.currentTextChanged.connect(self.handle_change_size_aspect_ratio)
-        sar.setCurrentText("P 4:5")
-
-    def _build_prompt_editors(self):
-        self.prompt_editor = AwesomeTextEdit()
-        self.negative_editor = AwesomeTextEdit()
-
     def _build_scheduler_widgets(self):
         self.scheduler_selector = ss = QtWidgets.QComboBox()
         ss.setToolTip("Scheduler")
-        ss.currentTextChanged.connect(self.handle_change_scheduler)
+        # ss.currentTextChanged.connect(self.handle_change_scheduler)
+        schedulers_map = get_schedulers_map()
+        schedulers = sorted(schedulers_map.keys())
+        ss.addItems(schedulers)
 
         self.clip_skip = cs = QtWidgets.QSpinBox()
         cs.setValue(1)
 
-    def update_scheduler_widgets(self):
-        schedulers_map = get_schedulers_map(self.pipline)
-
-        schedulers = sorted(schedulers_map.keys())
-        default_scheduler = next((x for x in schedulers if x.endswith("(Default)")))
-        print(f"{default_scheduler=}")
-
-        self.scheduler_selector.addItems(schedulers)
-        self.scheduler_selector.setCurrentText(default_scheduler)
+    # def update_scheduler_widgets(self):
+    #     schedulers_map = get_schedulers_map(self.pipeline)
+    #
+    #     schedulers = sorted(schedulers_map.keys())
+    #     default_scheduler = next((x for x in schedulers if x.endswith("(Default)")))
+    #     print(f"{default_scheduler=}")
+    #
+    #     self.scheduler_selector.addItems(schedulers)
+    #     self.scheduler_selector.setCurrentText(default_scheduler)
 
     def _createToolBars(self):
         action_toolbar = QtWidgets.QToolBar("Action", self)
@@ -278,55 +176,12 @@ class Window(QtWidgets.QMainWindow):
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, progress_toolbar)
         self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, zoom_toolbar)
 
-    def handle_change_scheduler(self, text: str):
-        print(f"{text=}")
-        set_scheduler(
-            self.pipline, text,
-            get_schedulers_map(self.pipline),
-            get_scheduler_config(self.pipline)
-        )
+    # def handle_change_scheduler(self, text: str):
+    #     print(f"{text=}")
+    #     self.scheduler_name = text
 
     def handle_zoomed(self):
         self.zoom_label.setText(f"Zoom: {self.viewer.zoom_image_level():.2f}")
-
-    def handle_random_seed(self, *args, **kwargs):
-        val = random.randint(self.seed_editor.minimum(), self.seed_editor.maximum())
-        self.seed_editor.setValue(val)
-
-    def handle_change_base_size(self, val: int):
-        t = self.size_aspect_ratio.currentText()
-        self.handle_change_size_aspect_ratio(t)
-
-    def handle_change_size_aspect_ratio(self, text):
-        base_size = self.base_size_editor.value()
-
-        if " " not in text:
-            self.size = (base_size, base_size)
-        else:
-            algn, s = text.split(" ")
-            w, h = s.split(":")
-            w = int(w)
-            h = int(h)
-
-            ratio: float = h / w
-            w = base_size
-            h = base_size
-            if ratio > 1:
-                w /= ratio
-            else:
-                h *= ratio
-
-            w = round(w)
-            h = round(h)
-
-            while w % 8:
-                w += 1
-            while h % 8:
-                h += 1
-
-            self.size = (w, h)
-
-        self.label_size.setText(f"{self.size[0]} x {self.size[1]}")
 
     def handle_change_model(self):
         print("handle_change_model")
@@ -336,8 +191,8 @@ class Window(QtWidgets.QMainWindow):
 
         # load_modal_win = QtWidgets.QDialog()
         # load_modal_win.exec()
-        self.pipline = load_pipline(self.model_path)
-        self.update_scheduler_widgets()
+        # self.pipeline = load_pipeline(self.model_path)
+        # self.update_scheduler_widgets()
 
     # @Timer("Repaint")
     def repaint_image(
@@ -370,59 +225,33 @@ class Window(QtWidgets.QMainWindow):
         s = pixmap.size()
         self.label_current_size.setText(f"{s.width()} x {s.height()}")
 
-    def threated_generate(self):
-        # self.gen_thread = QThread(parent=self)
-        # self.gen_worker = Worker(
-        #     self.prompt_editor.toPlainText(),
-        #     self.negative_editor.toPlainText(),
-        #     self.seed_editor.value(),
-        #     self.size,
-        #     self.clip_skip.value()
-        # )
-        # self.gen_worker.moveToThread(self.gen_thread)
-        #
-        # self.gen_thread.started.connect(self.gen_worker.run)
-        # self.gen_worker.finished.connect(self.gen_thread.quit)
-        # self.gen_worker.finished.connect(self.gen_worker.deleteLater)
-        # self.gen_thread.finished.connect(self.gen_thread.deleteLater)
-        #
-        # self.gen_worker.progress_preview.connect(self.repaint_image)
-        #
-        # self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
-        # self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
-        # self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
-        #
-        # self.gen_thread.start()
-
-        prompt = {
-            "prompt": self.prompt_editor.toPlainText(),
-            "neg_prompt": self.negative_editor.toPlainText(),
-            "seed": self.seed_editor.value(),
-            "size": self.size,
-            "clip_skip": self.clip_skip.value()
-        }
-        self.generator.send(("generate", prompt))
-
-
-    def handle_generate(self):
+    def threaded_generate(self):
         self.label_status.setText("Generation...")
-        # self.button_generate.setDisabled(True)
-        # self.button_interrupt.setDisabled(False)
-        # gen_worker = Worker(self)
-        # gen_worker.run()
-        # gen_worker.progress_preview.connect(self.repaint_image)
+        self.gen_thread = QThread(parent=self)
+        self.gen_worker = Worker(
+            self.generator,
+            self.prompt_editor.toPlainText(),
+            self.negative_editor.toPlainText(),
+            self.seed_editor.value(),
+            self.image_size,
+            self.clip_skip.value(),
+            self.scheduler_selector.currentText(),
+            self.model_path,
+        )
+        self.gen_worker.moveToThread(self.gen_thread)
 
-        self.threated_generate()
+        self.gen_thread.started.connect(self.gen_worker.run)
+        self.gen_worker.finished.connect(self.gen_thread.quit)
+        self.gen_worker.finished.connect(self.gen_worker.deleteLater)
+        self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
-        # self.generator.send(time.time())
+        self.gen_worker.progress_preview.connect(self.repaint_image)
 
-    def handle_interrupt(self):
-        # interrupt()
-        self.gen_worker.stop()
+        self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
+        self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
+        self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
 
-    def closeEvent(self, event):
-        del self.generator
-        event.accept()  # Close the app
+        self.gen_thread.start()
 
 
 if __name__ == '__main__':
