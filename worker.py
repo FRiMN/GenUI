@@ -43,22 +43,8 @@ class Worker(QObject):
                     callback=self.callback_preview,
                 )
 
-                # self.generator.send(("generate", self.data))
-                #
-                # command, image_bytes, width, height = self.generator.parent_conn.recv()
-                # print("res", command, width, height)
-                #
-                # image = Image.frombytes(
-                #     "RGB",
-                #     (width, height),
-                #     image_bytes,
-                # )
-
-                # image_data = image.tobytes()
-                # self.progress_preview.emit(image_data, 20, 20, image.width, image.height)
-
                 self.callback_preview(image, 20)
-                # self.save_image(image)
+                self.save_image(image)
 
     def stop(self):
         print("stopping")
