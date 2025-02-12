@@ -1,15 +1,17 @@
-from diffusers.configuration_utils import FrozenDict
-from diffusers.schedulers import KarrasDiffusionSchedulers
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import gc
 from functools import lru_cache
 
-import PIL
-# TODO: slowdown import
-import diffusers
-import torch
-from PIL import Image
+if TYPE_CHECKING:
+    from diffusers.configuration_utils import FrozenDict
+
+from diffusers.schedulers import KarrasDiffusionSchedulers
 from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
+
+import PIL
+from PIL import Image
+import torch
 
 from utils import Timer
 
@@ -126,12 +128,14 @@ def callback_factory(callback: callable) -> callable:
 
 @lru_cache(maxsize=1)
 def get_schedulers_map() -> dict:
+    from diffusers import schedulers as diffusers_schedulers
+
     result = {}
 
     karras_schedulers = [e.name for e in KarrasDiffusionSchedulers]
-    schedulers = dir(diffusers.schedulers)
+    schedulers = dir(diffusers_schedulers)
     schedulers = [
-        getattr(diffusers.schedulers, x) for x in schedulers if x.endswith("Scheduler")
+        getattr(diffusers_schedulers, x) for x in schedulers if x.endswith("Scheduler")
         and x in karras_schedulers
     ]
 
@@ -139,9 +143,6 @@ def get_schedulers_map() -> dict:
         name = s.__name__ if hasattr(s, "__name__") else s.__class__.__name__
         if name.endswith("Scheduler"):
             name = name[:-9]
-        # if s == pipe.scheduler.__class__:
-        #     print(f"{s=}; {pipe.scheduler.__class__=}")
-        #     name = f"{name} (Default)"
         result[name] = s
 
     print(f"{result.keys()=}")
