@@ -38,7 +38,7 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
     import torch
 
     print("start load pipeline")
-    empty_cache()
+    # empty_cache()
     with Timer("Pipeline loading") as t:
         pipe = StableDiffusionXLPipeline.from_single_file(
             model_path,
@@ -60,7 +60,7 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
         # )
         # helper.enable()
 
-    print(f"{pipe.scheduler}")
+    # print(f"{pipe.scheduler}")
     # print(pipe.scheduler.compatibles)
 
     return pipe
@@ -72,7 +72,7 @@ def generate(
         neg_prompt: str,
         seed: int,
         size: tuple[int, int],
-        clip_skip: int,
+        guidance_scale: int,
         callback: callable,
 ) -> PIL.Image.Image:
     import torch
@@ -83,23 +83,24 @@ def generate(
     set_scheduler(
         model_path,
         scheduler_name,
-        get_scheduler_config(model_path)
+        pipeline.scheduler.config
     )
 
-    pipeline = load_pipeline(model_path)
-
-    # with torch.inference_mode():
-    image = pipeline(
-        prompt,
+    data = dict(
+        prompt=prompt,
         negative_prompt=neg_prompt,
         num_inference_steps=20,
-        guidance_scale=5,
         width=size[0],
         height=size[1],
-        # clip_skip=clip_skip,
         callback_on_step_end=callback_factory(callback),
         callback_on_step_end_tensor_inputs=["latents"],
-    ).images[0]
+        generator=g_gpu,
+    )
+    if guidance_scale:
+        data["guidance_scale"] = guidance_scale
+
+    # with torch.inference_mode():
+    image = pipeline(**data).images[0]
     # Empty cache corrupt image?
     # empty_cache()
     return image
@@ -160,10 +161,10 @@ def get_schedulers_map() -> dict:
     print(f"{result.keys()=}")
     return result
 
-@lru_cache(maxsize=1)
-def get_scheduler_config(model_path: str):
-    pipe: DiffusionPipeline = load_pipeline(model_path)
-    return pipe.scheduler.config
+# @lru_cache(maxsize=1)
+# def get_scheduler_config(model_path: str):
+#     pipe: DiffusionPipeline = load_pipeline(model_path)
+#     return pipe.scheduler.config
 
 def set_scheduler(
         model_path: str,
@@ -177,12 +178,12 @@ def set_scheduler(
     is_same_scheduler = isinstance(pipeline.scheduler, scheduler_class)
     is_same_config = scheduler_config == pipeline.scheduler.config
 
-    print(f"{is_same_scheduler=}; {scheduler_class=}; {pipeline.scheduler=}")
-    print(f"{is_same_config=}; {scheduler_config=}; {pipeline.scheduler.config=}")
+    # print(f"{is_same_scheduler=}; {scheduler_class=}; {pipeline.scheduler=}")
+    # print(f"{is_same_config=}; {scheduler_config=}; {pipeline.scheduler.config=}")
 
     if is_same_scheduler and is_same_config:
         return
 
-    print(f"Set new scheduler {scheduler_class} with {scheduler_config=}")
+    # print(f"Set new scheduler {scheduler_class} with {scheduler_config=}")
     # scheduler_config["prediction_type"] = "v_prediction"
     pipeline.scheduler = scheduler_class.from_config(scheduler_config)

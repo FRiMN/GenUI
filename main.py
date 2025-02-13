@@ -111,8 +111,11 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         schedulers = sorted(schedulers_map.keys())
         ss.addItems(schedulers)
 
-        self.clip_skip = cs = QtWidgets.QSpinBox()
-        cs.setValue(1)
+        self.cfg_editor = cfg = QtWidgets.QSpinBox()
+        cfg.setMaximum(10)
+        cfg.setMinimum(0)
+        cfg.setValue(0)
+        cfg.setToolTip("Guidance scale. 0 value is auto.")
 
     def _createToolBars(self):
         action_toolbar = QtWidgets.QToolBar("Action", self)
@@ -154,7 +157,11 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
         scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
         scheduler_toolbar.addWidget(self.scheduler_selector)
-        scheduler_toolbar.addWidget(self.clip_skip)
+        scheduler_toolbar.addSeparator()
+        cfg_label = QtWidgets.QLabel("CFG:")
+        scheduler_toolbar.addWidget(cfg_label)
+        scheduler_toolbar.addWidget(self.cfg_editor)
+        scheduler_toolbar.addSeparator()
         scheduler_toolbar.addWidget(self.model_path_btn)
 
         self.addToolBar(action_toolbar)
@@ -173,11 +180,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.model_path = QtWidgets.QFileDialog.getOpenFileName(self, "Model")[0]
         self.model_name = self.model_path.split("/")[-1].split(".")[0]
         self.model_path_btn.setText(self.model_name)
-
-        # load_modal_win = QtWidgets.QDialog()
-        # load_modal_win.exec()
-        # self.pipeline = load_pipeline(self.model_path)
-        # self.update_scheduler_widgets()
 
     # @Timer("Repaint")
     def repaint_image(
@@ -227,7 +229,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             neg_prompt=self.negative_editor.toPlainText(),
             seed=self.seed_editor.value(),
             size=self.image_size,
-            clip_skip=self.clip_skip.value(),
+            guidance_scale=self.cfg_editor.value(),
         ))
 
     def validate_data_for_generation(self) -> bool:
