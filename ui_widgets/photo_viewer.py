@@ -1,6 +1,7 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtCore import Qt, QRect, QSize
+from PyQt6.QtCore import Qt, QRect, QSize, QPoint
 from PyQt6.QtGui import QPainter, QPen, QColor, QPixmap
+from PyQt6.QtWidgets import QApplication
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100
@@ -171,29 +172,45 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         elif not self._photo.pixmap().isNull():
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
 
-    # def mouseMoveEvent(self, event):
-    #     self.updateCoordinates(event.position().toPoint())
-    #     super().mouseMoveEvent(event)
-
-    # def leaveEvent(self, event):
-    #     self.coordinatesChanged.emit(QtCore.QPoint())
-    #     super().leaveEvent(event)
-
 
 class FastViewer(QtWidgets.QLabel):
     def __init__(self, parent, max_size: QSize):
         super().__init__(parent)
 
+        # Max size of not expanded widget.
         self.max_size = max_size
         self.setHidden(True)
+        self.expanded = False
 
     def set_pixmap(self, pixmap: QPixmap | None = None):
         if not pixmap:
             self.setHidden(True)
             self.setPixmap(QPixmap())
+            self.expanded = False
             return
 
-        scaled_pixmap = pixmap.scaled(self.max_size, Qt.AspectRatioMode.KeepAspectRatio)
-        self.setPixmap(scaled_pixmap)
-        self.setFixedSize(scaled_pixmap.size())
+        if not self.expanded:
+            scaled_pixmap = pixmap.scaled(self.max_size, Qt.AspectRatioMode.KeepAspectRatio)
+            self.setPixmap(scaled_pixmap)
+            self.setFixedSize(scaled_pixmap.size())
+        else:
+            pos: QPoint = self.pos()
+            size = self.parent().size()
+            size.setWidth(size.width() - pos.x())
+            size.setHeight(size.height() - pos.y())
+
+            scaled_pixmap = pixmap.scaled(size, Qt.AspectRatioMode.KeepAspectRatio)
+            self.setPixmap(scaled_pixmap)
+            self.setFixedSize(scaled_pixmap.size())
+
         self.setHidden(False)
+
+    def mousePressEvent(self, ev: QtGui.QMouseEvent):
+        self.expanded = not self.expanded
+        self.set_pixmap(self.pixmap())
+
+    def enterEvent(self, ev: QtGui.QMouseEvent):
+        QApplication.setOverrideCursor(Qt.CursorShape.PointingHandCursor)
+
+    def leaveEvent(self, ev: QtGui.QMouseEvent):
+        QApplication.restoreOverrideCursor()
