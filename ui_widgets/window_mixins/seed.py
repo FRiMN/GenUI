@@ -8,7 +8,8 @@ class SeedMixin:
         super().__init__()
 
         self.seed_editor = QtWidgets.QSpinBox()
-        self.seed_editor.setRange(0, 1_000_000_000)
+        # Any 32-bit integer is a valid seed.
+        self.seed_editor.setRange(0, 2_147_483_647)
         self.seed_editor.setToolTip("Seed")
 
         self.seed_random_btn = QtWidgets.QPushButton()
