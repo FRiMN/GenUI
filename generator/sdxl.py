@@ -67,6 +67,7 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
 
     return pipe
 
+@lru_cache(maxsize=3)
 def generate(
         model_path: str,
         scheduler_name: str,
