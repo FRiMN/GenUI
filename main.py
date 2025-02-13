@@ -1,26 +1,25 @@
+from PIL import Image
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import QThread, Qt
+
+from generator.sdxl import get_schedulers_map
+from ui_widgets.editor_autocomplete import AwesomeTextEdit
+from ui_widgets.photo_viewer import PhotoViewer
 from ui_widgets.window_mixins.generation_command import GenerationCommandMixin
 from ui_widgets.window_mixins.image_size import ImageSizeMixin
 from ui_widgets.window_mixins.seed import SeedMixin
 from worker import Worker
 
-from PIL import Image
-from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QThread
-
-from ui_widgets.editor_autocomplete import AwesomeTextEdit
-from generator.sdxl import get_schedulers_map
-from ui_widgets.photo_viewer import PhotoViewer
-
 
 class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommandMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.setWindowTitle("GenUI")
 
         self.model_path = None
         self.model_name = None
 
         self._generate_method = self.threaded_generate
+        self._validate_data_for_generation_method = self.validate_data_for_generation
 
         self._build_threaded_worker()
         self._build_widgets()
@@ -38,6 +37,10 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.gen_worker.finished.connect(self.gen_thread.quit)
         self.gen_worker.finished.connect(self.gen_worker.deleteLater)
         self.gen_thread.finished.connect(self.gen_thread.deleteLater)
+
+        self.gen_worker.done.connect(lambda: self.button_interrupt.setDisabled(True))
+        self.gen_worker.done.connect(lambda: self.button_generate.setDisabled(False))
+        self.gen_worker.done.connect(lambda: self.label_status.setText("Done."))
 
         self.gen_worker.progress_preview.connect(self.repaint_image)
 
@@ -98,23 +101,12 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
     def _build_scheduler_widgets(self):
         self.scheduler_selector = ss = QtWidgets.QComboBox()
         ss.setToolTip("Scheduler")
-        # ss.currentTextChanged.connect(self.handle_change_scheduler)
         schedulers_map = get_schedulers_map()
         schedulers = sorted(schedulers_map.keys())
         ss.addItems(schedulers)
 
         self.clip_skip = cs = QtWidgets.QSpinBox()
         cs.setValue(1)
-
-    # def update_scheduler_widgets(self):
-    #     schedulers_map = get_schedulers_map(self.pipeline)
-    #
-    #     schedulers = sorted(schedulers_map.keys())
-    #     default_scheduler = next((x for x in schedulers if x.endswith("(Default)")))
-    #     print(f"{default_scheduler=}")
-    #
-    #     self.scheduler_selector.addItems(schedulers)
-    #     self.scheduler_selector.setCurrentText(default_scheduler)
 
     def _createToolBars(self):
         action_toolbar = QtWidgets.QToolBar("Action", self)
@@ -215,10 +207,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
     def threaded_generate(self):
         self.label_status.setText("Generation...")
 
-        # self.gen_worker.finished.connect(lambda: self.button_interrupt.setDisabled(True))
-        # self.gen_worker.finished.connect(lambda: self.button_generate.setDisabled(False))
-        # self.gen_worker.finished.connect(lambda: self.label_status.setText("Done."))
-
         self.gen_worker.parent_conn.send(dict(
             model_path=self.model_path,
             scheduler_name=self.scheduler_selector.currentText(),
@@ -229,6 +217,13 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             clip_skip=self.clip_skip.value(),
         ))
 
+    def validate_data_for_generation(self) -> bool:
+        return bool(
+            self.model_name
+            and self.scheduler_selector.currentText()
+            and self.image_size
+        )
+
 
 if __name__ == '__main__':
     print("starting")
@@ -237,7 +232,7 @@ if __name__ == '__main__':
     app.setApplicationDisplayName("GenUI")
 
     window = Window()
-    window.setGeometry(500, 300, 1300, 600)
+    window.setGeometry(500, 300, 1000, 600)
     window.show()
 
     sys.exit(app.exec())

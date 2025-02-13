@@ -7,11 +7,10 @@ from pathlib import Path
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from generator.sdxl import generate
-
 
 class Worker(QObject):
     finished = pyqtSignal()
+    done = pyqtSignal()
     progress_preview = pyqtSignal(bytes, int, int, int, int)
 
     def __init__(self):
@@ -30,6 +29,8 @@ class Worker(QObject):
 
     def run(self):
         """ Run in thread """
+        from generator.sdxl import generate
+
         self._started = True
         print("loop start")
 
@@ -45,6 +46,7 @@ class Worker(QObject):
 
                 self.callback_preview(image, 20)
                 self.save_image(image)
+                self.done.emit()
 
     def stop(self):
         print("stopping")

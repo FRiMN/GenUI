@@ -1,17 +1,15 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+
 import gc
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
-
-from diffusers.schedulers import KarrasDiffusionSchedulers
-from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
+    from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
 
 import PIL
 from PIL import Image
-import torch
 
 from utils import Timer
 
@@ -21,6 +19,8 @@ from utils import Timer
 
 def empty_cache():
     print("empty cache")
+    import torch
+
     gc.collect()
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
@@ -34,6 +34,9 @@ def empty_cache():
 
 @lru_cache(maxsize=1)
 def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
+    from diffusers import StableDiffusionXLPipeline
+    import torch
+
     print("start load pipeline")
     empty_cache()
     with Timer("Pipeline loading") as t:
@@ -72,6 +75,8 @@ def generate(
         clip_skip: int,
         callback: callable,
 ) -> PIL.Image.Image:
+    import torch
+
     # max seed is 2147483647 ?
     torch.Generator("cuda").manual_seed(seed)
 
@@ -99,8 +104,14 @@ def generate(
     # empty_cache()
     return image
 
+def interrupt(model_path: str):
+    pipeline = load_pipeline(model_path)
+    pipeline._interrupt = True
+
 def latents_to_rgb(latents):
     # https://huggingface.co/docs/diffusers/using-diffusers/callback
+    import torch
+
     weights = (
         (60, -60, 25, -70),
         (60,  -5, 15, -50),
@@ -128,6 +139,7 @@ def callback_factory(callback: callable) -> callable:
 
 @lru_cache(maxsize=1)
 def get_schedulers_map() -> dict:
+    from diffusers.schedulers import KarrasDiffusionSchedulers
     from diffusers import schedulers as diffusers_schedulers
 
     result = {}
