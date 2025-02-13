@@ -1,5 +1,6 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtGui import QPainter
+from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtGui import QPainter, QPen, QColor, QPixmap
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100
@@ -17,11 +18,16 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._empty = True
         self._original_size = (0, 0)
 
-        self._scene = QtWidgets.QGraphicsScene(self)
         self._photo = QtWidgets.QGraphicsPixmapItem()
         self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
         self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
+
+        # self._preview_photo = QtWidgets.QGraphicsPixmapItem()
+        # self._preview_photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
+
+        self._scene = QtWidgets.QGraphicsScene(self)
         self._scene.addItem(self._photo)
+        # self._scene.addItem(self._preview_photo)
         self.setScene(self._scene)
 
         va = QtWidgets.QGraphicsView.ViewportAnchor
@@ -35,6 +41,39 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setRenderHints(rh.Antialiasing | rh.SmoothPixmapTransform)
+
+        # self.drawFramedPixmap()
+
+    def drawFramedPixmap(self):
+        pixmap = QPixmap(400, 300)
+        pixmap.fill(Qt.GlobalColor.white)
+        painter = QPainter(pixmap)
+
+        # Define the frame thickness and color
+        frame_thickness = 10
+        frame_color = QColor(Qt.GlobalColor.black)
+
+        # Draw the top left corner of the frame
+        painter.setPen(QPen(frame_color, frame_thickness))
+        painter.drawPoint(frame_thickness // 2, frame_thickness // 2)
+
+        # Draw the bottom right corner of the frame
+        painter.drawPoint(pixmap.width() - frame_thickness // 2 - 1,
+                          pixmap.height() - frame_thickness // 2 - 1)
+
+        # Draw the top right corner of the frame
+        painter.setPen(QPen(frame_color, frame_thickness))
+        painter.drawPoint(pixmap.width() - frame_thickness // 2 - 1, frame_thickness // 2)
+
+        # Draw the bottom left corner of the frame
+        painter.drawPoint(frame_thickness // 2, pixmap.height() - frame_thickness // 2 - 1)
+
+        # Optionally draw inner lines for a more solid frame
+        painter.setPen(QPen(frame_color, frame_thickness * 2))
+        painter.drawLine(frame_thickness, frame_thickness, pixmap.width() - frame_thickness, frame_thickness)
+        painter.drawLine(frame_thickness, frame_thickness, frame_thickness, pixmap.height() - frame_thickness)
+
+        painter.end()
 
     def hasPhoto(self):
         return not self._empty
@@ -51,6 +90,8 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         if self.hasPhoto():
             viewrect = self.viewport().rect()
             scenerect = self.transform().mapRect(rect)
+
+            # print(f"{id(self)}; {viewrect=}; {scenerect=}")
 
             factor = min(
                 viewrect.width() / scenerect.width(),
@@ -80,6 +121,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         rect = QtCore.QRectF(self._photo.pixmap().rect())
         self._original_size = (rect.width(), rect.height())
         self.resetView(SCALE_FACTOR ** self._zoom)
+
+    # def setPreviewPhoto(self, pixmap=None):
+    #     self._preview_photoviewer.setPhoto(pixmap)
 
     def zoom_scene_level(self):
         return SCALE_FACTOR ** self._zoom
@@ -137,3 +181,18 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     # def leaveEvent(self, event):
     #     self.coordinatesChanged.emit(QtCore.QPoint())
     #     super().leaveEvent(event)
+
+
+class FastViewer(QtWidgets.QLabel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+
+        # self._pixmap = QPixmap()
+
+    def set_pixmap(self, pixmap):
+        self._painter = QPainter()
+        self._painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform, True)
+
+        rect = QRect(0, 0, 500, 500)
+        self._painter.drawPixmap(rect, pixmap)
