@@ -4,6 +4,8 @@ import gc
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
+from diffusers.utils.testing_utils import enable_full_determinism
+
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
     from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
@@ -77,8 +79,11 @@ def generate(
 ) -> PIL.Image.Image:
     import torch
 
-    # max seed is 2147483647 ?
-    torch.Generator("cuda").manual_seed(seed)
+    # enable_full_determinism()
+
+    generator = torch.manual_seed(seed)
+
+    pipeline = load_pipeline(model_path)
 
     set_scheduler(
         model_path,
@@ -94,7 +99,7 @@ def generate(
         height=size[1],
         callback_on_step_end=callback_factory(callback),
         callback_on_step_end_tensor_inputs=["latents"],
-        generator=g_gpu,
+        generator=generator,
     )
     if guidance_scale:
         data["guidance_scale"] = guidance_scale
