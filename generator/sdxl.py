@@ -91,6 +91,19 @@ def generate(
         pipeline.scheduler.config
     )
 
+    # We prepare latents for reproducible (bug in diffusers lib?).
+    num_channels_latents = pipeline.unet.config.in_channels
+    latents = pipeline.prepare_latents(
+        1,
+        num_channels_latents,
+        size[1],
+        size[0],
+        torch.float16,
+        pipeline._execution_device,
+        generator,
+        None,
+    )
+
     data = dict(
         prompt=prompt,
         negative_prompt=neg_prompt,
@@ -100,6 +113,7 @@ def generate(
         callback_on_step_end=callback_factory(callback),
         callback_on_step_end_tensor_inputs=["latents"],
         generator=generator,
+        latents=latents,
     )
     if guidance_scale:
         data["guidance_scale"] = guidance_scale
