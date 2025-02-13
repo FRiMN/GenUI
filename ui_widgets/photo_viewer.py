@@ -129,7 +129,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     def zoom_image_level(self):
         rect = QtCore.QRectF(self._photo.pixmap().rect())
         scenerect = self.transform().mapRect(rect)
-        return scenerect.width() / self._original_size[0]
+        return scenerect.width() / self._original_size[0] if self._original_size[0] else 0
 
     def zoomPinned(self):
         return self._pinned
