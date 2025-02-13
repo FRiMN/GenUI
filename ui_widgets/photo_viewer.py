@@ -1,5 +1,5 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.QtCore import Qt, QRect
+from PyQt6.QtCore import Qt, QRect, QSize
 from PyQt6.QtGui import QPainter, QPen, QColor, QPixmap
 
 SCALE_FACTOR = 1.05
@@ -122,9 +122,6 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._original_size = (rect.width(), rect.height())
         self.resetView(SCALE_FACTOR ** self._zoom)
 
-    # def setPreviewPhoto(self, pixmap=None):
-    #     self._preview_photoviewer.setPhoto(pixmap)
-
     def zoom_scene_level(self):
         return SCALE_FACTOR ** self._zoom
 
@@ -184,15 +181,19 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
 
 class FastViewer(QtWidgets.QLabel):
-    def __init__(self, parent):
+    def __init__(self, parent, max_size: QSize):
         super().__init__(parent)
 
+        self.max_size = max_size
+        self.setHidden(True)
 
-        # self._pixmap = QPixmap()
+    def set_pixmap(self, pixmap: QPixmap | None = None):
+        if not pixmap:
+            self.setHidden(True)
+            self.setPixmap(QPixmap())
+            return
 
-    def set_pixmap(self, pixmap):
-        self._painter = QPainter()
-        self._painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform, True)
-
-        rect = QRect(0, 0, 500, 500)
-        self._painter.drawPixmap(rect, pixmap)
+        scaled_pixmap = pixmap.scaled(self.max_size, Qt.AspectRatioMode.KeepAspectRatio)
+        self.setPixmap(scaled_pixmap)
+        self.setFixedSize(scaled_pixmap.size())
+        self.setHidden(False)

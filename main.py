@@ -1,6 +1,6 @@
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QThread, Qt
+from PyQt6.QtCore import QThread, Qt, QSize
 from PyQt6.QtGui import QPixmap
 from PyQt6.uic.Compiler.qtproxies import QtGui
 
@@ -58,16 +58,9 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.viewer.zoomed.connect(self.handle_zoomed)
         self.viewer.repainted.connect(self.handle_zoomed)
 
-        # self.preview_pixmap = QPixmap(100, 100)
-        # self.preview_pixmap.fill(Qt.GlobalColor.blue)
-        # self.preview_viewer = QtWidgets.QLabel(self.viewer)
-        self.preview_viewer = FastViewer(self.viewer)
-        # self.preview_viewer.setPixmap(self.preview_pixmap)
-        # self.preview_viewer.setFixedSize(100, 100)
+        self.preview_viewer = FastViewer(self.viewer, QSize(150, 150))
         self.preview_viewer.move(20, 20)
-        # self.preview_viewer.setMaximumHeight(500)
-        # self.preview_viewer.setMaximumWidth(500)
-        # self.preview_viewer_viewer = PhotoViewer(self.preview_viewer)
+        self.preview_viewer.setStyleSheet("border: 5px solid white; border-radius: 5px")
 
         self._build_status_widgets()
         self._build_scheduler_widgets()
@@ -95,8 +88,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.setCentralWidget(layout_box)
 
         self._createToolBars()
-
-        self.preview_viewer.show()
 
     def _build_prompt_panel(self):
         panel = QtWidgets.QVBoxLayout()
@@ -214,10 +205,14 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             image = image.resize((int(image.width * mw), int(image.height * mh)))
 
         pixmap = image.toqpixmap()
-        # p_pixmap = pixmap.copy()
-        self.viewer.setPhoto(pixmap)
-        # self.preview_viewer.setPixmap(pixmap)
-        self.preview_viewer.set_pixmap(pixmap)
+        # We copy pixmap for avoid set preview latent image to viewer (caching?).
+        pixmap = pixmap.copy()
+
+        if step == steps:
+            self.viewer.setPhoto(pixmap)
+            self.preview_viewer.set_pixmap(None)
+        else:
+            self.preview_viewer.set_pixmap(pixmap)
 
         s = pixmap.size()
         self.label_current_size.setText(f"{s.width()} x {s.height()}")
