@@ -208,7 +208,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         # We copy pixmap for avoid set preview latent image to viewer (caching?).
         pixmap = pixmap.copy()
 
-        if step == steps:
+        if step == steps + 1:
             self.viewer.setPhoto(pixmap)
             self.preview_viewer.set_pixmap(None)
         else:
