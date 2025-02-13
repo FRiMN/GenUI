@@ -44,7 +44,7 @@ class Worker(QObject):
                     callback=self.callback_preview,
                 )
 
-                self.step += 1
+                self.step = 21
                 self.callback_preview(image, self.step)
                 self.save_image(image)
                 self.done.emit()
