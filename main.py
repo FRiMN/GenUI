@@ -191,20 +191,21 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             height: int
     ):
         self.label_process.setText(f"Step: {step}/{steps}")
-        base_size = self.base_size_editor.value()
+        # FIXIT
+        # base_size = self.base_size_editor.value()
         image = Image.frombytes(
             "RGB",
             (width, height),
             image_bytes,
         )
 
-        if image.width < base_size and image.height < base_size:
-            # We need resize all "latent" images to real size,
-            # otherwise position of zoomed image in widget will be reset.
-            mw = self.image_size[0] / image.width
-            mh = self.image_size[1] / image.height
-
-            image = image.resize((int(image.width * mw), int(image.height * mh)))
+        # if image.width < base_size and image.height < base_size:
+        #     # We need resize all "latent" images to real size,
+        #     # otherwise position of zoomed image in widget will be reset.
+        #     mw = self.image_size[0] / image.width
+        #     mh = self.image_size[1] / image.height
+        #
+        #     image = image.resize((int(image.width * mw), int(image.height * mh)))
 
         pixmap = image.toqpixmap()
         # We copy pixmap for avoid set preview latent image to viewer (caching?).
