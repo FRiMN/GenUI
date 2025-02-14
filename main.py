@@ -58,8 +58,8 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.viewer.zoomed.connect(self.handle_zoomed)
         self.viewer.repainted.connect(self.handle_zoomed)
 
-        self.preview_viewer = FastViewer(self.viewer, QSize(150, 150))
-        self.preview_viewer.move(20, 20)
+        self.preview_viewer = FastViewer(self.viewer, QSize(200, 200))
+        self.preview_viewer.move(10, 10)
         self.preview_viewer.setStyleSheet("border: 5px solid white; border-radius: 5px")
 
         self._build_status_widgets()

@@ -196,8 +196,8 @@ class FastViewer(QtWidgets.QLabel):
         else:
             pos: QPoint = self.pos()
             size = self.parent().size()
-            size.setWidth(size.width() - pos.x())
-            size.setHeight(size.height() - pos.y())
+            size.setWidth(size.width() - pos.x() - 5)
+            size.setHeight(size.height() - pos.y() - 5)
 
             scaled_pixmap = pixmap.scaled(size, Qt.AspectRatioMode.KeepAspectRatio)
             self.setPixmap(scaled_pixmap)
