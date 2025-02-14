@@ -1,7 +1,9 @@
-from PyQt6 import QtWidgets, QtCore, QtGui
+from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QRect, QSize, QPoint
-from PyQt6.QtGui import QPainter, QPen, QColor, QPixmap
+from PyQt6.QtGui import QPainter, QPen, QColor, QPixmap, QBrush, QMouseEvent
 from PyQt6.QtWidgets import QApplication
+
+from utils import BACKGROUND_COLOR_HEX
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100
@@ -23,12 +25,8 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
         self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
 
-        # self._preview_photo = QtWidgets.QGraphicsPixmapItem()
-        # self._preview_photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
-
         self._scene = QtWidgets.QGraphicsScene(self)
         self._scene.addItem(self._photo)
-        # self._scene.addItem(self._preview_photo)
         self.setScene(self._scene)
 
         va = QtWidgets.QGraphicsView.ViewportAnchor
@@ -39,42 +37,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self.setResizeAnchor(va.AnchorUnderMouse)
         self.setVerticalScrollBarPolicy(sb_policy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(sb_policy.ScrollBarAlwaysOff)
-        self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(30, 30, 30)))
+        self.setBackgroundBrush(QBrush(QColor.fromString(BACKGROUND_COLOR_HEX)))
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setRenderHints(rh.Antialiasing | rh.SmoothPixmapTransform)
-
-        # self.drawFramedPixmap()
-
-    def drawFramedPixmap(self):
-        pixmap = QPixmap(400, 300)
-        pixmap.fill(Qt.GlobalColor.white)
-        painter = QPainter(pixmap)
-
-        # Define the frame thickness and color
-        frame_thickness = 10
-        frame_color = QColor(Qt.GlobalColor.black)
-
-        # Draw the top left corner of the frame
-        painter.setPen(QPen(frame_color, frame_thickness))
-        painter.drawPoint(frame_thickness // 2, frame_thickness // 2)
-
-        # Draw the bottom right corner of the frame
-        painter.drawPoint(pixmap.width() - frame_thickness // 2 - 1,
-                          pixmap.height() - frame_thickness // 2 - 1)
-
-        # Draw the top right corner of the frame
-        painter.setPen(QPen(frame_color, frame_thickness))
-        painter.drawPoint(pixmap.width() - frame_thickness // 2 - 1, frame_thickness // 2)
-
-        # Draw the bottom left corner of the frame
-        painter.drawPoint(frame_thickness // 2, pixmap.height() - frame_thickness // 2 - 1)
-
-        # Optionally draw inner lines for a more solid frame
-        painter.setPen(QPen(frame_color, frame_thickness * 2))
-        painter.drawLine(frame_thickness, frame_thickness, pixmap.width() - frame_thickness, frame_thickness)
-        painter.drawLine(frame_thickness, frame_thickness, frame_thickness, pixmap.height() - frame_thickness)
-
-        painter.end()
 
     def hasPhoto(self):
         return not self._empty
@@ -114,7 +79,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         else:
             self._empty = True
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
-            self._photo.setPixmap(QtGui.QPixmap())
+            self._photo.setPixmap(QPixmap())
 
         if not (self.zoomPinned() and self.hasPhoto()):
             self._zoom = 0
@@ -205,12 +170,12 @@ class FastViewer(QtWidgets.QLabel):
 
         self.setHidden(False)
 
-    def mousePressEvent(self, ev: QtGui.QMouseEvent):
+    def mousePressEvent(self, ev: QMouseEvent):
         self.expanded = not self.expanded
         self.set_pixmap(self.pixmap())
 
-    def enterEvent(self, ev: QtGui.QMouseEvent):
+    def enterEvent(self, ev: QMouseEvent):
         QApplication.setOverrideCursor(Qt.CursorShape.PointingHandCursor)
 
-    def leaveEvent(self, ev: QtGui.QMouseEvent):
+    def leaveEvent(self, ev: QMouseEvent):
         QApplication.restoreOverrideCursor()

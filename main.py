@@ -1,8 +1,6 @@
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import QThread, Qt, QSize
-from PyQt6.QtGui import QPixmap
-from PyQt6.uic.Compiler.qtproxies import QtGui
+from PyQt6.QtCore import QThread, QSize
 
 from generator.sdxl import get_schedulers_map
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
@@ -66,7 +64,9 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self._build_scheduler_widgets()
 
         self.prompt_editor = AwesomeTextEdit()
+        self.prompt_editor.setToolTip("Positive prompt")
         self.negative_editor = AwesomeTextEdit()
+        self.negative_editor.setToolTip("Negative prompt")
 
         panel_box = self._build_prompt_panel()
 
@@ -91,6 +91,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def _build_prompt_panel(self):
         panel = QtWidgets.QVBoxLayout()
+        panel.setContentsMargins(0, 0, 0, 0)
         panel.addWidget(self.prompt_editor)
         panel.addWidget(self.negative_editor)
 

@@ -4,9 +4,9 @@ from pathlib import Path
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QCompleter, QPlainTextEdit
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor
+from PyQt6.QtGui import QTextCursor, QPalette, QColor
 
-from utils import Timer
+from utils import Timer, BACKGROUND_COLOR_HEX
 
 
 @Timer("Autocomplete words loader")
@@ -46,6 +46,10 @@ class AwesomeTextEdit(QPlainTextEdit):
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setWidget(self)
         self.completer.insertText.connect(self.insert_completion)
+
+        palette = self.palette()
+        palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Base, QColor.fromString(BACKGROUND_COLOR_HEX))
+        self.setPalette(palette)
 
     def insert_completion(self, completion):
         tc = self.textCursor()
