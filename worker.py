@@ -13,13 +13,15 @@ class Worker(QObject):
     done = pyqtSignal()
     progress_preview = pyqtSignal(bytes, int, int, int, int)
 
+    poll_timeout = 0.3
+
+    parent_conn: Connection
+    child_conn: Connection
+
     def __init__(self):
         super().__init__()
         self._started = False
         self.step = 0
-
-        self.parent_conn: Connection
-        self.child_conn: Connection
         self.parent_conn, self.child_conn = Pipe()
 
     def callback_preview(self, image: Image.Image, step: int):
@@ -35,7 +37,7 @@ class Worker(QObject):
         print("loop start")
 
         while self._started:
-            is_data_exist = self.child_conn.poll(timeout=1)
+            is_data_exist = self.child_conn.poll(timeout=self.poll_timeout)
             if is_data_exist:
                 data = self.child_conn.recv()
 
@@ -53,7 +55,7 @@ class Worker(QObject):
         print("stopping")
         self._started = False
         # This pause needed, because we wait data in pipe (self.child_conn.poll)
-        time.sleep(1)
+        time.sleep(self.poll_timeout)
         self.finished.emit()
 
     def generate_filepath(self) -> Path:
