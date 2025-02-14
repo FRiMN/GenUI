@@ -160,6 +160,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         scheduler_toolbar.addSeparator()
         cfg_label = QtWidgets.QLabel("CFG:")
         scheduler_toolbar.addWidget(cfg_label)
+        scheduler_toolbar.addSeparator()
         scheduler_toolbar.addWidget(self.cfg_editor)
         scheduler_toolbar.addSeparator()
         scheduler_toolbar.addWidget(self.model_path_btn)
@@ -176,7 +177,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.zoom_label.setText(f"Zoom: {self.viewer.zoom_image_level():.2f}")
 
     def handle_change_model(self):
-        print("handle_change_model")
         self.model_path = QtWidgets.QFileDialog.getOpenFileName(self, "Model")[0]
         self.model_name = self.model_path.split("/")[-1].split(".")[0]
         self.model_path_btn.setText(self.model_name)
