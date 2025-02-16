@@ -1,6 +1,7 @@
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QThread, QSize
+from PyQt6.QtWidgets import QStatusBar, QSizePolicy
 
 from generator.sdxl import get_schedulers_map
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
@@ -55,6 +56,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.viewer.setZoomPinned(True)
         self.viewer.zoomed.connect(self.handle_zoomed)
         self.viewer.repainted.connect(self.handle_zoomed)
+        self.viewer.repainted.connect(self.handle_repainted)
 
         self.preview_viewer = FastViewer(self.viewer, QSize(200, 200))
         self.preview_viewer.move(10, 10)
@@ -100,9 +102,11 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         return panel_box
 
     def _build_status_widgets(self):
-        self.label_process = QtWidgets.QLabel(self)
-        self.label_current_size = QtWidgets.QLabel(self)
-        self.label_current_size.setToolTip("The actual size of the image. It may be less when previewing")
+        self.label_process = QtWidgets.QProgressBar(self)
+        self.label_process.setMinimum(0)
+        self.label_process.setFormat("%v/%m")
+        self.label_process.setFixedWidth(100)
+
         self.label_status = QtWidgets.QLabel(self)
 
     def _build_scheduler_widgets(self):
@@ -141,20 +145,14 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         size_toolbar.addSeparator()
         size_toolbar.addWidget(self.label_size)
 
-        progress_toolbar = QtWidgets.QToolBar("Progress", self)
-        progress_toolbar.addWidget(self.label_process)
-        progress_toolbar.addSeparator()
-        progress_toolbar.addWidget(self.label_current_size)
-        progress_toolbar.addSeparator()
-        progress_toolbar.addWidget(self.label_status)
-
         self.zoom_label = QtWidgets.QLabel()
         self.zoom_fit_button = QtWidgets.QPushButton()
         self.zoom_fit_button.setText("Fit")
         self.zoom_fit_button.clicked.connect(self.viewer.resetView)
-        zoom_toolbar = QtWidgets.QToolBar("Zoom", self)
-        zoom_toolbar.addWidget(self.zoom_label)
-        zoom_toolbar.addWidget(self.zoom_fit_button)
+        self.zoom_orig_button = QtWidgets.QPushButton()
+        self.zoom_orig_button.setText("Orig")
+        self.zoom_orig_button.clicked.connect(self.viewer.origView)
+        self.label_viewer_image_size = QtWidgets.QLabel()
 
         scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
         scheduler_toolbar.addWidget(self.scheduler_selector)
@@ -171,11 +169,26 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.addToolBar(size_toolbar)
         self.addToolBar(scheduler_toolbar)
 
-        self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, progress_toolbar)
-        self.addToolBar(QtCore.Qt.ToolBarArea.BottomToolBarArea, zoom_toolbar)
+        status_bar = QtWidgets.QStatusBar()
+        status_bar.addWidget(self.label_process)
+        status_bar.addWidget(self.label_status)
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        status_bar.addWidget(spacer, 1)
+        status_bar.addWidget(self.label_viewer_image_size)
+        status_bar.addWidget(self.zoom_label)
+        status_bar.addWidget(self.zoom_fit_button)
+        status_bar.addWidget(self.zoom_orig_button)
+
+        self.setStatusBar(status_bar)
 
     def handle_zoomed(self):
-        self.zoom_label.setText(f"Zoom: {self.viewer.zoom_image_level():.2f}")
+        prct = int(self.viewer.zoom_image_level() * 100)
+        self.zoom_label.setText(f"Zoom: {prct}%")
+
+    def handle_repainted(self):
+        s = self.viewer.pixmap_size()
+        self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
 
     def handle_change_model(self):
         self.model_path = QtWidgets.QFileDialog.getOpenFileName(self, "Model")[0]
@@ -190,7 +203,9 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             width: int,
             height: int
     ):
-        self.label_process.setText(f"Step: {step}/{steps}")
+        self.label_process.setMaximum(steps)
+        self.label_process.setValue(step)
+
         base_size = self.base_size_editor.value()
         image = Image.frombytes(
             "RGB",
@@ -210,9 +225,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         else:
             self.viewer.setPhoto(pixmap)
             self.preview_viewer.set_pixmap(None)
-
-        s = pixmap.size()
-        self.label_current_size.setText(f"{s.width()} x {s.height()}")
 
     def threaded_generate(self):
         self.label_status.setText("Generation...")

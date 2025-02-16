@@ -71,6 +71,28 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self._scene.views()[0].viewport().repaint()
             self.repainted.emit()
 
+    def origView(self):
+        rect = QtCore.QRectF(self._photo.pixmap().rect())
+        if rect.isNull():
+            return
+
+        self.setSceneRect(rect)
+
+        if self.hasPhoto():
+            scenerect = self.transform().mapRect(rect)
+
+            factor = min(
+                rect.width() / scenerect.width(),
+                rect.height() / scenerect.height()
+            )
+            self.scale(factor, factor)
+
+            if not self.zoomPinned():
+                self.centerOn(self._photo)
+
+            self._scene.views()[0].viewport().repaint()
+            self.repainted.emit()
+
     def setPhoto(self, pixmap=None):
         if pixmap and not pixmap.isNull():
             self._empty = False
@@ -105,11 +127,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     def zoom(self, step):
         zoom = self._zoom + (step := int(step))
         if zoom == self._zoom:
-            print(f"equal")
             return
 
         if not (MIN_SCALE < zoom < MAX_SCALE):
-            print(f"outside")
             return
 
         self._zoom = zoom
@@ -118,6 +138,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         else:
             factor = 1 / SCALE_FACTOR ** abs(step)
         self.scale(factor, factor)
+
+    def pixmap_size(self) -> QSize:
+        return self._photo.pixmap().size()
 
     def wheelEvent(self, event):
         delta = event.angleDelta().y()
