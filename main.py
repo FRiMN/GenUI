@@ -178,7 +178,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         status_bar.addWidget(self.label_process)
         status_bar.addWidget(self.label_status)
         spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         status_bar.addWidget(spacer, 1)
         status_bar.addWidget(self.label_viewer_image_size)
         status_bar.addWidget(self.zoom_label)
