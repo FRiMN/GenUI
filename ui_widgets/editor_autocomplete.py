@@ -66,11 +66,9 @@ class AwesomeTextEdit(QPlainTextEdit):
         QPlainTextEdit.focusInEvent(self, event)
 
     def keyPressEvent(self, event):
-        # TODO: Fix partial word completion: exmpl. "reast".
-        # print(f"{event.key()=}")
+        # FIXME.
 
         tc = self.textCursor()
-        # print(f"{tc.hasSelection()=}")
         popup = self.completer.popup()
 
         if (
@@ -86,7 +84,6 @@ class AwesomeTextEdit(QPlainTextEdit):
                 and not popup.isVisible() and tc.hasSelection()
         ):
             selected_text = tc.selectedText()
-            print(f"{selected_text=}")
             old_increaser = 0.0
             increaser_delta = 0.05
 
@@ -96,7 +93,6 @@ class AwesomeTextEdit(QPlainTextEdit):
                     and ":" in selected_text
             ):
                 old_increaser = selected_text[-5:-1]
-                print(f"{old_increaser=}")
                 selected_text = selected_text[1:-6]
 
             new_text = f"({selected_text}:0.15)"
