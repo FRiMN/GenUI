@@ -105,7 +105,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.label_process = QtWidgets.QProgressBar(self)
         self.label_process.setMinimum(0)
         self.label_process.setFormat("%v/%m")
-        self.label_process.setFixedWidth(100)
+        self.label_process.setFixedWidth(150)
 
         self.label_status = QtWidgets.QLabel(self)
 
