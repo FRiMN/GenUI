@@ -1,6 +1,7 @@
 from PIL import Image
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import QThread, QSize
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QStatusBar, QSizePolicy
 
 from generator.sdxl import get_schedulers_map
@@ -146,11 +147,15 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         size_toolbar.addWidget(self.label_size)
 
         self.zoom_label = QtWidgets.QLabel()
+        icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest)
         self.zoom_fit_button = QtWidgets.QPushButton()
-        self.zoom_fit_button.setText("Fit")
+        self.zoom_fit_button.setIcon(icon)
+        self.zoom_fit_button.setToolTip("Fit image to viewport")
         self.zoom_fit_button.clicked.connect(self.viewer.resetView)
         self.zoom_orig_button = QtWidgets.QPushButton()
-        self.zoom_orig_button.setText("Orig")
+        icon = QIcon.fromTheme("zoom-original")
+        self.zoom_orig_button.setIcon(icon)
+        self.zoom_orig_button.setToolTip("Set original size of image")
         self.zoom_orig_button.clicked.connect(self.viewer.origView)
         self.label_viewer_image_size = QtWidgets.QLabel()
 
