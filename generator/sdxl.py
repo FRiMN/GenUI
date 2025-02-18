@@ -41,7 +41,7 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
 
     print("start load pipeline")
     # empty_cache()
-    with Timer("Pipeline loading") as t:
+    with Timer("Pipeline loading"):
         pipe = StableDiffusionXLPipeline.from_single_file(
             model_path,
             torch_dtype=torch.float16,
