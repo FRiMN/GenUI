@@ -72,6 +72,3 @@ class ImageSizeMixin:
     def handle_change_base_size(self, val: int):
         t = self.size_aspect_ratio.currentText()
         self.handle_change_size_aspect_ratio(t)
-
-
-

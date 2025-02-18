@@ -67,16 +67,17 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
 
     return pipe
 
+
 @lru_cache(maxsize=3)
 def generate(
-        model_path: str,
-        scheduler_name: str,
-        prompt: str,
-        neg_prompt: str,
-        seed: int,
-        size: tuple[int, int],
-        guidance_scale: int,
-        callback: callable,
+    model_path: str,
+    scheduler_name: str,
+    prompt: str,
+    neg_prompt: str,
+    seed: int,
+    size: tuple[int, int],
+    guidance_scale: int,
+    callback: callable,
 ) -> PIL.Image.Image:
     import torch
 
@@ -125,9 +126,11 @@ def generate(
     # empty_cache()
     return image
 
+
 def interrupt(model_path: str):
     pipeline = load_pipeline(model_path)
     pipeline._interrupt = True
+
 
 def latents_to_rgb(latents):
     # https://huggingface.co/docs/diffusers/using-diffusers/callback
@@ -135,8 +138,8 @@ def latents_to_rgb(latents):
 
     weights = (
         (60, -60, 25, -70),
-        (60,  -5, 15, -50),
-        (60,  10, -5, -35),
+        (60, -5, 15, -50),
+        (60, 10, -5, -35),
     )
 
     weights_tensor = torch.t(torch.tensor(weights, dtype=latents.dtype).to(latents.device))
@@ -147,16 +150,18 @@ def latents_to_rgb(latents):
 
     return Image.fromarray(image_array)
 
+
 def callback_factory(callback: callable) -> callable:
     def decode_tensors(pipe, step, timestep, callback_kwargs):
         latents = callback_kwargs["latents"]
 
         image = latents_to_rgb(latents[0])
-        callback(image, step+1)
+        callback(image, step + 1)
 
         return callback_kwargs
 
     return decode_tensors
+
 
 @lru_cache(maxsize=1)
 def get_schedulers_map() -> dict:
@@ -168,8 +173,9 @@ def get_schedulers_map() -> dict:
     karras_schedulers = [e.name for e in KarrasDiffusionSchedulers]
     schedulers = dir(diffusers_schedulers)
     schedulers = [
-        getattr(diffusers_schedulers, x) for x in schedulers if x.endswith("Scheduler")
-        and x in karras_schedulers
+        getattr(diffusers_schedulers, x) for x in schedulers
+        if x.endswith("Scheduler")
+           and x in karras_schedulers
     ]
 
     for s in schedulers:
@@ -181,15 +187,17 @@ def get_schedulers_map() -> dict:
     print(f"{result.keys()=}")
     return result
 
+
 # @lru_cache(maxsize=1)
 # def get_scheduler_config(model_path: str):
 #     pipe: DiffusionPipeline = load_pipeline(model_path)
 #     return pipe.scheduler.config
 
+
 def set_scheduler(
-        model_path: str,
-        scheduler_name: str,
-        scheduler_config: FrozenDict,
+    model_path: str,
+    scheduler_name: str,
+    scheduler_config: FrozenDict,
 ) -> None:
     pipeline: DiffusionPipeline = load_pipeline(model_path)
     schedulers_map = get_schedulers_map()

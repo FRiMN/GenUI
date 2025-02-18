@@ -232,15 +232,17 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
     def threaded_generate(self):
         self.label_status.setText("Generation...")
 
-        self.gen_worker.parent_conn.send(dict(
-            model_path=self.model_path,
-            scheduler_name=self.scheduler_selector.currentText(),
-            prompt=self.prompt_editor.toPlainText(),
-            neg_prompt=self.negative_editor.toPlainText(),
-            seed=self.seed_editor.value(),
-            size=self.image_size,
-            guidance_scale=self.cfg_editor.value(),
-        ))
+        self.gen_worker.parent_conn.send(
+            dict(
+                model_path=self.model_path,
+                scheduler_name=self.scheduler_selector.currentText(),
+                prompt=self.prompt_editor.toPlainText(),
+                neg_prompt=self.negative_editor.toPlainText(),
+                seed=self.seed_editor.value(),
+                size=self.image_size,
+                guidance_scale=self.cfg_editor.value(),
+            )
+        )
 
     def validate_data_for_generation(self) -> bool:
         return bool(
@@ -250,9 +252,10 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("starting")
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("GenUI")
 

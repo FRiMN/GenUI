@@ -11,13 +11,13 @@ class GenerationCommandMixin:
         self._generate_method = None
         self._validate_data_for_generation_method = None
 
-        self.button_generate = bg = QtWidgets.QPushButton('Generate', self)
+        self.button_generate = bg = QtWidgets.QPushButton("Generate", self)
         bg.setStyleSheet("background-color: darkblue")
         bg.clicked.connect(self.handle_generate)
         bg.setShortcut("Ctrl+Return")
 
         self.button_interrupt = bi = QtWidgets.QPushButton(self)
-        bi.setText('Stop')
+        bi.setText("Stop")
         bi.setStyleSheet("background-color: darkred")
         bi.setDisabled(True)
         bi.clicked.connect(self.handle_interrupt)
