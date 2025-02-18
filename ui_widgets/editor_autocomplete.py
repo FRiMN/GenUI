@@ -39,7 +39,7 @@ class LastSelectedCompleter(QCompleter):
 
 class AwesomeTextEdit(QPlainTextEdit):
     def __init__(self, parent=None):
-        super(AwesomeTextEdit, self).__init__(parent)
+        super().__init__(parent)
 
         self.completer = LastSelectedCompleter(load_words(), parent)
         self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -84,15 +84,15 @@ class AwesomeTextEdit(QPlainTextEdit):
                 and not popup.isVisible() and tc.hasSelection()
         ):
             selected_text = tc.selectedText()
-            old_increaser = 0.0
-            increaser_delta = 0.05
+            # old_increaser = 0.0
+            # increaser_delta = 0.05
 
             if (
                     selected_text.startswith("(")
                     and selected_text.endswith(")")
                     and ":" in selected_text
             ):
-                old_increaser = selected_text[-5:-1]
+                # old_increaser = selected_text[-5:-1]
                 selected_text = selected_text[1:-6]
 
             new_text = f"({selected_text}:0.15)"
