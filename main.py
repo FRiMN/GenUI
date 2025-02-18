@@ -1,8 +1,7 @@
 from PIL import Image
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QStatusBar, QSizePolicy
 
 from generator.sdxl import get_schedulers_map
 from ui_widgets.editor_autocomplete import AwesomeTextEdit

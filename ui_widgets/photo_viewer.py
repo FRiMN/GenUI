@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtCore import Qt, QRect, QSize, QPoint
-from PyQt6.QtGui import QPainter, QPen, QColor, QPixmap, QBrush, QMouseEvent
+from PyQt6.QtCore import Qt, QSize, QPoint
+from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent
 from PyQt6.QtWidgets import QApplication
 
 from utils import BACKGROUND_COLOR_HEX

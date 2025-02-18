@@ -4,7 +4,7 @@ import gc
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from diffusers.utils.testing_utils import enable_full_determinism
+# from diffusers.utils.testing_utils import enable_full_determinism
 
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
