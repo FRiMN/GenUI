@@ -30,7 +30,10 @@ class Worker(QObject):
         self.progress_preview.emit(image_data, step, 20, image.width, image.height)
 
     def run(self):
-        """ Run in thread """
+        """ Run in thread
+
+        NOTE: What about [torch.multiprocessing](https://pytorch.org/docs/stable/multiprocessing.html)?
+        """
         from generator.sdxl import generate
 
         self._started = True
