@@ -285,7 +285,7 @@ if __name__ == "__main__":
     app.setApplicationDisplayName("GenUI")
 
     window = Window()
-    window.setGeometry(500, 300, 1000, 600)
+    window.setGeometry(500, 300, 1300, 800)
     window.show()
 
     sys.exit(app.exec())
