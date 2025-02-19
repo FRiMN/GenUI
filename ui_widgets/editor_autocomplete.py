@@ -71,6 +71,9 @@ class AwesomeTextEdit(QPlainTextEdit):
         tc = self.textCursor()
         popup = self.completer.popup()
 
+        if not popup:
+            return
+
         if (
                 event.key() == Qt.Key.Key_Return and popup.isVisible()
                 and not tc.hasSelection()
