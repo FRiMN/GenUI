@@ -19,7 +19,7 @@ class Timer(ContextDecorator):
         self.started = datetime.datetime.now()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
         ended = datetime.datetime.now()
         self.delta = ended - self.started
 
@@ -30,16 +30,16 @@ class TraceMem(ContextDecorator):
     def __enter__(self):
         tracemalloc.start()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
         snapshot = tracemalloc.take_snapshot()
         self.display_top(snapshot)
 
     @staticmethod
-    def display_top(snapshot, key_type="lineno", limit=3):
+    def display_top(snapshot: tracemalloc.Snapshot, key_type: str = "lineno", limit: int = 3):
         snapshot = snapshot.filter_traces(
             (
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-                tracemalloc.Filter(False, "<unknown>"),
+                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"), # noqa: FBT003
+                tracemalloc.Filter(False, "<unknown>"), # noqa: FBT003
             )
         )
         top_stats = snapshot.statistics(key_type)

@@ -38,7 +38,7 @@ class ImageSizeMixin:
         sar.currentTextChanged.connect(self.handle_change_size_aspect_ratio)
         sar.setCurrentText("P 4:5")
 
-    def handle_change_size_aspect_ratio(self, text):
+    def handle_change_size_aspect_ratio(self, text: str):
         base_size = self.base_size_editor.value()
 
         if " " not in text:

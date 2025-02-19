@@ -17,5 +17,5 @@ class SeedMixin:
         self.seed_random_btn.clicked.connect(self.handle_random_seed)
 
     def handle_random_seed(self, *args, **kwargs):
-        val = random.randint(self.seed_editor.minimum(), self.seed_editor.maximum())
+        val = random.randint(self.seed_editor.minimum(), self.seed_editor.maximum())    # noqa: S311
         self.seed_editor.setValue(val)

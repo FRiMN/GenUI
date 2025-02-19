@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
     from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
+    import torch
 
 import PIL
 from PIL import Image
@@ -132,8 +133,11 @@ def interrupt(model_path: str):
     pipeline._interrupt = True
 
 
-def latents_to_rgb(latents):
-    # https://huggingface.co/docs/diffusers/using-diffusers/callback
+def latents_to_rgb(latents: torch.Tensor) -> Image.Image:
+    """Converts latents to RGB image.
+
+    From <https://huggingface.co/docs/diffusers/using-diffusers/callback>.
+    """
     import torch
 
     weights = (
@@ -152,7 +156,12 @@ def latents_to_rgb(latents):
 
 
 def callback_factory(callback: callable) -> callable:
-    def decode_tensors(pipe, step, timestep, callback_kwargs):
+    def decode_tensors(
+            pipe: StableDiffusionXLPipeline,
+            step: int,
+            timestep: torch.Tensor,
+            callback_kwargs: dict
+    ) -> dict:
         latents = callback_kwargs["latents"]
 
         image = latents_to_rgb(latents[0])

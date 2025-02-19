@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QSize, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent
+from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent
 from PyQt6.QtWidgets import QApplication
 
 from utils import BACKGROUND_COLOR_HEX
@@ -14,7 +14,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     repainted = QtCore.pyqtSignal()
     zoomed = QtCore.pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self._zoom = 0
         self._pinned = False
@@ -93,7 +93,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self._scene.views()[0].viewport().repaint()
             self.repainted.emit()
 
-    def setPhoto(self, pixmap=None):
+    def setPhoto(self, pixmap: QPixmap | None = None):
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
@@ -121,10 +121,10 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     def zoomPinned(self):
         return self._pinned
 
-    def setZoomPinned(self, enable):
+    def setZoomPinned(self, enable: bool | any):
         self._pinned = bool(enable)
 
-    def zoom(self, step):
+    def zoom(self, step: int):
         zoom = self._zoom + (step := int(step))
         if zoom == self._zoom:
             return
@@ -142,27 +142,29 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     def pixmap_size(self) -> QSize:
         return self._photo.pixmap().size()
 
-    def wheelEvent(self, event):
+    def wheelEvent(self, event: QWheelEvent):
         delta = event.angleDelta().y()
         self.zoom(delta and delta // abs(delta))
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event: QResizeEvent):
         super().resizeEvent(event)
         self.resetView()
 
-    def scale(self, sx, sy):
+    def scale(self, sx: float, sy: float):
         self.zoomed.emit()
         return super().scale(sx, sy)
 
     def toggleDragMode(self):
-        if self.dragMode() == QtWidgets.QGraphicsView.DragMode.ScrollHandDrag:
-            self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
+        dm = QtWidgets.QGraphicsView.DragMode
+
+        if self.dragMode() == dm.ScrollHandDrag:
+            self.setDragMode(dm.NoDrag)
         elif not self._photo.pixmap().isNull():
-            self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+            self.setDragMode(dm.ScrollHandDrag)
 
 
 class FastViewer(QtWidgets.QLabel):
-    def __init__(self, parent, max_size: QSize):
+    def __init__(self, parent: QtWidgets.QWidget, max_size: QSize):
         super().__init__(parent)
 
         # Max size of not expanded widget.

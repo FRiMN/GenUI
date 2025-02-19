@@ -4,7 +4,8 @@ from pathlib import Path
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QCompleter, QPlainTextEdit
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor, QPalette, QColor
+from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QFocusEvent
+from PyQt6.uic.Compiler.qtproxies import QtWidgets
 
 from utils import Timer, BACKGROUND_COLOR_HEX
 
@@ -24,13 +25,13 @@ def load_words() -> list[str]:
 
 
 class LastSelectedCompleter(QCompleter):
-    insertText = QtCore.pyqtSignal(str)
+    insert_text = QtCore.pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
         QCompleter.__init__(self, *args, **kwargs)
         self.highlighted.connect(self.setHighlighted)
 
-    def setHighlighted(self, text):
+    def setHighlighted(self, text: str):
         self.lastSelected = text
 
     def getSelected(self):
@@ -38,20 +39,20 @@ class LastSelectedCompleter(QCompleter):
 
 
 class AwesomeTextEdit(QPlainTextEdit):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.completer = LastSelectedCompleter(load_words(), parent)
         self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setWidget(self)
-        self.completer.insertText.connect(self.insert_completion)
+        self.completer.insert_text.connect(self.insert_completion)
 
         palette = self.palette()
         palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Base, QColor.fromString(BACKGROUND_COLOR_HEX))
         self.setPalette(palette)
 
-    def insert_completion(self, completion):
+    def insert_completion(self, completion: str):
         tc = self.textCursor()
         extra = (len(completion) - len(self.completer.completionPrefix()))
         tc.movePosition(QTextCursor.MoveOperation.Left)
@@ -60,12 +61,12 @@ class AwesomeTextEdit(QPlainTextEdit):
         self.setTextCursor(tc)
         self.completer.popup().hide()
 
-    def focusInEvent(self, event):
+    def focusInEvent(self, event: QFocusEvent):
         if self.completer:
             self.completer.setWidget(self)
         QPlainTextEdit.focusInEvent(self, event)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent):
         # FIXME.
 
         tc = self.textCursor()
@@ -75,7 +76,7 @@ class AwesomeTextEdit(QPlainTextEdit):
                 event.key() == Qt.Key.Key_Return and popup.isVisible()
                 and not tc.hasSelection()
         ):
-            self.completer.insertText.emit(self.completer.getSelected())
+            self.completer.insert_text.emit(self.completer.getSelected())
             self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
             return
 

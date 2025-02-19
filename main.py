@@ -1,7 +1,7 @@
 from PIL import Image
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QCloseEvent
 
 from generator.sdxl import get_schedulers_map
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
@@ -25,7 +25,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self._build_threaded_worker()
         self._build_widgets()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent):
         self.gen_worker.stop()
         event.accept()  # Close the app
 
