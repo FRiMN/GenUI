@@ -1,5 +1,4 @@
 PyQt6
-# websocket-client
 pillow
 diffusers
 torch >= 2.5.1
