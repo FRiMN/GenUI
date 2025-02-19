@@ -2,10 +2,9 @@
 from pathlib import Path
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QCompleter, QPlainTextEdit
+from PyQt6.QtWidgets import QCompleter, QPlainTextEdit, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QFocusEvent
-from PyQt6.uic.Compiler.qtproxies import QtWidgets
 
 from utils import Timer, BACKGROUND_COLOR_HEX
 
@@ -39,7 +38,7 @@ class LastSelectedCompleter(QCompleter):
 
 
 class AwesomeTextEdit(QPlainTextEdit):
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
 
         self.completer = LastSelectedCompleter(load_words(), parent)
