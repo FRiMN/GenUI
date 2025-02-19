@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
     from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
     import torch
+    from collections.abc import Callable
 
 import PIL
 from PIL import Image
@@ -31,7 +33,7 @@ def empty_cache():
         try:
             d = getattr(torch, x)
             d.empty_cache()
-        except (AttributeError, RuntimeError):
+        except (AttributeError, RuntimeError):  # noqa: PERF203
             pass
 
 
@@ -69,28 +71,33 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
     return pipe
 
 
+@dataclass(unsafe_hash=True)
+class GenerationPrompt:
+    model_path: str
+    scheduler_name: str
+    prompt: str
+    neg_prompt: str
+    seed: int
+    size: tuple[int, int]
+    guidance_scale: int
+    callback: Callable | None = None
+
+
 @lru_cache(maxsize=3)
 def generate(
-    model_path: str,
-    scheduler_name: str,
-    prompt: str,
-    neg_prompt: str,
-    seed: int,
-    size: tuple[int, int],
-    guidance_scale: int,
-    callback: callable,
+    prompt: GenerationPrompt
 ) -> PIL.Image.Image:
     import torch
 
     # enable_full_determinism()
 
-    generator = torch.manual_seed(seed)
+    generator = torch.manual_seed(prompt.seed)
 
-    pipeline = load_pipeline(model_path)
+    pipeline = load_pipeline(prompt.model_path)
 
     set_scheduler(
-        model_path,
-        scheduler_name,
+        prompt.model_path,
+        prompt.scheduler_name,
         pipeline.scheduler.config
     )
 
@@ -99,8 +106,8 @@ def generate(
     latents = pipeline.prepare_latents(
         1,
         num_channels_latents,
-        size[1],
-        size[0],
+        prompt.size[1],
+        prompt.size[0],
         torch.float16,
         pipeline._execution_device,
         generator,
@@ -108,18 +115,18 @@ def generate(
     )
 
     data = dict(
-        prompt=prompt,
-        negative_prompt=neg_prompt,
+        prompt=prompt.prompt,
+        negative_prompt=prompt.neg_prompt,
         num_inference_steps=20,
-        width=size[0],
-        height=size[1],
-        callback_on_step_end=callback_factory(callback),
+        width=prompt.size[0],
+        height=prompt.size[1],
+        callback_on_step_end=callback_factory(prompt.callback),
         callback_on_step_end_tensor_inputs=["latents"],
         generator=generator,
         latents=latents,
     )
-    if guidance_scale:
-        data["guidance_scale"] = guidance_scale
+    if prompt.guidance_scale:
+        data["guidance_scale"] = prompt.guidance_scale
 
     # with torch.inference_mode():
     image = pipeline(**data).images[0]
@@ -188,12 +195,10 @@ def get_schedulers_map() -> dict:
     ]
 
     for s in schedulers:
-        name = s.__name__ if hasattr(s, "__name__") else s.__class__.__name__
-        if name.endswith("Scheduler"):
-            name = name[:-9]
+        name: str = s.__name__ if hasattr(s, "__name__") else s.__class__.__name__
+        name = name.removesuffix("Scheduler")
         result[name] = s
 
-    print(f"{result.keys()=}")
     return result
 
 

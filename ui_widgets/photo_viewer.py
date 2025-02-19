@@ -1,3 +1,5 @@
+from typing import Any
+
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent
@@ -121,7 +123,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
     def zoomPinned(self):
         return self._pinned
 
-    def setZoomPinned(self, enable: bool | any):
+    def setZoomPinned(self, enable: bool | Any):
         self._pinned = bool(enable)
 
     def zoom(self, step: int):
@@ -133,7 +135,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             return
 
         self._zoom = zoom
-        if step > 0:
+        if step > 0:    # noqa: SIM108
             factor = SCALE_FACTOR ** step
         else:
             factor = 1 / SCALE_FACTOR ** abs(step)

@@ -3,9 +3,13 @@ from multiprocessing.connection import Connection
 
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
+
+if TYPE_CHECKING:
+    from generator.sdxl import GenerationPrompt
 
 
 class Worker(QObject):
@@ -42,12 +46,10 @@ class Worker(QObject):
         while self._started:
             is_data_exist = self.child_conn.poll(timeout=self.poll_timeout)
             if is_data_exist:
-                data = self.child_conn.recv()
+                prompt: GenerationPrompt = self.child_conn.recv()
 
-                image: Image.Image = generate(
-                    **data,
-                    callback=self.callback_preview,
-                )
+                prompt.callback = self.callback_preview
+                image: Image.Image = generate(prompt)
 
                 self.callback_preview(image, self.step)
                 self.save_image(image)

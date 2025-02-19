@@ -107,7 +107,7 @@ class AwesomeTextEdit(QPlainTextEdit):
         tc.select(QTextCursor.SelectionType.WordUnderCursor)
 
         selected_text = tc.selectedText()
-        if len(selected_text) > 2:
+        if len(selected_text) > 2:  # noqa: PLR2004
             self.completer.setCompletionPrefix(selected_text)
 
             cur_index = self.completer.completionModel().index(0, 0)

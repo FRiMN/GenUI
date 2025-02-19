@@ -1,9 +1,8 @@
 import datetime
 import linecache
-import os
 import tracemalloc
 from contextlib import ContextDecorator
-
+from pathlib import Path
 
 BACKGROUND_COLOR_HEX = "#1e1e1e"
 
@@ -48,7 +47,8 @@ class TraceMem(ContextDecorator):
         for index, stat in enumerate(top_stats[:limit], 1):
             frame = stat.traceback[0]
             # replace "/path/to/module/file.py" with "module/file.py"
-            filename = os.sep.join(frame.filename.split(os.sep)[-2:])
+            module_name, file_name = Path(frame.filename).parts[-2:]
+            filename = Path(module_name) / Path(file_name)
             print(f"#{index}: {filename}:{frame.lineno}: {stat.size / 1024:.1f} KiB")
             line = linecache.getline(frame.filename, frame.lineno).strip()
             if line:

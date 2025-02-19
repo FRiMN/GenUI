@@ -3,7 +3,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
 from PyQt6.QtGui import QIcon, QCloseEvent
 
-from generator.sdxl import get_schedulers_map
+from generator.sdxl import get_schedulers_map, GenerationPrompt
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
 from ui_widgets.photo_viewer import PhotoViewer, FastViewer
 from ui_widgets.window_mixins.generation_command import GenerationCommandMixin
@@ -123,17 +123,70 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         cfg.setToolTip("Guidance scale. 0 value is auto.")
 
     def _createToolBars(self):
+        action_toolbar = self._create_action_toolbar()
+        seed_toolbar = self._create_seed_toolbar()
+        size_toolbar = self._create_size_toolbar()
+        scheduler_toolbar = self._create_scheduler_toolbar()
+
+        self.addToolBar(action_toolbar)
+        self.addToolBar(seed_toolbar)
+        self.addToolBar(size_toolbar)
+        self.addToolBar(scheduler_toolbar)
+
+        status_bar = self._create_status_bar()
+        self.setStatusBar(status_bar)
+
+    def _create_status_bar(self):
+        self.zoom_label = QtWidgets.QLabel()
+
+        icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest)
+        self.zoom_fit_button = QtWidgets.QPushButton()
+        self.zoom_fit_button.setIcon(icon)
+        self.zoom_fit_button.setToolTip("Fit image to viewport")
+        self.zoom_fit_button.clicked.connect(self.viewer.resetView)
+
+        self.zoom_orig_button = QtWidgets.QPushButton()
+        icon = QIcon.fromTheme("zoom-original")
+        self.zoom_orig_button.setIcon(icon)
+        self.zoom_orig_button.setToolTip("Set original size of image")
+        self.zoom_orig_button.clicked.connect(self.viewer.origView)
+
+        self.label_viewer_image_size = QtWidgets.QLabel()
+
+        status_bar = QtWidgets.QStatusBar()
+        status_bar.addWidget(self.label_process)
+        status_bar.addWidget(self.label_status)
+
+        spacer = QtWidgets.QWidget()
+        status_bar.addWidget(spacer, 1)
+
+        status_bar.addWidget(self.label_viewer_image_size)
+        status_bar.addWidget(self.zoom_label)
+        status_bar.addWidget(self.zoom_fit_button)
+        status_bar.addWidget(self.zoom_orig_button)
+
+        return status_bar
+
+    def _create_action_toolbar(self):
         action_toolbar = QtWidgets.QToolBar("Action", self)
         action_toolbar.addWidget(self.button_generate)
         action_toolbar.addWidget(self.button_interrupt)
+        return action_toolbar
 
-        seed_toolbar = QtWidgets.QToolBar("Seed", self)
-        seed_label = QtWidgets.QLabel("Seed:")
-        seed_label.setContentsMargins(5, 0, 5, 0)
-        seed_toolbar.addWidget(seed_label)
-        seed_toolbar.addWidget(self.seed_editor)
-        seed_toolbar.addWidget(self.seed_random_btn)
+    def _create_scheduler_toolbar(self):
+        cfg_label = QtWidgets.QLabel("CFG:")
 
+        scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
+        scheduler_toolbar.addWidget(self.scheduler_selector)
+        scheduler_toolbar.addSeparator()
+        scheduler_toolbar.addWidget(cfg_label)
+        scheduler_toolbar.addSeparator()
+        scheduler_toolbar.addWidget(self.cfg_editor)
+        scheduler_toolbar.addSeparator()
+        scheduler_toolbar.addWidget(self.model_path_btn)
+        return scheduler_toolbar
+
+    def _create_size_toolbar(self):
         size_label = QtWidgets.QLabel("Size:")
         size_label.setContentsMargins(5, 0, 5, 0)
 
@@ -144,46 +197,17 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         size_toolbar.addWidget(self.size_aspect_ratio)
         size_toolbar.addSeparator()
         size_toolbar.addWidget(self.label_size)
+        return size_toolbar
 
-        self.zoom_label = QtWidgets.QLabel()
-        icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest)
-        self.zoom_fit_button = QtWidgets.QPushButton()
-        self.zoom_fit_button.setIcon(icon)
-        self.zoom_fit_button.setToolTip("Fit image to viewport")
-        self.zoom_fit_button.clicked.connect(self.viewer.resetView)
-        self.zoom_orig_button = QtWidgets.QPushButton()
-        icon = QIcon.fromTheme("zoom-original")
-        self.zoom_orig_button.setIcon(icon)
-        self.zoom_orig_button.setToolTip("Set original size of image")
-        self.zoom_orig_button.clicked.connect(self.viewer.origView)
-        self.label_viewer_image_size = QtWidgets.QLabel()
+    def _create_seed_toolbar(self):
+        seed_label = QtWidgets.QLabel("Seed:")
+        seed_label.setContentsMargins(5, 0, 5, 0)
 
-        scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
-        scheduler_toolbar.addWidget(self.scheduler_selector)
-        scheduler_toolbar.addSeparator()
-        cfg_label = QtWidgets.QLabel("CFG:")
-        scheduler_toolbar.addWidget(cfg_label)
-        scheduler_toolbar.addSeparator()
-        scheduler_toolbar.addWidget(self.cfg_editor)
-        scheduler_toolbar.addSeparator()
-        scheduler_toolbar.addWidget(self.model_path_btn)
-
-        self.addToolBar(action_toolbar)
-        self.addToolBar(seed_toolbar)
-        self.addToolBar(size_toolbar)
-        self.addToolBar(scheduler_toolbar)
-
-        status_bar = QtWidgets.QStatusBar()
-        status_bar.addWidget(self.label_process)
-        status_bar.addWidget(self.label_status)
-        spacer = QtWidgets.QWidget()
-        status_bar.addWidget(spacer, 1)
-        status_bar.addWidget(self.label_viewer_image_size)
-        status_bar.addWidget(self.zoom_label)
-        status_bar.addWidget(self.zoom_fit_button)
-        status_bar.addWidget(self.zoom_orig_button)
-
-        self.setStatusBar(status_bar)
+        seed_toolbar = QtWidgets.QToolBar("Seed", self)
+        seed_toolbar.addWidget(seed_label)
+        seed_toolbar.addWidget(self.seed_editor)
+        seed_toolbar.addWidget(self.seed_random_btn)
+        return seed_toolbar
 
     def handle_zoomed(self):
         prct = int(self.viewer.zoom_image_level() * 100)
@@ -232,17 +256,16 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
     def threaded_generate(self):
         self.label_status.setText("Generation...")
 
-        self.gen_worker.parent_conn.send(
-            dict(
-                model_path=self.model_path,
-                scheduler_name=self.scheduler_selector.currentText(),
-                prompt=self.prompt_editor.toPlainText(),
-                neg_prompt=self.negative_editor.toPlainText(),
-                seed=self.seed_editor.value(),
-                size=self.image_size,
-                guidance_scale=self.cfg_editor.value(),
-            )
+        prompt = GenerationPrompt(
+            model_path=self.model_path,
+            scheduler_name=self.scheduler_selector.currentText(),
+            prompt=self.prompt_editor.toPlainText(),
+            neg_prompt=self.negative_editor.toPlainText(),
+            seed=self.seed_editor.value(),
+            size=self.image_size,
+            guidance_scale=self.cfg_editor.value(),
         )
+        self.gen_worker.parent_conn.send(prompt)
 
     def validate_data_for_generation(self) -> bool:
         return bool(

@@ -27,6 +27,19 @@ extend-select = [
     "ISC",
     "ICN",
     "INP",
+    "PIE",
+    "PYI",
+    "RSE",
+    "RET503",
+    "SIM",
+    "TC",
+    "PTH",
+    "PL",
+    "PLW",
+    "NPY",
+    "PERF",
+    "FURB",
+    "RUF",
 ]
 
 [format]
