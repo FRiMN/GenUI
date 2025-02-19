@@ -19,6 +19,7 @@ class GenerationCommandMixin:
         self.button_interrupt = bi = QtWidgets.QPushButton(self)
         bi.setText("Stop")
         bi.setStyleSheet("background-color: darkred")
+        # Note: This button is disabled until generation starts
         bi.setDisabled(True)
         bi.clicked.connect(self.handle_interrupt)
 
@@ -41,6 +42,8 @@ class GenerationCommandMixin:
         interrupt(self.model_path)
 
     def show_modal_dialog(self, err_data: str | None = None):
+        """Show a modal dialog with an error message."""
+
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("Data error")
 

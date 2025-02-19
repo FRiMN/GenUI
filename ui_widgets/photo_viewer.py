@@ -13,6 +13,8 @@ MIN_SCALE = -100
 
 
 class PhotoViewer(QtWidgets.QGraphicsView):
+    """PhotoViewer is a custom QGraphicsView widget that displays a image and allows zooming and panning."""
+
     repainted = QtCore.pyqtSignal()
     zoomed = QtCore.pyqtSignal()
 
@@ -74,6 +76,8 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self.repainted.emit()
 
     def origView(self):
+        """Reset the view to the original size."""
+
         rect = QtCore.QRectF(self._photo.pixmap().rect())
         if rect.isNull():
             return
@@ -166,6 +170,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
 
 class FastViewer(QtWidgets.QLabel):
+    """FastViewer is a custom QLabel widget that displays a preview image and allows expanding."""
     def __init__(self, parent: QtWidgets.QWidget, max_size: QSize):
         super().__init__(parent)
 

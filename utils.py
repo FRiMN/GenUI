@@ -8,6 +8,18 @@ BACKGROUND_COLOR_HEX = "#1e1e1e"
 
 
 class Timer(ContextDecorator):
+    """Timer context manager and decorator.
+
+    Usage:
+        with Timer("My task"):
+            do_something()
+
+    or:
+        @Timer("My task")
+        def my_function():
+            do_something()
+    """
+
     started: datetime.datetime
     delta: datetime.timedelta
 
@@ -15,6 +27,7 @@ class Timer(ContextDecorator):
         self.name = name
 
     def __enter__(self):
+        # We use relative time and not need to use timezone.
         self.started = datetime.datetime.now()
         return self
 
@@ -26,6 +39,8 @@ class Timer(ContextDecorator):
 
 
 class TraceMem(ContextDecorator):
+    """Context manager to trace memory usage."""
+
     def __enter__(self):
         tracemalloc.start()
 

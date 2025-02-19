@@ -73,6 +73,21 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
 
 @dataclass(unsafe_hash=True)
 class GenerationPrompt:
+    """Dataclass for Stable Diffusion XL pipeline.
+
+    Args:
+        model_path: Path to the model file.
+        scheduler_name: Name of the scheduler to use.
+        prompt: Prompt to generate.
+        neg_prompt: Negative prompt to generate.
+        seed: Seed for random number generator.
+        size: Size of the generated image.
+        guidance_scale: Guidance scale for the generation.
+        callback: Callback function to be called with the decoded image.
+
+    Returns:
+        GenerationPrompt object.
+    """
     model_path: str
     scheduler_name: str
     prompt: str
@@ -163,6 +178,14 @@ def latents_to_rgb(latents: torch.Tensor) -> Image.Image:
 
 
 def callback_factory(callback: callable) -> callable:
+    """Factory function to create a callback function for decoding tensors.
+
+    Args:
+        callback: The callback function to be called with the decoded image.
+
+    Returns:
+        A callback function that decodes the tensors and calls the provided callback function.
+    """
     def decode_tensors(
             pipe: StableDiffusionXLPipeline,
             step: int,

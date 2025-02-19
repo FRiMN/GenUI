@@ -16,7 +16,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.model_path = None
+        self.model_path = None  # Path to the model file
         self.model_name = None
 
         self._generate_method = self.threaded_generate
@@ -157,6 +157,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         status_bar.addWidget(self.label_process)
         status_bar.addWidget(self.label_status)
 
+        # Add a spacer widget to push the next status bar widgets to the right.
         spacer = QtWidgets.QWidget()
         status_bar.addWidget(spacer, 1)
 
@@ -265,6 +266,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             size=self.image_size,
             guidance_scale=self.cfg_editor.value(),
         )
+        # Send prompt to worker for starts generation.
         self.gen_worker.parent_conn.send(prompt)
 
     def validate_data_for_generation(self) -> bool:
