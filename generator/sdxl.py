@@ -43,7 +43,6 @@ def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
     import torch
 
     print("start load pipeline")
-    # empty_cache()
     with Timer("Pipeline loading"):
         pipe = StableDiffusionXLPipeline.from_single_file(
             model_path,
@@ -98,6 +97,31 @@ class GenerationPrompt:
     callback: Callable | None = None
 
 
+@lru_cache(maxsize=1)
+def get_scheduler_config(model_path: str) -> dict:
+    """Get the scheduler configuration for the given model path.
+
+    Cached for using only original scheduler configuration.
+
+    Args:
+        model_path: Path to the model file.
+
+    Returns:
+        Scheduler configuration dictionary.
+    """
+
+    pipeline = load_pipeline(model_path)
+    conf = pipeline.scheduler.config
+    d = {
+        "beta_schedule": conf["beta_schedule"],
+        "beta_start": conf["beta_start"],
+        "beta_end": conf["beta_end"],
+        "num_train_timesteps": conf["num_train_timesteps"],
+        "steps_offset": conf["steps_offset"],
+    }
+    return d
+
+
 @lru_cache(maxsize=3)
 def generate(
     prompt: GenerationPrompt
@@ -107,13 +131,20 @@ def generate(
     # enable_full_determinism()
 
     generator = torch.manual_seed(prompt.seed)
-
     pipeline = load_pipeline(prompt.model_path)
+
+    scheduler_config = {
+        "beta_schedule": "scaled_linear",
+        "beta_start": 0.00085,
+        "beta_end": 0.014,
+        "num_train_timesteps": 1100,
+        "steps_offset": 1,
+    }
 
     set_scheduler(
         prompt.model_path,
         prompt.scheduler_name,
-        pipeline.scheduler.config
+        get_scheduler_config(prompt.model_path),
     )
 
     # We prepare latents for reproducible (bug in diffusers lib?).
@@ -143,10 +174,9 @@ def generate(
     if prompt.guidance_scale:
         data["guidance_scale"] = prompt.guidance_scale
 
-    # with torch.inference_mode():
-    image = pipeline(**data).images[0]
-    # Empty cache corrupt image?
-    # empty_cache()
+    with torch.inference_mode():
+        image = pipeline(**data).images[0]
+
     return image
 
 
@@ -206,12 +236,13 @@ def callback_factory(callback: callable) -> callable:
 def get_schedulers_map() -> dict:
     from diffusers.schedulers import KarrasDiffusionSchedulers
     from diffusers import schedulers as diffusers_schedulers
+    from diffusers import SchedulerMixin
 
     result = {}
 
     karras_schedulers = [e.name for e in KarrasDiffusionSchedulers]
-    schedulers = dir(diffusers_schedulers)
-    schedulers = [
+    schedulers: list[str] = dir(diffusers_schedulers)
+    schedulers: list[SchedulerMixin] = [
         getattr(diffusers_schedulers, x) for x in schedulers
         if x.endswith("Scheduler")
            and x in karras_schedulers
@@ -225,12 +256,6 @@ def get_schedulers_map() -> dict:
     return result
 
 
-# @lru_cache(maxsize=1)
-# def get_scheduler_config(model_path: str):
-#     pipe: DiffusionPipeline = load_pipeline(model_path)
-#     return pipe.scheduler.config
-
-
 def set_scheduler(
     model_path: str,
     scheduler_name: str,
@@ -241,14 +266,14 @@ def set_scheduler(
     scheduler_class = schedulers_map[scheduler_name]
 
     is_same_scheduler = isinstance(pipeline.scheduler, scheduler_class)
-    is_same_config = scheduler_config == pipeline.scheduler.config
+    # is_same_config = scheduler_config == pipeline.scheduler.config
 
     # print(f"{is_same_scheduler=}; {scheduler_class=}; {pipeline.scheduler=}")
     # print(f"{is_same_config=}; {scheduler_config=}; {pipeline.scheduler.config=}")
 
-    if is_same_scheduler and is_same_config:
+    if is_same_scheduler:
         return
 
-    # print(f"Set new scheduler {scheduler_class} with {scheduler_config=}")
+    print(f"Set new scheduler {scheduler_class} with {scheduler_config=}")
     # scheduler_config["prediction_type"] = "v_prediction"
     pipeline.scheduler = scheduler_class.from_config(scheduler_config)
