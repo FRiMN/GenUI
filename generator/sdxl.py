@@ -233,7 +233,7 @@ def callback_factory(callback: callable) -> callable:
     Returns:
         A callback function that decodes the tensors and calls the provided callback function.
     """
-    def decode_tensors(
+    def callback_wrap(
             pipe: CachedStableDiffusionXLPipeline,
             step: int,
             timestep: torch.Tensor,
@@ -251,7 +251,7 @@ def callback_factory(callback: callable) -> callable:
 
         return callback_kwargs
 
-    return decode_tensors
+    return callback_wrap
 
 
 @lru_cache(maxsize=1)
