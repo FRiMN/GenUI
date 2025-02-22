@@ -12,7 +12,7 @@ from diffusers import StableDiffusionXLPipeline
 
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
-    from diffusers import StableDiffusionXLPipeline, DiffusionPipeline
+    from diffusers import DiffusionPipeline
     import torch
     from collections.abc import Callable
 
