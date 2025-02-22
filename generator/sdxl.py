@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import gc
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from typing import TYPE_CHECKING
 
+from DeepCache import DeepCacheSDHelper
+
 # from diffusers.utils.testing_utils import enable_full_determinism
+from diffusers import StableDiffusionXLPipeline
 
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
@@ -19,7 +22,11 @@ from PIL import Image
 from utils import Timer
 
 
-""" Docs: <https://huggingface.co/docs/diffusers/stable_diffusion> """
+""" 
+Docs: 
+    - <https://huggingface.co/docs/diffusers/stable_diffusion> 
+    - <https://huggingface.co/docs/diffusers/using-diffusers/sdxl>
+"""
 
 
 def empty_cache():
@@ -37,35 +44,45 @@ def empty_cache():
             pass
 
 
-@lru_cache(maxsize=1)
-def load_pipeline(model_path: str) -> StableDiffusionXLPipeline:
-    from diffusers import StableDiffusionXLPipeline
+class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
+    @cached_property
+    def deep_cache(self):
+        return DeepCacheSDHelper(pipe=self)
+
+    def __call__(self, *args, **kwargs):
+        self.deep_cache.set_params(cache_interval=3)
+        self.deep_cache.enable()
+        res = super().__call__(*args, **kwargs)
+        self.deep_cache.disable()
+        return res
+
+def accelerate(pipe: StableDiffusionXLPipeline):
+    print("start accelerate enabling")
     import torch
 
+    pipe.enable_model_cpu_offload()
+    pipe.enable_vae_tiling()
+    pipe.enable_attention_slicing()
+    # FIXME: In fact, not a significant acceleration of generation. Do really need it?
+    pipe.enable_xformers_memory_efficient_attention()
+
+    # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
+    pipe.unet.to(memory_format=torch.channels_last)
+
+@lru_cache(maxsize=1)
+def load_pipeline(model_path: str) -> CachedStableDiffusionXLPipeline:
     print("start load pipeline")
+    import torch
+
     with Timer("Pipeline loading"):
-        pipe = StableDiffusionXLPipeline.from_single_file(
+        pipe = CachedStableDiffusionXLPipeline.from_single_file(
             model_path,
             torch_dtype=torch.float16,
             local_files_only=True
         )
-        pipe.to("cuda")
-        # torch.device('cuda')
-        pipe.enable_model_cpu_offload()
-        pipe.enable_vae_tiling()
-        # pipe.enable_xformers_memory_efficient_attention()
-        pipe.enable_attention_slicing()
-        pipe.unet.to(memory_format=torch.channels_last)
+        # pipe.to("cuda")
 
-        # helper = DeepCacheSDHelper(pipe=pipe)
-        # helper.set_params(
-        #     cache_interval=3,
-        #     cache_branch_id=0,
-        # )
-        # helper.enable()
-
-    # print(f"{pipe.scheduler}")
-    # print(pipe.scheduler.compatibles)
+    accelerate(pipe)
 
     return pipe
 
@@ -217,7 +234,7 @@ def callback_factory(callback: callable) -> callable:
         A callback function that decodes the tensors and calls the provided callback function.
     """
     def decode_tensors(
-            pipe: StableDiffusionXLPipeline,
+            pipe: CachedStableDiffusionXLPipeline,
             step: int,
             timestep: torch.Tensor,
             callback_kwargs: dict
@@ -226,6 +243,11 @@ def callback_factory(callback: callable) -> callable:
 
         image = latents_to_rgb(latents[0])
         callback(image, step + 1)
+
+        steps = pipe.num_timesteps
+        limit = int(steps * 0.45)
+        if step > limit:
+            pipe.deep_cache.set_params()
 
         return callback_kwargs
 
