@@ -29,8 +29,8 @@ class Worker(QObject):
     def __init__(self):
         super().__init__()
         self._started = False
-        self.step = 0   # Note: Current step of the generation process.
-        self.steps = 0
+        self.step = 0   # Current step of the current generation process.
+        self.steps = 0  # Total steps of the current generation process.
         self.parent_conn, self.child_conn = Pipe()
 
     def callback_preview(self, image: Image.Image, step: int):
