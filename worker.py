@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from settings import settings
+
 if TYPE_CHECKING:
     from generator.sdxl import GenerationPrompt
 
@@ -68,9 +70,10 @@ class Worker(QObject):
         self.finished.emit()
 
     def generate_filepath(self) -> Path:
-        t = time.time()
-        return Path(f"/media/frimn/archive31/ai/stable_diffusion/ComfyUI/output/genui/{t}.jpg")
+        t = int(time.time())
+        return settings.autosave_image.path / Path(f"{t}.jpg")
 
     def save_image(self, image: Image.Image):
         p = self.generate_filepath()
+        p.parent.mkdir(parents=True, exist_ok=True)
         image.save(p)

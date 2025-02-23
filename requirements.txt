@@ -8,4 +8,4 @@ accelerate >= 0.17.0
 invisible-watermark >= 0.2.0
 DeepCache
 #torchsde
-pydantic-settings
+pydantic-settings[toml]
