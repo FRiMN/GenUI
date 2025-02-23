@@ -59,7 +59,8 @@ class Worker(QObject):
                 image: Image.Image = generate(prompt)
 
                 self.callback_preview(image, self.step) # Set result image.
-                self.save_image(image)
+                if settings.autosave_image.enabled:
+                    self.save_image(image)
                 self.done.emit()
 
     def stop(self):
@@ -74,9 +75,6 @@ class Worker(QObject):
         return settings.autosave_image.path / Path(f"{t}.jpg")
 
     def save_image(self, image: Image.Image):
-        if not settings.autosave_image.enabled:
-            return
-
         p = self.generate_filepath()
         p.parent.mkdir(parents=True, exist_ok=True)
         image.save(p)
