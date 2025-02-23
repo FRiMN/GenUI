@@ -22,9 +22,9 @@ from PIL import Image
 from utils import Timer
 
 
-""" 
-Docs: 
-    - <https://huggingface.co/docs/diffusers/stable_diffusion> 
+"""
+Docs:
+    - <https://huggingface.co/docs/diffusers/stable_diffusion>
     - <https://huggingface.co/docs/diffusers/using-diffusers/sdxl>
 """
 
@@ -99,6 +99,7 @@ class GenerationPrompt:
         seed: Seed for random number generator.
         size: Size of the generated image.
         guidance_scale: Guidance scale for the generation.
+        inference_steps: Number of inference steps.
         callback: Callback function to be called with the decoded image.
 
     Returns:
@@ -111,6 +112,7 @@ class GenerationPrompt:
     seed: int
     size: tuple[int, int]
     guidance_scale: int
+    inference_steps: int
     callback: Callable | None = None
 
 
@@ -180,7 +182,7 @@ def generate(
     data = dict(
         prompt=prompt.prompt,
         negative_prompt=prompt.neg_prompt,
-        num_inference_steps=20,
+        num_inference_steps=prompt.inference_steps,
         width=prompt.size[0],
         height=prompt.size[1],
         callback_on_step_end=callback_factory(prompt.callback),

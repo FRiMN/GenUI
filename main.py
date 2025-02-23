@@ -122,6 +122,12 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         cfg.setValue(0)
         cfg.setToolTip("Guidance scale. 0 value is auto.")
 
+        self.steps_editor = se = QtWidgets.QSpinBox()
+        se.setMaximum(1000)
+        se.setMinimum(1)
+        se.setValue(20)
+        se.setToolTip("Inference steps. Default is 50.")
+
     def _createToolBars(self):
         action_toolbar = self._create_action_toolbar()
         seed_toolbar = self._create_seed_toolbar()
@@ -176,14 +182,23 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def _create_scheduler_toolbar(self):
         cfg_label = QtWidgets.QLabel("CFG:")
+        steps_label = QtWidgets.QLabel("Steps:")
 
         scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
+
         scheduler_toolbar.addWidget(self.scheduler_selector)
         scheduler_toolbar.addSeparator()
+
         scheduler_toolbar.addWidget(cfg_label)
         scheduler_toolbar.addSeparator()
         scheduler_toolbar.addWidget(self.cfg_editor)
         scheduler_toolbar.addSeparator()
+
+        scheduler_toolbar.addWidget(steps_label)
+        scheduler_toolbar.addSeparator()
+        scheduler_toolbar.addWidget(self.steps_editor)
+        scheduler_toolbar.addSeparator()
+
         scheduler_toolbar.addWidget(self.model_path_btn)
         return scheduler_toolbar
 
@@ -265,6 +280,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             seed=self.seed_editor.value(),
             size=self.image_size,
             guidance_scale=self.cfg_editor.value(),
+            inference_steps=self.steps_editor.value(),
         )
         # Send prompt to worker for starts generation.
         self.gen_worker.parent_conn.send(prompt)

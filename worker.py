@@ -28,12 +28,13 @@ class Worker(QObject):
         super().__init__()
         self._started = False
         self.step = 0   # Note: Current step of the generation process.
+        self.steps = 0
         self.parent_conn, self.child_conn = Pipe()
 
     def callback_preview(self, image: Image.Image, step: int):
         self.step = step
         image_data = image.tobytes()
-        self.progress_preview.emit(image_data, step, 20, image.width, image.height)
+        self.progress_preview.emit(image_data, step, self.steps, image.width, image.height)
 
     def run(self):
         """ Run in thread.
@@ -49,6 +50,8 @@ class Worker(QObject):
             is_data_exist = self.child_conn.poll(timeout=self.poll_timeout)
             if is_data_exist:
                 prompt: GenerationPrompt = self.child_conn.recv()
+
+                self.steps = prompt.inference_steps
 
                 prompt.callback = self.callback_preview
                 image: Image.Image = generate(prompt)
