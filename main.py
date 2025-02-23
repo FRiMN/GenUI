@@ -12,6 +12,9 @@ from ui_widgets.window_mixins.seed import SeedMixin
 from worker import Worker
 
 
+TOOLBAR_MARGIN = (3, 0, 3, 0)
+
+
 class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommandMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -182,7 +185,9 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def _create_scheduler_toolbar(self):
         cfg_label = QtWidgets.QLabel("CFG:")
+        cfg_label.setContentsMargins(*TOOLBAR_MARGIN)
         steps_label = QtWidgets.QLabel("Steps:")
+        steps_label.setContentsMargins(*TOOLBAR_MARGIN)
 
         scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
 
@@ -190,12 +195,10 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         scheduler_toolbar.addSeparator()
 
         scheduler_toolbar.addWidget(cfg_label)
-        scheduler_toolbar.addSeparator()
         scheduler_toolbar.addWidget(self.cfg_editor)
         scheduler_toolbar.addSeparator()
 
         scheduler_toolbar.addWidget(steps_label)
-        scheduler_toolbar.addSeparator()
         scheduler_toolbar.addWidget(self.steps_editor)
         scheduler_toolbar.addSeparator()
 
@@ -204,7 +207,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def _create_size_toolbar(self):
         size_label = QtWidgets.QLabel("Size:")
-        size_label.setContentsMargins(5, 0, 5, 0)
+        size_label.setContentsMargins(*TOOLBAR_MARGIN)
 
         size_toolbar = QtWidgets.QToolBar("Size", self)
         size_toolbar.addWidget(size_label)
@@ -217,7 +220,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def _create_seed_toolbar(self):
         seed_label = QtWidgets.QLabel("Seed:")
-        seed_label.setContentsMargins(5, 0, 5, 0)
+        seed_label.setContentsMargins(*TOOLBAR_MARGIN)
 
         seed_toolbar = QtWidgets.QToolBar("Seed", self)
         seed_toolbar.addWidget(seed_label)
