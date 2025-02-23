@@ -74,6 +74,9 @@ class Worker(QObject):
         return settings.autosave_image.path / Path(f"{t}.jpg")
 
     def save_image(self, image: Image.Image):
+        if not settings.autosave_image.enabled:
+            return
+
         p = self.generate_filepath()
         p.parent.mkdir(parents=True, exist_ok=True)
         image.save(p)
