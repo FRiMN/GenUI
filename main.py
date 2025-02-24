@@ -274,6 +274,8 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
     def threaded_generate(self):
         self.label_status.setText("Generation...")
+        self.label_process.setMaximum(self.steps_editor.value())
+        self.label_process.setValue(0)
 
         prompt = GenerationPrompt(
             model_path=self.model_path,
