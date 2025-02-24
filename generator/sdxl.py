@@ -231,6 +231,15 @@ def latents_to_rgb(latents: torch.Tensor) -> Image.Image:
     return Image.fromarray(image_array)
 
 
+def latents_to_rgb_vae(latents: torch.Tensor, pipe) -> Image.Image:
+    """Converts latents to RGB image.
+    """
+    latents = (latents / pipe.vae.config.scaling_factor)
+    image = pipe.vae.decode(latents, return_dict=False)[0]
+
+    return pipe.image_processor.postprocess(image, output_type="pil")[0]
+
+
 def callback_factory(callback: callable) -> callable:
     """Factory function to create a callback function for decoding tensors.
 
@@ -249,6 +258,7 @@ def callback_factory(callback: callable) -> callable:
         latents = callback_kwargs["latents"]
 
         image = latents_to_rgb(latents[0])
+        # image = latents_to_rgb_vae(latents, pipe)
         callback(image, step + 1)
 
         steps = pipe.num_timesteps
