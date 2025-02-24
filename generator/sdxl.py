@@ -49,6 +49,9 @@ class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
     def deep_cache(self):
         return DeepCacheSDHelper(pipe=self)
 
+    def stop_caching(self):
+        self.deep_cache.set_params()
+
     def __call__(self, *args, **kwargs):
         self.deep_cache.set_params(cache_interval=3)
         self.deep_cache.enable()
@@ -249,7 +252,7 @@ def callback_factory(callback: callable) -> callable:
         steps = pipe.num_timesteps
         limit = int(steps * 0.45)
         if step > limit:
-            pipe.deep_cache.set_params()
+            pipe.stop_caching()
 
         return callback_kwargs
 
