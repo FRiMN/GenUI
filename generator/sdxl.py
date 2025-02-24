@@ -67,7 +67,8 @@ def accelerate(pipe: StableDiffusionXLPipeline):
     pipe.enable_vae_tiling()
     pipe.enable_attention_slicing()
     # FIXME: In fact, not a significant acceleration of generation. Do really need it?
-    pipe.enable_xformers_memory_efficient_attention()
+    # WARN: Change generated image.
+    # pipe.enable_xformers_memory_efficient_attention()
 
     # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
     pipe.unet.to(memory_format=torch.channels_last)
