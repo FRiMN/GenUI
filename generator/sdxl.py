@@ -60,7 +60,6 @@ class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         return res
 
 def accelerate(pipe: StableDiffusionXLPipeline):
-    print("start accelerate enabling")
     import torch
 
     pipe.enable_model_cpu_offload()
@@ -82,7 +81,9 @@ def load_pipeline(model_path: str) -> CachedStableDiffusionXLPipeline:
         pipe = CachedStableDiffusionXLPipeline.from_single_file(
             model_path,
             torch_dtype=torch.float16,
-            local_files_only=True
+            local_files_only=True,
+            # device_map="auto",
+            # max_memory={0: "512MB", 1: "8GB"},
         )
         # pipe.to("cuda")
 
