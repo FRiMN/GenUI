@@ -6,6 +6,7 @@ from functools import lru_cache, cached_property
 from typing import TYPE_CHECKING
 
 from DeepCache import DeepCacheSDHelper
+from compel import Compel, ReturnedEmbeddingsType
 
 # from diffusers.utils.testing_utils import enable_full_determinism
 from diffusers import StableDiffusionXLPipeline
@@ -44,7 +45,29 @@ def empty_cache():
             pass
 
 
-class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
+class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
+    """
+    Pipeline that uses Compel to condition the Stable Diffusion XL model.
+
+    Syntax docs: <https://github.com/damian0815/compel/blob/main/doc/syntax.md>.
+    """
+
+    @cached_property
+    def compel(self):
+        return Compel(
+            tokenizer=[self.tokenizer, self.tokenizer_2] ,
+            text_encoder=[self.text_encoder, self.text_encoder_2],
+            returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
+            requires_pooled=[False, True]
+        )
+
+    def __call__(self, *args, **kwargs):
+        prompt = kwargs.pop("prompt")
+        conditioning, pooled = self.compel(prompt)
+        return super().__call__(*args, prompt_embeds=conditioning, pooled_prompt_embeds=pooled, **kwargs)
+
+
+class CachedStableDiffusionXLPipeline(CompelStableDiffusionXLPipeline):
     @cached_property
     def deep_cache(self):
         return DeepCacheSDHelper(pipe=self)
@@ -58,6 +81,7 @@ class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         res = super().__call__(*args, **kwargs)
         self.deep_cache.disable()
         return res
+
 
 def accelerate(pipe: StableDiffusionXLPipeline):
     import torch

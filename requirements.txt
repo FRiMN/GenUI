@@ -7,5 +7,6 @@ transformers
 accelerate >= 0.17.0
 invisible-watermark >= 0.2.0
 DeepCache
+compel
 #torchsde
 pydantic-settings[toml]
