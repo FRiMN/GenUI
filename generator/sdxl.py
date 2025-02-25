@@ -67,7 +67,7 @@ class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         return super().__call__(*args, prompt_embeds=conditioning, pooled_prompt_embeds=pooled, **kwargs)
 
 
-class CachedStableDiffusionXLPipeline(CompelStableDiffusionXLPipeline):
+class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
     @cached_property
     def deep_cache(self):
         return DeepCacheSDHelper(pipe=self)
@@ -83,7 +83,14 @@ class CachedStableDiffusionXLPipeline(CompelStableDiffusionXLPipeline):
         return res
 
 
-def accelerate(pipe: StableDiffusionXLPipeline):
+class GenUIStableDiffusionXLPipeline(
+    CachedStableDiffusionXLPipeline,
+    CompelStableDiffusionXLPipeline
+):
+    pass
+
+
+def accelerate(pipe: GenUIStableDiffusionXLPipeline):
     import torch
 
     pipe.enable_model_cpu_offload()
@@ -97,12 +104,12 @@ def accelerate(pipe: StableDiffusionXLPipeline):
     pipe.unet.to(memory_format=torch.channels_last)
 
 @lru_cache(maxsize=1)
-def load_pipeline(model_path: str) -> CachedStableDiffusionXLPipeline:
+def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
     print("start load pipeline")
     import torch
 
     with Timer("Pipeline loading"):
-        pipe = CachedStableDiffusionXLPipeline.from_single_file(
+        pipe = GenUIStableDiffusionXLPipeline.from_single_file(
             model_path,
             torch_dtype=torch.float16,
             local_files_only=True,
@@ -255,7 +262,7 @@ def latents_to_rgb(latents: torch.Tensor) -> Image.Image:
     return Image.fromarray(image_array)
 
 
-def latents_to_rgb_vae(latents: torch.Tensor, pipe: CachedStableDiffusionXLPipeline) -> Image.Image:
+def latents_to_rgb_vae(latents: torch.Tensor, pipe: GenUIStableDiffusionXLPipeline) -> Image.Image:
     """Converts latents to RGB image.
     """
     latents = (latents / pipe.vae.config.scaling_factor)
@@ -274,7 +281,7 @@ def callback_factory(callback: callable) -> callable:
         A callback function that decodes the tensors and calls the provided callback function.
     """
     def callback_wrap(
-            pipe: CachedStableDiffusionXLPipeline,
+            pipe: GenUIStableDiffusionXLPipeline,
             step: int,
             timestep: torch.Tensor,
             callback_kwargs: dict
