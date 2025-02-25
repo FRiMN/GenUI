@@ -157,13 +157,13 @@ def generate(
     generator = torch.manual_seed(prompt.seed)
     pipeline = load_pipeline(prompt.model_path)
 
-    scheduler_config = {
-        "beta_schedule": "scaled_linear",
-        "beta_start": 0.00085,
-        "beta_end": 0.014,
-        "num_train_timesteps": 1100,
-        "steps_offset": 1,
-    }
+    # scheduler_config = {
+    #     "beta_schedule": "scaled_linear",
+    #     "beta_start": 0.00085,
+    #     "beta_end": 0.014,
+    #     "num_train_timesteps": 1100,
+    #     "steps_offset": 1,
+    # }
 
     set_scheduler(
         prompt.model_path,
@@ -231,7 +231,7 @@ def latents_to_rgb(latents: torch.Tensor) -> Image.Image:
     return Image.fromarray(image_array)
 
 
-def latents_to_rgb_vae(latents: torch.Tensor, pipe) -> Image.Image:
+def latents_to_rgb_vae(latents: torch.Tensor, pipe: CachedStableDiffusionXLPipeline) -> Image.Image:
     """Converts latents to RGB image.
     """
     latents = (latents / pipe.vae.config.scaling_factor)
