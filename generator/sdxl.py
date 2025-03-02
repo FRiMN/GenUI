@@ -68,18 +68,34 @@ class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
 
 
 class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
+    deep_cache_enabled: bool = False
+
     @cached_property
     def deep_cache(self):
         return DeepCacheSDHelper(pipe=self)
 
     def stop_caching(self):
         self.deep_cache.set_params()
+        self.deep_cache.disable()
 
-    def __call__(self, *args, **kwargs):
+    def start_caching(self):
         self.deep_cache.set_params(cache_interval=3)
         self.deep_cache.enable()
+
+    def is_step_cached(self, step: int) -> bool:
+        if not self.deep_cache_enabled: return False
+
+        deep_cache_interval = self.deep_cache.params['cache_interval']
+        return step % deep_cache_interval != 0
+
+    def __call__(self, *args, **kwargs):
+        if not self.deep_cache_enabled:
+            return super().__call__(*args, **kwargs)
+
+        self.start_caching()
         res = super().__call__(*args, **kwargs)
-        self.deep_cache.disable()
+        self.stop_caching()
+
         return res
 
 
@@ -136,6 +152,7 @@ class GenerationPrompt:
         size: Size of the generated image.
         guidance_scale: Guidance scale for the generation.
         inference_steps: Number of inference steps.
+        deepcache_enabled: Whether to enable deepcache.
         callback: Callback function to be called with the decoded image.
 
     Returns:
@@ -149,6 +166,7 @@ class GenerationPrompt:
     size: tuple[int, int]
     guidance_scale: int
     inference_steps: int
+    deepcache_enabled: bool
     callback: Callable | None = None
 
 
@@ -229,6 +247,8 @@ def generate(
     if prompt.guidance_scale:
         data["guidance_scale"] = prompt.guidance_scale
 
+    pipeline.deep_cache_enabled = prompt.deepcache_enabled
+
     with torch.inference_mode():
         image = pipeline(**data).images[0]
 
@@ -286,16 +306,12 @@ def callback_factory(callback: callable) -> callable:
             timestep: torch.Tensor,
             callback_kwargs: dict
     ) -> dict:
+        if pipe.is_step_cached(step): return callback_kwargs
+
         latents = callback_kwargs["latents"]
 
         image = latents_to_rgb(latents[0])
-        # image = latents_to_rgb_vae(latents, pipe)
         callback(image, step + 1)
-
-        steps = pipe.num_timesteps
-        limit = int(steps * 0.45)
-        if step > limit:
-            pipe.stop_caching()
 
         return callback_kwargs
 

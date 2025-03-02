@@ -67,6 +67,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
         self._build_status_widgets()
         self._build_scheduler_widgets()
+        self._build_cache_widgets()
 
         self.prompt_editor = AwesomeTextEdit()
         self.prompt_editor.setToolTip("Positive prompt")
@@ -131,16 +132,22 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         se.setValue(20)
         se.setToolTip("Inference steps. Default is 50.")
 
+    def _build_cache_widgets(self):
+        self.deepcache_enabled_editor = dce = QtWidgets.QCheckBox()
+        dce.setChecked(True)
+
     def _createToolBars(self):
         action_toolbar = self._create_action_toolbar()
         seed_toolbar = self._create_seed_toolbar()
         size_toolbar = self._create_size_toolbar()
         scheduler_toolbar = self._create_scheduler_toolbar()
+        deepcache_toolbar = self._create_deepcache_toolbar()
 
         self.addToolBar(action_toolbar)
         self.addToolBar(seed_toolbar)
         self.addToolBar(size_toolbar)
         self.addToolBar(scheduler_toolbar)
+        self.addToolBar(deepcache_toolbar)
 
         status_bar = self._create_status_bar()
         self.setStatusBar(status_bar)
@@ -228,6 +235,15 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         seed_toolbar.addWidget(self.seed_random_btn)
         return seed_toolbar
 
+    def _create_deepcache_toolbar(self):
+        cache_label = QtWidgets.QLabel("DeepCache:")
+        cache_label.setContentsMargins(*TOOLBAR_MARGIN)
+
+        deepcache_toolbar = QtWidgets.QToolBar("DeepCache", self)
+        deepcache_toolbar.addWidget(cache_label)
+        deepcache_toolbar.addWidget(self.deepcache_enabled_editor)
+        return deepcache_toolbar
+
     def handle_zoomed(self):
         prct = int(self.viewer.zoom_image_level() * 100)
         self.zoom_label.setText(f"Zoom: {prct}%")
@@ -286,6 +302,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             size=self.image_size,
             guidance_scale=self.cfg_editor.value(),
             inference_steps=self.steps_editor.value(),
+            deepcache_enabled=self.deepcache_enabled_editor.isChecked(),
         )
         # Send prompt to worker for starts generation.
         self.gen_worker.parent_conn.send(prompt)
