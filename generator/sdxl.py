@@ -62,9 +62,25 @@ class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         )
 
     def __call__(self, *args, **kwargs):
+        """
+        Diffusers lib do not allow to mix and match `prompt_2` and `prompt_embeds`.
+        See: <https://github.com/huggingface/diffusers/issues/5718>.
+        """
         prompt = kwargs.pop("prompt")
         conditioning, pooled = self.compel(prompt)
-        return super().__call__(*args, prompt_embeds=conditioning, pooled_prompt_embeds=pooled, **kwargs)
+
+        neg_prompt = kwargs.pop("negative_prompt")
+        neg_conditioning, neg_pooled = self.compel(neg_prompt)
+
+        return super().__call__(
+            *args,
+            **kwargs,
+            prompt_embeds=conditioning,
+            pooled_prompt_embeds=pooled,
+            negative_prompt_embeds=neg_conditioning,
+            negative_pooled_prompt_embeds=neg_pooled,
+
+        )
 
 
 class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
