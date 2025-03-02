@@ -323,6 +323,7 @@ def callback_factory(callback: callable) -> callable:
             callback_kwargs: dict
     ) -> dict:
         if pipe.is_step_cached(step): return callback_kwargs
+        if pipe._interrupt: return callback_kwargs
 
         latents = callback_kwargs["latents"]
 

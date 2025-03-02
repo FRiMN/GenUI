@@ -3,7 +3,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
 from PyQt6.QtGui import QIcon, QCloseEvent
 
-from generator.sdxl import get_schedulers_map, GenerationPrompt
+from generator.sdxl import get_schedulers_map, GenerationPrompt, load_pipeline
 from ui_widgets.editor_autocomplete import AwesomeTextEdit
 from ui_widgets.photo_viewer import PhotoViewer, FastViewer
 from ui_widgets.window_mixins.generation_command import GenerationCommandMixin
@@ -286,6 +286,10 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             self.preview_viewer.set_pixmap(pixmap)
         else:
             self.viewer.setPhoto(pixmap)
+            self.preview_viewer.set_pixmap(None)
+
+        pipe = load_pipeline(self.model_path)
+        if pipe._interrupt:
             self.preview_viewer.set_pixmap(None)
 
     def threaded_generate(self):

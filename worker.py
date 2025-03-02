@@ -43,7 +43,7 @@ class Worker(QObject):
 
         NOTE: What about [torch.multiprocessing](https://pytorch.org/docs/stable/multiprocessing.html)?
         """
-        from generator.sdxl import generate
+        from generator.sdxl import generate, load_pipeline
 
         self._started = True
         print("loop start")
@@ -58,9 +58,12 @@ class Worker(QObject):
                 prompt.callback = self.callback_preview
                 image: Image.Image = generate(prompt)
 
-                self.callback_preview(image, self.step) # Set result image.
-                if settings.autosave_image.enabled:
-                    self.save_image(image)
+                pipe = load_pipeline(prompt.model_path)
+                if not pipe._interrupt:
+                    self.callback_preview(image, self.step) # Set result image.
+                    if settings.autosave_image.enabled:
+                        self.save_image(image)
+
                 self.done.emit()
 
     def stop(self):

@@ -39,6 +39,7 @@ class GenerationCommandMixin:
             self.button_interrupt.setDisabled(True)
 
     def handle_interrupt(self):
+        # FIXME: `self.model_path` can be changed. Need using prompt.
         interrupt(self.model_path)
 
     def show_modal_dialog(self, err_data: str | None = None):
