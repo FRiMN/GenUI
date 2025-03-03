@@ -308,7 +308,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             inference_steps=self.steps_editor.value(),
             deepcache_enabled=self.deepcache_enabled_editor.isChecked(),
         )
-        # Send prompt to worker for starts generation.
+        # Send prompt to worker for start of generation.
         self.gen_worker.parent_conn.send(prompt)
 
     def validate_data_for_generation(self) -> bool:
