@@ -1,3 +1,4 @@
+import datetime
 from multiprocessing import Pipe
 from multiprocessing.connection import Connection
 
@@ -9,6 +10,7 @@ from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from settings import settings
+from utils import Timer
 
 if TYPE_CHECKING:
     from generator.sdxl import GenerationPrompt
@@ -19,7 +21,7 @@ class Worker(QObject):
 
     finished = pyqtSignal() # Worker is finished and starts to close (close the main application).
     done = pyqtSignal() # Worker is done with the generation task.
-    progress_preview = pyqtSignal(bytes, int, int, int, int)
+    progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)
 
     poll_timeout = 0.3  # Poll timeout for checking data availability
 
@@ -33,10 +35,11 @@ class Worker(QObject):
         self.steps = 0  # Total steps of the current generation process.
         self.parent_conn, self.child_conn = Pipe()
 
-    def callback_preview(self, image: Image.Image, step: int):
+    def callback_preview(self, image: Image.Image, step: int, gen_time: datetime.timedelta | None = None):
         self.step = step
+        gen_time = gen_time or datetime.timedelta()
         image_data = image.tobytes()
-        self.progress_preview.emit(image_data, step, self.steps, image.width, image.height)
+        self.progress_preview.emit(image_data, step, self.steps, image.width, image.height, gen_time)
 
     def run(self):
         """ Run in thread.
@@ -56,12 +59,13 @@ class Worker(QObject):
                 self.steps = prompt.inference_steps
 
                 prompt.callback = self.callback_preview
-                image: Image.Image = generate(prompt)
+                with Timer("Image generation") as t:
+                    image: Image.Image = generate(prompt)
 
                 pipe = load_pipeline(prompt.model_path)
                 if not pipe._interrupt:
                     # Set result image. We use `self.steps`, because in this case step -- it is last step.
-                    self.callback_preview(image, self.steps)
+                    self.callback_preview(image, self.steps, t.delta)
 
                     if settings.autosave_image.enabled:
                         self.save_image(image)

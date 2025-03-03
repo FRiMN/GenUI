@@ -1,3 +1,5 @@
+import datetime
+
 from PIL import Image
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
@@ -44,7 +46,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
         self.gen_worker.done.connect(lambda: self.button_interrupt.setDisabled(True))
         self.gen_worker.done.connect(lambda: self.button_generate.setDisabled(False))
-        self.gen_worker.done.connect(lambda: self.label_status.setText("Done."))
 
         self.gen_worker.progress_preview.connect(self.repaint_image)
 
@@ -263,10 +264,13 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             step: int,
             steps: int,
             width: int,
-            height: int
+            height: int,
+            gen_time: datetime.timedelta
     ):
         self.label_process.setMaximum(steps)
         self.label_process.setValue(step)
+        if gen_time:
+            self.label_status.setText(f"Done in {gen_time.seconds} sec.")
 
         base_size = self.base_size_editor.value()
         image = Image.frombytes(
