@@ -60,7 +60,9 @@ class Worker(QObject):
 
                 pipe = load_pipeline(prompt.model_path)
                 if not pipe._interrupt:
-                    self.callback_preview(image, self.step) # Set result image.
+                    # Set result image. We use `self.steps`, because in this case step -- it is last step.
+                    self.callback_preview(image, self.steps)
+
                     if settings.autosave_image.enabled:
                         self.save_image(image)
 
