@@ -270,8 +270,10 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.label_process.setMaximum(steps)
         self.label_process.setValue(step)
         if gen_time:
+            # TODO: extract to signal.
             self.label_status.setText(f"Done in {gen_time.seconds} sec.")
 
+        # FIXME: base size can changed.
         base_size = self.base_size_editor.value()
         image = Image.frombytes(
             "RGB",
