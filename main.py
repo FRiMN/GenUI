@@ -130,7 +130,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.steps_editor = se = QtWidgets.QSpinBox()
         se.setMaximum(1000)
         se.setMinimum(1)
-        se.setValue(20)
+        se.setValue(50)
         se.setToolTip("Inference steps. Default is 50.")
 
     def _build_cache_widgets(self):

@@ -27,7 +27,7 @@ class ImageSizeMixin:
         bse.setMinimum(512)
         bse.setMaximum(8192)
         bse.setSingleStep(128)
-        bse.setValue(1280)
+        bse.setValue(1024)
         bse.setToolTip("Base size")
         bse.valueChanged.connect(self.handle_change_base_size)
 
