@@ -11,6 +11,8 @@ from compel import Compel, ReturnedEmbeddingsType
 # from diffusers.utils.testing_utils import enable_full_determinism
 from diffusers import StableDiffusionXLPipeline
 
+from settings import settings
+
 if TYPE_CHECKING:
     from diffusers.configuration_utils import FrozenDict
     from diffusers import DiffusionPipeline
@@ -95,7 +97,12 @@ class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         self.deep_cache.disable()
 
     def start_caching(self):
-        self.deep_cache.set_params(cache_interval=3)
+        s = settings.deep_cache
+        self.deep_cache.set_params(
+            cache_interval=s.cache_interval,
+            cache_branch_id=s.cache_branch_id,
+            skip_mode=s.skip_mode,
+        )
         self.deep_cache.enable()
 
     def is_step_cached(self, step: int) -> bool:

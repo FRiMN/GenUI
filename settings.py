@@ -1,6 +1,5 @@
-
 from pydantic import DirectoryPath, BaseModel
-from pydantic.types import NewPath
+from pydantic.types import NewPath, StrictInt
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource, TomlConfigSettingsSource
 
 
@@ -28,8 +27,15 @@ class AutoSaveImageSettings(BaseModel):
     path: DirectoryPath | NewPath = "./result/"
 
 
+class DeepCacheSettings(BaseModel):
+    cache_interval: StrictInt = 3
+    cache_branch_id: StrictInt = 0
+    skip_mode: str = "uniform"
+
+
 class Settings(BaseGenUISettings):
-    autosave_image: AutoSaveImageSettings = AutoSaveImageSettings()
+    autosave_image = AutoSaveImageSettings()
+    deep_cache = DeepCacheSettings()
 
 
 settings = Settings()
