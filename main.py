@@ -133,6 +133,9 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         se.setValue(50)
         se.setToolTip("Inference steps. Default is 50.")
 
+        self.karras_sigmas_editor = kse = QtWidgets.QCheckBox()
+        kse.setChecked(True)
+
     def _build_cache_widgets(self):
         self.deepcache_enabled_editor = dce = QtWidgets.QCheckBox()
         dce.setChecked(True)
@@ -196,6 +199,8 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         cfg_label.setContentsMargins(*TOOLBAR_MARGIN)
         steps_label = QtWidgets.QLabel("Steps:")
         steps_label.setContentsMargins(*TOOLBAR_MARGIN)
+        karras_sigmas_label = QtWidgets.QLabel("Karras sigmas:")
+        karras_sigmas_label.setContentsMargins(*TOOLBAR_MARGIN)
 
         scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
 
@@ -208,6 +213,10 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
         scheduler_toolbar.addWidget(steps_label)
         scheduler_toolbar.addWidget(self.steps_editor)
+        scheduler_toolbar.addSeparator()
+
+        scheduler_toolbar.addWidget(karras_sigmas_label)
+        scheduler_toolbar.addWidget(self.karras_sigmas_editor)
         scheduler_toolbar.addSeparator()
 
         scheduler_toolbar.addWidget(self.model_path_btn)
@@ -313,6 +322,7 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
             guidance_scale=self.cfg_editor.value(),
             inference_steps=self.steps_editor.value(),
             deepcache_enabled=self.deepcache_enabled_editor.isChecked(),
+            use_karras_sigmas=self.karras_sigmas_editor.isChecked(),
         )
         # Send prompt to worker for start of generation.
         self.gen_worker.parent_conn.send(prompt)

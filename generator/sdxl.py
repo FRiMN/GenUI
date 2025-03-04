@@ -14,8 +14,6 @@ from diffusers import StableDiffusionXLPipeline
 from settings import settings
 
 if TYPE_CHECKING:
-    from diffusers.configuration_utils import FrozenDict
-    from diffusers import DiffusionPipeline
     import torch
     from collections.abc import Callable
 
@@ -190,11 +188,12 @@ class GenerationPrompt:
     guidance_scale: int
     inference_steps: int
     deepcache_enabled: bool
+    use_karras_sigmas: bool
     callback: Callable | None = None
 
 
 @lru_cache(maxsize=1)
-def get_scheduler_config(model_path: str) -> dict:
+def get_scheduler_config(model_path: str) -> frozenset[tuple]:
     """Get the scheduler configuration for the given model path.
 
     Cached for using only original scheduler configuration.
@@ -215,7 +214,7 @@ def get_scheduler_config(model_path: str) -> dict:
         "num_train_timesteps": conf["num_train_timesteps"],
         "steps_offset": conf["steps_offset"],
     }
-    return d
+    return frozenset(d.items())
 
 
 @lru_cache(maxsize=3)
@@ -237,10 +236,10 @@ def generate(
     #     "steps_offset": 1,
     # }
 
-    set_scheduler(
-        prompt.model_path,
+    pipeline.scheduler = get_scheduler(
         prompt.scheduler_name,
         get_scheduler_config(prompt.model_path),
+        use_karras_sigmas=prompt.use_karras_sigmas,
     )
 
     # We prepare latents for reproducible (bug in diffusers lib?).
@@ -366,24 +365,17 @@ def get_schedulers_map() -> dict:
     return result
 
 
-def set_scheduler(
-    model_path: str,
+@lru_cache(maxsize=1)
+def get_scheduler(
     scheduler_name: str,
-    scheduler_config: FrozenDict,
-) -> None:
-    pipeline: DiffusionPipeline = load_pipeline(model_path)
+    scheduler_config: frozenset[tuple],
+    use_karras_sigmas: bool = False,
+):
     schedulers_map = get_schedulers_map()
     scheduler_class = schedulers_map[scheduler_name]
 
-    is_same_scheduler = isinstance(pipeline.scheduler, scheduler_class)
-    # is_same_config = scheduler_config == pipeline.scheduler.config
+    # frozenset convert to dict
+    scheduler_config = {k: v for k, v in scheduler_config}
 
-    # print(f"{is_same_scheduler=}; {scheduler_class=}; {pipeline.scheduler=}")
-    # print(f"{is_same_config=}; {scheduler_config=}; {pipeline.scheduler.config=}")
-
-    if is_same_scheduler:
-        return
-
-    print(f"Set new scheduler {scheduler_class} with {scheduler_config=}")
-    # scheduler_config["prediction_type"] = "v_prediction"
-    pipeline.scheduler = scheduler_class.from_config(scheduler_config)
+    print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=}")
+    return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
