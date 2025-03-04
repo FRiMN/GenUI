@@ -34,8 +34,8 @@ class DeepCacheSettings(BaseModel):
 
 
 class Settings(BaseGenUISettings):
-    autosave_image = AutoSaveImageSettings()
-    deep_cache = DeepCacheSettings()
+    autosave_image: AutoSaveImageSettings = AutoSaveImageSettings()
+    deep_cache: DeepCacheSettings = DeepCacheSettings()
 
 
 settings = Settings()
