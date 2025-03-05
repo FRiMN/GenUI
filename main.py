@@ -123,7 +123,7 @@ class Window(
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
 
-    def repaint_image(
+    def repaint_image(  # noqa: PLR0913
             self,
             image_bytes: bytes,
             step: int,

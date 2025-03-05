@@ -369,7 +369,8 @@ def get_schedulers_map() -> dict:
 def get_scheduler(
     scheduler_name: str,
     scheduler_config: frozenset[tuple],
-    use_karras_sigmas: bool = False,
+    *,
+    use_karras_sigmas: bool,
 ):
     schedulers_map = get_schedulers_map()
     scheduler_class = schedulers_map[scheduler_name]

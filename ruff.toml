@@ -42,6 +42,10 @@ extend-select = [
     "RUF",
 ]
 
+extend-ignore = [
+    "E701",
+]
+
 [format]
 indent-style = "space"
 
