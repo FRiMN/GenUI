@@ -217,6 +217,7 @@ def get_scheduler_config(model_path: str) -> frozenset[tuple]:
     return frozenset(d.items())
 
 
+# Caching last 3 images.
 @lru_cache(maxsize=3)
 def generate(
     prompt: GenerationPrompt

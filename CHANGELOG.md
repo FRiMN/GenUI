@@ -13,4 +13,3 @@ Scheme of releases: `<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`.
 - Using Stable Diffusion SDXL based models (SDXL, Pony, Illustrious, etc.) for rendering.
 - UI to control rendering.
 - Using [DeepCache](https://github.com/horseee/DeepCache) to dramatically accelerate rendering. 
-With 50% of the steps cached and a cache interval of 3, the generation speed increased by ~30%.
