@@ -2,7 +2,7 @@ from typing import Any
 
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QSize, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent
+from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
 from PyQt6.QtWidgets import QApplication
 
 from utils import BACKGROUND_COLOR_HEX
@@ -29,6 +29,8 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
         self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
 
+        self._build_context_menu()
+
         self._scene = QtWidgets.QGraphicsScene(self)
         self._scene.addItem(self._photo)
         self.setScene(self._scene)
@@ -44,6 +46,27 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self.setBackgroundBrush(QBrush(QColor.fromString(BACKGROUND_COLOR_HEX)))
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setRenderHints(rh.Antialiasing | rh.SmoothPixmapTransform)
+
+    def _build_context_menu(self):
+        self.context_menu = menu = QtWidgets.QMenu(self)
+
+        save_action = menu.addAction("Save Image")
+        save_action.triggered.connect(self.save_image)
+
+    def save_image(self):
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save Image",
+            "",
+            "Images JPEG (*.jpg *.jpeg);;All Files (*)",
+        )
+
+        if file_name:
+            self._photo.pixmap().save(file_name)
+
+    def contextMenuEvent(self, event: QContextMenuEvent):
+        if self.hasPhoto():
+            self.context_menu.exec(event.globalPos())
 
     def hasPhoto(self):
         return not self._empty
