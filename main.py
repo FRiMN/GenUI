@@ -3,26 +3,31 @@ import datetime
 from PIL import Image
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
-from PyQt6.QtGui import QIcon, QCloseEvent
+from PyQt6.QtGui import QCloseEvent
 
-from generator.sdxl import get_schedulers_map, GenerationPrompt, load_pipeline
-from ui_widgets.editor_autocomplete import AwesomeTextEdit
+from generator.sdxl import GenerationPrompt, load_pipeline
 from ui_widgets.photo_viewer import PhotoViewer, FastViewer
 from ui_widgets.window_mixins.generation_command import GenerationCommandMixin
 from ui_widgets.window_mixins.image_size import ImageSizeMixin
+from ui_widgets.window_mixins.prompt import PromptMixin
+from ui_widgets.window_mixins.scheduler import SchedulerMixin
 from ui_widgets.window_mixins.seed import SeedMixin
+from ui_widgets.window_mixins.status_bar import StatusBarMixin
+from utils import TOOLBAR_MARGIN
 from worker import Worker
 
 
-TOOLBAR_MARGIN = (3, 0, 3, 0)
-
-
-class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommandMixin):
+class Window(
+    QtWidgets.QMainWindow,
+    ImageSizeMixin,
+    SeedMixin,
+    GenerationCommandMixin,
+    PromptMixin,
+    SchedulerMixin,
+    StatusBarMixin
+):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.model_path = None  # Path to the model file
-        self.model_name = None
 
         self._generate_method = self.threaded_generate
         self._validate_data_for_generation_method = self.validate_data_for_generation
@@ -52,28 +57,20 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
         self.gen_thread.start()
 
     def _build_widgets(self):
-        self.model_path_btn = QtWidgets.QPushButton("Model", self)
-        self.model_path_btn.setToolTip("Model")
-        self.model_path_btn.clicked.connect(self.handle_change_model)
-
         self.viewer = PhotoViewer(self)
         self.viewer.setZoomPinned(True)
         self.viewer.zoomed.connect(self.handle_zoomed)
         self.viewer.repainted.connect(self.handle_zoomed)
         self.viewer.repainted.connect(self.handle_repainted)
 
+        self.zoom_fit_button.clicked.connect(self.viewer.resetView)
+        self.zoom_orig_button.clicked.connect(self.viewer.origView)
+
         self.preview_viewer = FastViewer(self.viewer, QSize(200, 200))
         self.preview_viewer.move(10, 10)
         self.preview_viewer.setStyleSheet("border: 5px solid white; border-radius: 5px")
 
-        self._build_status_widgets()
-        self._build_scheduler_widgets()
         self._build_cache_widgets()
-
-        self.prompt_editor = AwesomeTextEdit()
-        self.prompt_editor.setToolTip("Positive prompt")
-        self.negative_editor = AwesomeTextEdit()
-        self.negative_editor.setToolTip("Negative prompt")
 
         panel_box = self._build_prompt_panel()
 
@@ -94,156 +91,20 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
 
         self.setCentralWidget(layout_box)
 
-        self._createToolBars()
-
-    def _build_prompt_panel(self):
-        panel = QtWidgets.QVBoxLayout()
-        panel.setContentsMargins(0, 0, 0, 0)
-        panel.addWidget(self.prompt_editor)
-        panel.addWidget(self.negative_editor)
-
-        panel_box = QtWidgets.QWidget()
-        panel_box.setLayout(panel)
-        return panel_box
-
-    def _build_status_widgets(self):
-        self.label_process = QtWidgets.QProgressBar(self)
-        self.label_process.setMinimum(0)
-        self.label_process.setFormat("%v/%m")
-        self.label_process.setFixedWidth(150)
-
-        self.label_status = QtWidgets.QLabel(self)
-
-    def _build_scheduler_widgets(self):
-        self.scheduler_selector = ss = QtWidgets.QComboBox()
-        ss.setToolTip("Scheduler")
-        schedulers_map = get_schedulers_map()
-        schedulers = sorted(schedulers_map.keys())
-        ss.addItems(schedulers)
-
-        self.cfg_editor = cfg = QtWidgets.QSpinBox()
-        cfg.setMaximum(10)
-        cfg.setMinimum(0)
-        cfg.setValue(0)
-        cfg.setToolTip("Guidance scale. 0 value is auto.")
-
-        self.steps_editor = se = QtWidgets.QSpinBox()
-        se.setMaximum(1000)
-        se.setMinimum(1)
-        se.setValue(50)
-        se.setToolTip("Inference steps. Default is 50.")
-
-        self.karras_sigmas_editor = kse = QtWidgets.QCheckBox()
-        kse.setChecked(True)
+        self._create_tool_bars()
 
     def _build_cache_widgets(self):
         self.deepcache_enabled_editor = dce = QtWidgets.QCheckBox()
         dce.setChecked(True)
 
-    def _createToolBars(self):
-        action_toolbar = self._create_action_toolbar()
-        seed_toolbar = self._create_seed_toolbar()
-        size_toolbar = self._create_size_toolbar()
-        scheduler_toolbar = self._create_scheduler_toolbar()
+    def _create_tool_bars(self):
         deepcache_toolbar = self._create_deepcache_toolbar()
 
-        self.addToolBar(action_toolbar)
-        self.addToolBar(seed_toolbar)
-        self.addToolBar(size_toolbar)
-        self.addToolBar(scheduler_toolbar)
+        self.addToolBar(self.action_toolbar)
+        self.addToolBar(self.seed_toolbar)
+        self.addToolBar(self.size_toolbar)
+        self.addToolBar(self.scheduler_toolbar)
         self.addToolBar(deepcache_toolbar)
-
-        status_bar = self._create_status_bar()
-        self.setStatusBar(status_bar)
-
-    def _create_status_bar(self):
-        self.zoom_label = QtWidgets.QLabel()
-
-        icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest)
-        self.zoom_fit_button = QtWidgets.QPushButton()
-        self.zoom_fit_button.setIcon(icon)
-        self.zoom_fit_button.setToolTip("Fit image to viewport")
-        self.zoom_fit_button.clicked.connect(self.viewer.resetView)
-
-        self.zoom_orig_button = QtWidgets.QPushButton()
-        icon = QIcon.fromTheme("zoom-original")
-        self.zoom_orig_button.setIcon(icon)
-        self.zoom_orig_button.setToolTip("Set original size of image")
-        self.zoom_orig_button.clicked.connect(self.viewer.origView)
-
-        self.label_viewer_image_size = QtWidgets.QLabel()
-
-        status_bar = QtWidgets.QStatusBar()
-        status_bar.addWidget(self.label_process)
-        status_bar.addWidget(self.label_status)
-
-        # Add a spacer widget to push the next status bar widgets to the right.
-        spacer = QtWidgets.QWidget()
-        status_bar.addWidget(spacer, 1)
-
-        status_bar.addWidget(self.label_viewer_image_size)
-        status_bar.addWidget(self.zoom_label)
-        status_bar.addWidget(self.zoom_fit_button)
-        status_bar.addWidget(self.zoom_orig_button)
-
-        return status_bar
-
-    def _create_action_toolbar(self):
-        action_toolbar = QtWidgets.QToolBar("Action", self)
-        action_toolbar.addWidget(self.button_generate)
-        action_toolbar.addWidget(self.button_interrupt)
-        return action_toolbar
-
-    def _create_scheduler_toolbar(self):
-        cfg_label = QtWidgets.QLabel("CFG:")
-        cfg_label.setContentsMargins(*TOOLBAR_MARGIN)
-        steps_label = QtWidgets.QLabel("Steps:")
-        steps_label.setContentsMargins(*TOOLBAR_MARGIN)
-        karras_sigmas_label = QtWidgets.QLabel("Karras sigmas:")
-        karras_sigmas_label.setContentsMargins(*TOOLBAR_MARGIN)
-
-        scheduler_toolbar = QtWidgets.QToolBar("Scheduler", self)
-
-        scheduler_toolbar.addWidget(self.scheduler_selector)
-        scheduler_toolbar.addSeparator()
-
-        scheduler_toolbar.addWidget(cfg_label)
-        scheduler_toolbar.addWidget(self.cfg_editor)
-        scheduler_toolbar.addSeparator()
-
-        scheduler_toolbar.addWidget(steps_label)
-        scheduler_toolbar.addWidget(self.steps_editor)
-        scheduler_toolbar.addSeparator()
-
-        scheduler_toolbar.addWidget(karras_sigmas_label)
-        scheduler_toolbar.addWidget(self.karras_sigmas_editor)
-        scheduler_toolbar.addSeparator()
-
-        scheduler_toolbar.addWidget(self.model_path_btn)
-        return scheduler_toolbar
-
-    def _create_size_toolbar(self):
-        size_label = QtWidgets.QLabel("Size:")
-        size_label.setContentsMargins(*TOOLBAR_MARGIN)
-
-        size_toolbar = QtWidgets.QToolBar("Size", self)
-        size_toolbar.addWidget(size_label)
-        size_toolbar.addWidget(self.base_size_editor)
-        size_toolbar.addSeparator()
-        size_toolbar.addWidget(self.size_aspect_ratio)
-        size_toolbar.addSeparator()
-        size_toolbar.addWidget(self.label_size)
-        return size_toolbar
-
-    def _create_seed_toolbar(self):
-        seed_label = QtWidgets.QLabel("Seed:")
-        seed_label.setContentsMargins(*TOOLBAR_MARGIN)
-
-        seed_toolbar = QtWidgets.QToolBar("Seed", self)
-        seed_toolbar.addWidget(seed_label)
-        seed_toolbar.addWidget(self.seed_editor)
-        seed_toolbar.addWidget(self.seed_random_btn)
-        return seed_toolbar
 
     def _create_deepcache_toolbar(self):
         cache_label = QtWidgets.QLabel("DeepCache:")
@@ -261,11 +122,6 @@ class Window(QtWidgets.QMainWindow, ImageSizeMixin, SeedMixin, GenerationCommand
     def handle_repainted(self):
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
-
-    def handle_change_model(self):
-        self.model_path = QtWidgets.QFileDialog.getOpenFileName(self, "Model")[0]
-        self.model_name = self.model_path.split("/")[-1].split(".")[0]
-        self.model_path_btn.setText(self.model_name)
 
     def repaint_image(
             self,

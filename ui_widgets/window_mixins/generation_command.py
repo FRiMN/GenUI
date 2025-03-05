@@ -23,6 +23,14 @@ class GenerationCommandMixin:
         bi.setDisabled(True)
         bi.clicked.connect(self.handle_interrupt)
 
+        self.action_toolbar = self._create_action_toolbar()
+
+    def _create_action_toolbar(self):
+        action_toolbar = QtWidgets.QToolBar("Action", self)
+        action_toolbar.addWidget(self.button_generate)
+        action_toolbar.addWidget(self.button_interrupt)
+        return action_toolbar
+
     def handle_generate(self):
         if not self._validate_data_for_generation_method():
             self.show_modal_dialog()

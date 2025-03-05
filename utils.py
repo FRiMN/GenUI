@@ -5,6 +5,7 @@ from contextlib import ContextDecorator
 from pathlib import Path
 
 BACKGROUND_COLOR_HEX = "#1e1e1e"
+TOOLBAR_MARGIN = (3, 0, 3, 0)
 
 
 class Timer(ContextDecorator):

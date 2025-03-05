@@ -1,5 +1,7 @@
 from PyQt6 import QtWidgets
 
+from utils import TOOLBAR_MARGIN
+
 ASPECT_RATIOS = (
     "1:1",
     "L 5:4",
@@ -37,6 +39,21 @@ class ImageSizeMixin:
         sar.addItems(ASPECT_RATIOS)
         sar.currentTextChanged.connect(self.handle_change_size_aspect_ratio)
         sar.setCurrentText("P 4:5")
+
+        self.size_toolbar = self._create_size_toolbar()
+
+    def _create_size_toolbar(self):
+        size_label = QtWidgets.QLabel("Size:")
+        size_label.setContentsMargins(*TOOLBAR_MARGIN)
+
+        size_toolbar = QtWidgets.QToolBar("Size", self)
+        size_toolbar.addWidget(size_label)
+        size_toolbar.addWidget(self.base_size_editor)
+        size_toolbar.addSeparator()
+        size_toolbar.addWidget(self.size_aspect_ratio)
+        size_toolbar.addSeparator()
+        size_toolbar.addWidget(self.label_size)
+        return size_toolbar
 
     def handle_change_size_aspect_ratio(self, text: str):
         base_size = self.base_size_editor.value()
