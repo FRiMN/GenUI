@@ -1,5 +1,8 @@
 .idea
+.obsidian
+.ropeproject
 __pycache__
 result
+build
 config.toml
-_*.py
+_detect.py
