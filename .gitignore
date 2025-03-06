@@ -3,7 +3,9 @@
 .ropeproject
 .venv
 __pycache__
+*.egg-info
 result
 build
 config.toml
 _detect.py
+uv.lock

@@ -13,7 +13,7 @@ generating images using Stable Diffusion.
 """
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["one", "two"]
+keywords = ["AI", "Stable Diffusion"]
 license = {text = "Apache-2.0"}
 classifiers = [
     "Environment :: X11 Applications :: Qt",
