@@ -7,6 +7,8 @@ Key Features:
 - **User-Friendly Interface:** A clean and simple design that makes image generation accessible to users of all skill levels.
 - **Customizable Parameters:** Fine-tune your image generation with options for prompts, sampling methods, steps, and more.
 
+For a detailed overview of **important changes, updates, and releases**, please refer to the **[CHANGELOG](./CHANGELOG.md)** file. This document provides a comprehensive history of significant developments in the project.
+
 ## :exclamation: Disclaimer
 
 This project is a just-for-fun initiative. While I am a professional developer, I am not an AI engineer or a scientist. The application is provided "as-is," and I make no guarantees regarding its accuracy, performance, or suitability for any specific purpose. Use it at your own discretion!
