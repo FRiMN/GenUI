@@ -1,0 +1,3 @@
+include src/genui/resources/*
+include README.md
+include LICENSE
