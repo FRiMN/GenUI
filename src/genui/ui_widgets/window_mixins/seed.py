@@ -2,7 +2,7 @@ import random
 
 from PyQt6 import QtWidgets
 
-from utils import TOOLBAR_MARGIN
+from ...utils import TOOLBAR_MARGIN
 
 
 class SeedMixin:

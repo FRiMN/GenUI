@@ -1,7 +1,7 @@
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
-from generator.sdxl import interrupt
+from ...generator.sdxl import interrupt
 
 
 class GenerationCommandMixin:

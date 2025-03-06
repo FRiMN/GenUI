@@ -1,6 +1,6 @@
 from PyQt6 import QtWidgets
 
-from utils import TOOLBAR_MARGIN
+from ...utils import TOOLBAR_MARGIN
 
 ASPECT_RATIOS = (
     "1:1",

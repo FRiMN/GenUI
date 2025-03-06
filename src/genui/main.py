@@ -1,20 +1,22 @@
 import datetime
+import os
+import sys
 
 from PIL import Image
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
 from PyQt6.QtGui import QCloseEvent
 
-from generator.sdxl import GenerationPrompt, load_pipeline
-from ui_widgets.photo_viewer import PhotoViewer, FastViewer
-from ui_widgets.window_mixins.generation_command import GenerationCommandMixin
-from ui_widgets.window_mixins.image_size import ImageSizeMixin
-from ui_widgets.window_mixins.prompt import PromptMixin
-from ui_widgets.window_mixins.scheduler import SchedulerMixin
-from ui_widgets.window_mixins.seed import SeedMixin
-from ui_widgets.window_mixins.status_bar import StatusBarMixin
-from utils import TOOLBAR_MARGIN
-from worker import Worker
+from .generator.sdxl import GenerationPrompt, load_pipeline
+from .ui_widgets.photo_viewer import PhotoViewer, FastViewer
+from .ui_widgets.window_mixins.generation_command import GenerationCommandMixin
+from .ui_widgets.window_mixins.image_size import ImageSizeMixin
+from .ui_widgets.window_mixins.prompt import PromptMixin
+from .ui_widgets.window_mixins.scheduler import SchedulerMixin
+from .ui_widgets.window_mixins.seed import SeedMixin
+from .ui_widgets.window_mixins.status_bar import StatusBarMixin
+from .utils import TOOLBAR_MARGIN
+from .worker import Worker
 
 
 class Window(
@@ -191,10 +193,7 @@ class Window(
         )
 
 
-if __name__ == "__main__":
-    print("starting")
-    import sys
-
+def main():
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("GenUI")
 
@@ -202,4 +201,10 @@ if __name__ == "__main__":
     window.setGeometry(500, 300, 1300, 800)
     window.show()
 
-    sys.exit(app.exec())
+    app.exec()
+
+
+if __name__ == "__main__":
+    # Добавляем путь к src в sys.path
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.exit(main())

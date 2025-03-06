@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
 from PyQt6.QtWidgets import QApplication
 
-from utils import BACKGROUND_COLOR_HEX
+from ..utils import BACKGROUND_COLOR_HEX
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100

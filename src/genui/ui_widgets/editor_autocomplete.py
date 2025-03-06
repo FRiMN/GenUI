@@ -1,19 +1,32 @@
 # From: https://stackoverflow.com/a/29268818/2404596
+from importlib.resources import path as resource_path, open_text
 from pathlib import Path
+
+from pkg_resources import resource_string
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QCompleter, QPlainTextEdit, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QFocusEvent
 
-from utils import Timer, BACKGROUND_COLOR_HEX
+from ..utils import Timer, BACKGROUND_COLOR_HEX
 
 
 @Timer("Autocomplete words loader")
 def load_words() -> list[str]:
     words = []
-    path = Path("ui_widgets/autocomplete.txt")
-    with path.open() as f:
+    # with resource_path("..resources", "autocomplete.txt") as file_path:
+    #     with file_path.open() as f:
+    #         lines = f.readlines()
+
+    # current_file_path = Path(__file__).resolve()
+    # parent_dir = current_file_path.parent
+    # relative_path = Path("../resources")
+    # absolute_path = (parent_dir / relative_path).resolve()
+    # abs_mod_path = ".".join(absolute_path.parts[1:])
+    # print(abs_mod_path)
+
+    with open_text("genui.resources", "autocomplete.txt") as f:
         lines = f.readlines()
 
     for line in lines:

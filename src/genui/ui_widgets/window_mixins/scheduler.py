@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QComboBox, QSpinBox, QCheckBox, QLabel, QToolBar, QPushButton, QFileDialog
 
-from generator.sdxl import get_schedulers_map
-from utils import TOOLBAR_MARGIN
+from ...generator.sdxl import get_schedulers_map
+from ...utils import TOOLBAR_MARGIN
 
 
 class SchedulerMixin:

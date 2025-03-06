@@ -6,21 +6,17 @@ from functools import lru_cache, cached_property
 from typing import TYPE_CHECKING
 
 from DeepCache import DeepCacheSDHelper
+from PIL import Image
 from compel import Compel, ReturnedEmbeddingsType
-
 # from diffusers.utils.testing_utils import enable_full_determinism
 from diffusers import StableDiffusionXLPipeline
 
-from settings import settings
+from ..settings import settings
+from ..utils import Timer
 
 if TYPE_CHECKING:
     import torch
     from collections.abc import Callable
-
-import PIL
-from PIL import Image
-
-from utils import Timer
 
 
 """
@@ -221,7 +217,7 @@ def get_scheduler_config(model_path: str) -> frozenset[tuple]:
 @lru_cache(maxsize=3)
 def generate(
     prompt: GenerationPrompt
-) -> PIL.Image.Image:
+) -> Image.Image:
     import torch
 
     # enable_full_determinism()

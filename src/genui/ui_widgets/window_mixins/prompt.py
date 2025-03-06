@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
-from ui_widgets.editor_autocomplete import AwesomeTextEdit
+from ...ui_widgets.editor_autocomplete import AwesomeTextEdit
 
 
 class PromptMixin:

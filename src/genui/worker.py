@@ -1,19 +1,20 @@
-import datetime
-from multiprocessing import Pipe
-from multiprocessing.connection import Connection
+from __future__ import annotations
 
+import datetime
 import time
+from multiprocessing import Pipe
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from settings import settings
-from utils import Timer
+from .settings import settings
+from .utils import Timer
 
 if TYPE_CHECKING:
     from generator.sdxl import GenerationPrompt
+    from multiprocessing.connection import Connection
 
 
 class Worker(QObject):
@@ -46,7 +47,7 @@ class Worker(QObject):
 
         NOTE: What about [torch.multiprocessing](https://pytorch.org/docs/stable/multiprocessing.html)?
         """
-        from generator.sdxl import generate, load_pipeline
+        from .generator.sdxl import generate, load_pipeline
 
         self._started = True
         print("loop start")
