@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genui"
+authors = [
+    {name = "Nikolay Volkov", email = "freezemandix@ya.ru"},
+]
+description = """
+Desktop UI application designed to simplify and enhance the process of
+generating images using Stable Diffusion.
+"""
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["one", "two"]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Environment :: X11 Applications :: Qt",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+dependencies = [
+    "PyQt6",
+    "pillow",
+    "diffusers",
+    "torch >= 2.5.1",
+    "transformers",
+    "accelerate >= 0.17.0",
+    "invisible-watermark >= 0.2.0",
+    "DeepCache",
+    "compel",
+    "pydantic-settings[toml]",
+#    "xformers >= 0.0.29.post1",
+]
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+#version_file = "genui/_version.py"
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+#    "uv",
+]
+
+[project.urls]
+Homepage = "https://github.com/FRiMN/GenUI"
+Issues = "https://github.com/FRiMN/GenUI/issues"
+
+[project.scripts]
+genui = "genui.main:main"
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+#torchvision = [
+#  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+#]

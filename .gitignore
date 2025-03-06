@@ -1,6 +1,7 @@
 .idea
 .obsidian
 .ropeproject
+.venv
 __pycache__
 result
 build
