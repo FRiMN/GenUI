@@ -1,6 +1,7 @@
 .idea
 .obsidian
 .ropeproject
+.zed
 .venv
 __pycache__
 *.egg-info
