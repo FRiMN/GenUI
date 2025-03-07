@@ -8,6 +8,16 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed reading configuration file.
+
+### Changed
+
+- Changed place of configuration file.
+
+## [v2025.3.0] - 2025-03-06
+
 ### Added
 
 - Using Stable Diffusion SDXL based models (SDXL, Pony, Illustrious, etc.) for rendering.

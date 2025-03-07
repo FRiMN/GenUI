@@ -1,11 +1,23 @@
+from pathlib import Path
 from pydantic import DirectoryPath, BaseModel
 from pydantic.types import NewPath, StrictInt
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource, TomlConfigSettingsSource
+from platformdirs import user_config_dir
+
+
+APP_NAME = "genui"
+
+CONFIG_FILE_PATH = Path(user_config_dir(APP_NAME)) / "config.toml"
+print(f"{CONFIG_FILE_PATH=}")
+if CONFIG_FILE_PATH.exists():
+    print("User config exists")
+else:
+    print("User config does not exist")
 
 
 class BaseGenUISettings(BaseSettings):
     model_config = SettingsConfigDict(
-        toml_file="config.toml",
+        toml_file=CONFIG_FILE_PATH,
         env_prefix="genui_",
         cli_parse_args=True,
     )
@@ -24,7 +36,7 @@ class BaseGenUISettings(BaseSettings):
 
 class AutoSaveImageSettings(BaseModel):
     enabled: bool = False
-    path: DirectoryPath | NewPath = "./result/"
+    path: DirectoryPath | NewPath = Path("./result/")
 
 
 class DeepCacheSettings(BaseModel):
@@ -39,3 +51,5 @@ class Settings(BaseGenUISettings):
 
 
 settings = Settings()
+j = settings.json()
+print(f"SETTINGS={j}")
