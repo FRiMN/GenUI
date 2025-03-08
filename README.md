@@ -26,3 +26,39 @@ Built With:
 - Hugging Face Diffusers: Integration with the Stable Diffusion pipeline.
 
 Feel free to [contribute](https://github.com/FRiMN/GenUI/pulls), [report issues](https://github.com/FRiMN/GenUI/issues), or [suggest new features](https://github.com/FRiMN/GenUI/issues)! Let's make AI art creation more accessible and enjoyable for everyone.
+
+## Installation Guide
+
+We support two methods for installation: **pipx** and **uv**.
+
+### Pipx
+
+Follow the instructions on the [pipx website](https://pipx.pypa.io/stable/installation/) to install pipx.
+
+Then, install GenUI using pipx:
+
+```bash
+pipx install git+https://github.com/FRiMN/GenUI.git@v2025.3.0
+```
+
+After installation, you can run GenUI from the command line:
+
+```bash
+genui
+```
+
+### Uv
+
+Follow the instructions on [Astral's website](https://docs.astral.sh/uv/getting-started/installation/) to install uv.
+
+Then, [install](https://docs.astral.sh/uv/guides/tools/#installing-tools) GenUI using uv:
+
+```bash
+uv tool install git+https://github.com/FRiMN/GenUI.git@v2025.3.0
+```
+
+After installation, you can run GenUI from the command line:
+
+```bash
+genui
+```
