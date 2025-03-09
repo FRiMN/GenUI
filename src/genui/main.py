@@ -152,7 +152,7 @@ class Window(
         # We copy pixmap for avoid set preview latent image to viewer (caching?).
         pixmap = pixmap.copy()
 
-        # Latent image smaller than result image.
+        # Latent image smaller (~103x128) than result image.
         is_latent_image = image.width < base_size and image.height < base_size
 
         if is_latent_image:
