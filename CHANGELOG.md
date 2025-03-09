@@ -15,6 +15,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 ### Changed
 
 - Changed place of configuration file.
+- Improved documentation.
 
 ## [v2025.3.0] - 2025-03-06
 

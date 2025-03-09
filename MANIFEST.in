@@ -1,3 +1,4 @@
 include src/genui/resources/*
+include docs/*
 include README.md
 include LICENSE

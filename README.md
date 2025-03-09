@@ -2,6 +2,8 @@
 
 This project is a **desktop UI** application designed to simplify and enhance the process of generating images using **Stable Diffusion**. Whether you're an artist, designer, or just someone exploring AI-generated art, this tool provides an intuitive interface to create stunning visuals with ease.
 
+![UI Screenshot](./docs/images/ui_linux.jpg)
+
 Key Features:
 
 - **User-Friendly Interface:** A clean and simple design that makes image generation accessible to users of all skill levels.
@@ -31,11 +33,13 @@ Feel free to [contribute](https://github.com/FRiMN/GenUI/pulls), [report issues]
 
 We support two methods for installation: **pipx** and **uv**.
 
+Before installing, choose release version and [tag](https://github.com/FRiMN/GenUI/tags).
+
 ### Pipx
 
 Follow the instructions on the [pipx website](https://pipx.pypa.io/stable/installation/) to install pipx.
 
-Then, install GenUI using pipx:
+Then, install chosen version of GenUI using pipx:
 
 ```bash
 pipx install git+https://github.com/FRiMN/GenUI.git@v2025.3.0
@@ -51,7 +55,7 @@ genui
 
 Follow the instructions on [Astral's website](https://docs.astral.sh/uv/getting-started/installation/) to install uv.
 
-Then, [install](https://docs.astral.sh/uv/guides/tools/#installing-tools) GenUI using uv:
+Then, [install](https://docs.astral.sh/uv/guides/tools/#installing-tools) chosen version of GenUI using uv:
 
 ```bash
 uv tool install git+https://github.com/FRiMN/GenUI.git@v2025.3.0
