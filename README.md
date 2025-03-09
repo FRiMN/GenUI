@@ -66,3 +66,7 @@ After installation, you can run GenUI from the command line:
 ```bash
 genui
 ```
+
+## Configuration
+
+See [docs/settings.md](docs/settings.md) for details on how to configure GenUI.
