@@ -53,8 +53,8 @@ class TraceMem(ContextDecorator):
     def display_top(snapshot: tracemalloc.Snapshot, key_type: str = "lineno", limit: int = 3):
         snapshot = snapshot.filter_traces(
             (
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"), # noqa: FBT003
-                tracemalloc.Filter(False, "<unknown>"), # noqa: FBT003
+                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),  # noqa: FBT003
+                tracemalloc.Filter(False, "<unknown>"),  # noqa: FBT003
             )
         )
         top_stats = snapshot.statistics(key_type)

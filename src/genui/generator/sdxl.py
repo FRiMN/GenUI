@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from DeepCache import DeepCacheSDHelper
 from PIL import Image
 from compel import Compel, ReturnedEmbeddingsType
+
 # from diffusers.utils.testing_utils import enable_full_determinism
 from diffusers import StableDiffusionXLPipeline
 
@@ -51,10 +52,10 @@ class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
     @cached_property
     def compel(self):
         return Compel(
-            tokenizer=[self.tokenizer, self.tokenizer_2] ,
+            tokenizer=[self.tokenizer, self.tokenizer_2],
             text_encoder=[self.text_encoder, self.text_encoder_2],
             returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
-            requires_pooled=[False, True]
+            requires_pooled=[False, True],
         )
 
     def __call__(self, *args, **kwargs):
@@ -75,7 +76,6 @@ class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
             pooled_prompt_embeds=pooled,
             negative_prompt_embeds=neg_conditioning,
             negative_pooled_prompt_embeds=neg_pooled,
-
         )
 
 
@@ -136,6 +136,7 @@ def accelerate(pipe: GenUIStableDiffusionXLPipeline):
     # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
     pipe.unet.to(memory_format=torch.channels_last)
 
+
 @lru_cache(maxsize=1)
 def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
     print("start load pipeline")
@@ -175,6 +176,7 @@ class GenerationPrompt:
     Returns:
         GenerationPrompt object.
     """
+
     model_path: str
     scheduler_name: str
     prompt: str
@@ -302,9 +304,8 @@ def latents_to_rgb(latents: torch.Tensor) -> Image.Image:
 
 
 def latents_to_rgb_vae(latents: torch.Tensor, pipe: GenUIStableDiffusionXLPipeline) -> Image.Image:
-    """Converts latents to RGB image.
-    """
-    latents = (latents / pipe.vae.config.scaling_factor)
+    """Converts latents to RGB image."""
+    latents = latents / pipe.vae.config.scaling_factor
     image = pipe.vae.decode(latents, return_dict=False)[0]
 
     return pipe.image_processor.postprocess(image, output_type="pil")[0]

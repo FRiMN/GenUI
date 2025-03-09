@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 class Worker(QObject):
     """Worker runs a generation task in a separate thread."""
 
-    finished = pyqtSignal() # Worker is finished and starts to close (close the main application).
-    done = pyqtSignal() # Worker is done with the generation task.
+    finished = pyqtSignal()  # Worker is finished and starts to close (close the main application).
+    done = pyqtSignal()  # Worker is done with the generation task.
     progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)
 
     poll_timeout = 0.3  # Poll timeout for checking data availability
@@ -32,7 +32,7 @@ class Worker(QObject):
     def __init__(self):
         super().__init__()
         self._started = False
-        self.step = 0   # Current step of the current generation process.
+        self.step = 0  # Current step of the current generation process.
         self.steps = 0  # Total steps of the current generation process.
         self.parent_conn, self.child_conn = Pipe()
 
@@ -43,7 +43,7 @@ class Worker(QObject):
         self.progress_preview.emit(image_data, step, self.steps, image.width, image.height, gen_time)
 
     def run(self):
-        """ Run in thread.
+        """Run in thread.
 
         NOTE: What about [torch.multiprocessing](https://pytorch.org/docs/stable/multiprocessing.html)?
         """

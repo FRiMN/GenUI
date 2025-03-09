@@ -194,6 +194,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
 class FastViewer(QtWidgets.QLabel):
     """FastViewer is a custom QLabel widget that displays a preview image and allows expanding."""
+
     def __init__(self, parent: QtWidgets.QWidget, max_size: QSize):
         super().__init__(parent)
 

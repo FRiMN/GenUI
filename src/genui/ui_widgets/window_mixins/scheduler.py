@@ -37,7 +37,7 @@ class SchedulerMixin:
         kse.setChecked(True)
 
         self.scheduler_toolbar = self._create_scheduler_toolbar()
-        
+
     def _create_scheduler_toolbar(self):
         cfg_label = QLabel("CFG:")
         cfg_label.setContentsMargins(*TOOLBAR_MARGIN)

@@ -31,5 +31,5 @@ class SeedMixin:
         return seed_toolbar
 
     def handle_random_seed(self, *args, **kwargs):
-        val = random.randint(self.seed_editor.minimum(), self.seed_editor.maximum())    # noqa: S311
+        val = random.randint(self.seed_editor.minimum(), self.seed_editor.maximum())  # noqa: S311
         self.seed_editor.setValue(val)

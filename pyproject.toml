@@ -4,9 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genui"
-authors = [
-    {name = "Nikolay Volkov", email = "freezemandix@ya.ru"},
-]
+authors = [{ name = "Nikolay Volkov", email = "freezemandix@ya.ru" }]
 description = """
 Desktop UI application designed to simplify and enhance the process of
 generating images using Stable Diffusion.
@@ -14,7 +12,7 @@ generating images using Stable Diffusion.
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["AI", "Stable Diffusion"]
-license = {text = "Apache-2.0"}
+license = { text = "Apache-2.0" }
 classifiers = [
     "Environment :: X11 Applications :: Qt",
     "Programming Language :: Python :: 3",
@@ -44,7 +42,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 dev = [
     "ruff",
-#    "uv",
+    #    "uv",
 ]
 
 [project.urls]
@@ -61,7 +59,7 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 #torchvision = [
 #  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },

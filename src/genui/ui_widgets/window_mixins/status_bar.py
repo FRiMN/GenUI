@@ -29,7 +29,7 @@ class StatusBarMixin:
 
         self.status_bar = self._create_status_bar()
         self.setStatusBar(self.status_bar)
-        
+
     def _create_status_bar(self):
         status_bar = QStatusBar()
         status_bar.addWidget(self.label_process)
