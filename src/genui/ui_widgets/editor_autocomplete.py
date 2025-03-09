@@ -96,8 +96,10 @@ class AwesomeTextEdit(QPlainTextEdit):
             return
 
         if (
-                event.key() == Qt.Key.Key_Up and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-                and not popup.isVisible() and tc.hasSelection()
+            event.key() == Qt.Key.Key_Up
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+            and not popup.isVisible()
+            and tc.hasSelection()
         ):
             selected_text = tc.selectedText()
             # old_increaser = 0.0
