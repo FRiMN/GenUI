@@ -3,9 +3,24 @@ import linecache
 import tracemalloc
 from contextlib import ContextDecorator
 from pathlib import Path
+import collections
 
 BACKGROUND_COLOR_HEX = "#1e1e1e"
 TOOLBAR_MARGIN = (3, 0, 3, 0)
+
+
+class FIFODict(collections.OrderedDict):
+    def __init__(self, maxsize=128):
+        super().__init__()
+        self.maxsize = maxsize
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self.move_to_end(key)
+        else:
+            if len(self) + 1 > self.maxsize:
+                self.popitem(last=False)
+        super().__setitem__(key, value)
 
 
 class Timer(ContextDecorator):

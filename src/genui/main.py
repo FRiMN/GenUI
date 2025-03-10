@@ -51,8 +51,7 @@ class Window(
         self.gen_worker.finished.connect(self.gen_worker.deleteLater)
         self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
-        self.gen_worker.done.connect(lambda: self.button_interrupt.setDisabled(True))
-        self.gen_worker.done.connect(lambda: self.button_generate.setDisabled(False))
+        self.gen_worker.done.connect(self.handle_done)
 
         self.gen_worker.progress_preview.connect(self.repaint_image)
 
@@ -73,7 +72,7 @@ class Window(
         self.preview_viewer.setStyleSheet("border: 5px solid white; border-radius: 5px")
 
         self._build_cache_widgets()
-
+        
         panel_box = self._build_prompt_panel()
 
         splitter = QtWidgets.QSplitter()
@@ -124,6 +123,16 @@ class Window(
     def handle_repainted(self):
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
+        
+    def handle_done(self):
+        from .generator.sdxl import generate
+        self.button_interrupt.setDisabled(True)
+        self.button_generate.setDisabled(False)
+        
+        pipe = load_pipeline(self.model_path)
+        if pipe._interrupt:
+            self.label_status.setText("Interrupted")
+            self.preview_viewer.set_pixmap(None)
 
     def repaint_image(  # noqa: PLR0913
             self,
@@ -159,10 +168,6 @@ class Window(
             self.preview_viewer.set_pixmap(pixmap)
         else:
             self.viewer.setPhoto(pixmap)
-            self.preview_viewer.set_pixmap(None)
-
-        pipe = load_pipeline(self.model_path)
-        if pipe._interrupt:
             self.preview_viewer.set_pixmap(None)
 
     def threaded_generate(self):

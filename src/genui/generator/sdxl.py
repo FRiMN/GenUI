@@ -13,7 +13,7 @@ from compel import Compel, ReturnedEmbeddingsType
 from diffusers import StableDiffusionXLPipeline
 
 from ..settings import settings
-from ..utils import Timer
+from ..utils import Timer, FIFODict
 
 if TYPE_CHECKING:
     import torch
@@ -25,6 +25,8 @@ Docs:
     - <https://huggingface.co/docs/diffusers/stable_diffusion>
     - <https://huggingface.co/docs/diffusers/using-diffusers/sdxl>
 """
+
+IMAGE_CACHE = FIFODict(maxsize=3)
 
 
 def empty_cache():
@@ -215,12 +217,13 @@ def get_scheduler_config(model_path: str) -> frozenset[tuple]:
     return frozenset(d.items())
 
 
-# Caching last 3 images.
-@lru_cache(maxsize=3)
 def generate(
     prompt: GenerationPrompt
 ) -> Image.Image:
     import torch
+    
+    if prompt in IMAGE_CACHE:
+        return IMAGE_CACHE[prompt]
 
     # enable_full_determinism()
 
@@ -272,6 +275,9 @@ def generate(
 
     with torch.inference_mode():
         image = pipeline(**data).images[0]
+        
+    if not pipeline._interrupt:
+        IMAGE_CACHE[prompt] = image
 
     return image
 
