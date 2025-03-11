@@ -1,13 +1,8 @@
-# From: https://stackoverflow.com/a/29268818/2404596
-from importlib.resources import path as resource_path, open_text
-from pathlib import Path
+from importlib.resources import open_text
 
-from pkg_resources import resource_string
-
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import QCompleter, QPlainTextEdit, QWidget
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QFocusEvent
+from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView
+from PyQt6.QtCore import Qt, QStringListModel
+from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent
 
 from ..utils import Timer, BACKGROUND_COLOR_HEX
 
@@ -15,16 +10,6 @@ from ..utils import Timer, BACKGROUND_COLOR_HEX
 @Timer("Autocomplete words loader")
 def load_words() -> list[str]:
     words = []
-    # with resource_path("..resources", "autocomplete.txt") as file_path:
-    #     with file_path.open() as f:
-    #         lines = f.readlines()
-
-    # current_file_path = Path(__file__).resolve()
-    # parent_dir = current_file_path.parent
-    # relative_path = Path("../resources")
-    # absolute_path = (parent_dir / relative_path).resolve()
-    # abs_mod_path = ".".join(absolute_path.parts[1:])
-    # print(abs_mod_path)
 
     with open_text("genui.resources", "autocomplete.txt") as f:
         lines = f.readlines()
@@ -36,105 +21,102 @@ def load_words() -> list[str]:
     return words
 
 
-class LastSelectedCompleter(QCompleter):
-    insert_text = QtCore.pyqtSignal(str)
-
+class AutoCompleteTextEdit(QTextEdit):
+    min_word_length = 2
+    
     def __init__(self, *args, **kwargs):
-        QCompleter.__init__(self, *args, **kwargs)
-        self.highlighted.connect(self.setHighlighted)
-
-    def setHighlighted(self, text: str):
-        self.lastSelected = text
-
-    def getSelected(self):
-        return self.lastSelected
-
-
-class AwesomeTextEdit(QPlainTextEdit):
-    def __init__(self, parent: QWidget | None = None):
-        super().__init__(parent)
-
-        self.completer = LastSelectedCompleter(load_words(), parent)
-        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.completer.setWidget(self)
-        self.completer.insert_text.connect(self.insert_completion)
-
+        super().__init__(*args, **kwargs)
+        self.setup_completer()
+        
         palette = self.palette()
         palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Base, QColor.fromString(BACKGROUND_COLOR_HEX))
         self.setPalette(palette)
 
+    def setup_completer(self):
+        words = load_words()
+        self.completer_model = QStringListModel(words)
+
+        self.completer = QCompleter(self.completer_model, self)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.completer.setWidget(self)
+
+        self.completer.activated.connect(self.insert_completion)
+        self.textChanged.connect(self.updateCompleter)
+        
+    def fix_special_symbols_selected(self, cursor: QTextCursor) -> None:
+        """
+        Fixes the error when selecting word before a comma or Compel operator (+ or -).
+        
+        Example:
+            Expected: "<start selection>selected_word<cursor_position><end selection>,"
+            Actual: "selected_word<start selection><cursor_position>,<end selection>"
+        """
+        word_under_cursor = cursor.selectedText()
+        is_compel_operator = word_under_cursor.startswith("+") or word_under_cursor.startswith("-")
+        is_comma = word_under_cursor == ","
+        if is_comma or is_compel_operator:
+            cursor.movePosition(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor, 2)
+            cursor.select(cursor.SelectionType.WordUnderCursor)
+
     def insert_completion(self, completion: str):
-        tc = self.textCursor()
-        extra = len(completion) - len(self.completer.completionPrefix())
-        tc.movePosition(QTextCursor.MoveOperation.Left)
-        tc.movePosition(QTextCursor.MoveOperation.EndOfWord)
-        tc.insertText(completion[-extra:])
-        self.setTextCursor(tc)
+        """Sets the completion text in the editor."""
+        cursor = self.textCursor()
+        cursor.select(cursor.SelectionType.WordUnderCursor)
+        self.fix_special_symbols_selected(cursor)
+
+        cursor.removeSelectedText()
+        cursor.insertText(completion)
+        self.setTextCursor(cursor)  # Return cursor to its original position
+
+    def reset_completer(self) -> None:
+        self.completer.setCompletionPrefix("")
         self.completer.popup().hide()
 
-    def focusInEvent(self, event: QFocusEvent):
-        if self.completer:
-            self.completer.setWidget(self)
-        QPlainTextEdit.focusInEvent(self, event)
+    def updateCompleter(self):
+        """Update the completer."""
+        popup: QAbstractItemView = self.completer.popup()
+        cursor = self.textCursor()
+        cursor.select(cursor.SelectionType.WordUnderCursor)
+        self.fix_special_symbols_selected(cursor)
 
-    def keyPressEvent(self, event: QKeyEvent):
-        # FIXME.
+        word_under_cursor = cursor.selectedText()
 
-        tc = self.textCursor()
-        popup = self.completer.popup()
-
-        if not popup:
+        if len(word_under_cursor) < self.min_word_length:
+            self.reset_completer()
             return
 
+        exist_prefix = self.completer.completionPrefix()
+        if word_under_cursor != exist_prefix:
+            self.completer.setCompletionPrefix(word_under_cursor)
+            
+        if self.completer.completionCount() == 0:
+            self.reset_completer()
+            return
+            
+        indx = self.completer.completionModel().index(0, 0) # First item
+        
         if (
-                event.key() == Qt.Key.Key_Return and popup.isVisible()
-                and not tc.hasSelection()
+            self.completer.completionCount() == 1 and 
+            indx.data() == word_under_cursor
         ):
-            self.completer.insert_text.emit(self.completer.getSelected())
-            self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+            """Completion already accepted"""
+            self.reset_completer()
             return
 
-        if (
-            event.key() == Qt.Key.Key_Up
-            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-            and not popup.isVisible()
-            and tc.hasSelection()
-        ):
-            selected_text = tc.selectedText()
-            # old_increaser = 0.0
-            # increaser_delta = 0.05
-
-            if (
-                    selected_text.startswith("(")
-                    and selected_text.endswith(")")
-                    and ":" in selected_text
-            ):
-                # old_increaser = selected_text[-5:-1]
-                selected_text = selected_text[1:-6]
-
-            new_text = f"({selected_text}:0.15)"
-            tc.insertText(new_text)
-            return
-
-        if tc.hasSelection():
-            return
-
-        QPlainTextEdit.keyPressEvent(self, event)
-        tc.select(QTextCursor.SelectionType.WordUnderCursor)
-
-        selected_text = tc.selectedText()
-        if len(selected_text) > 2:  # noqa: PLR2004
-            self.completer.setCompletionPrefix(selected_text)
-
-            cur_index = self.completer.completionModel().index(0, 0)
-            popup.setCurrentIndex(cur_index)
-
-            cr = self.cursorRect()
-            cr.setWidth(
-                popup.sizeHintForColumn(0)
-                + popup.verticalScrollBar().sizeHint().width()
-            )
-            self.completer.complete(cr)
-        else:
-            popup.hide()
+        popup.setCurrentIndex(indx) # Select first item
+        
+        cr = self.cursorRect()
+        cr.setWidth(
+            popup.sizeHintForColumn(0)
+            + popup.verticalScrollBar().sizeHint().width()
+        )
+        self.completer.complete(cr) # Show popup
+        
+    def keyPressEvent(self, e: QKeyEvent):
+        if self.completer.popup().isVisible():
+            if e.key() == Qt.Key.Key_Return:
+                e.ignore()
+                return
+                
+        super().keyPressEvent(e)
