@@ -19,6 +19,17 @@ def load_words() -> list[str]:
         words.append(word)
 
     return words
+    
+    
+class WordsCompleter(QCompleter):
+    words = load_words()
+    completer_model = QStringListModel(words)
+    
+    def __init__(self, parent=None):
+        super().__init__(self.completer_model, parent)
+        
+        self.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.setFilterMode(Qt.MatchFlag.MatchContains)
 
 
 class AutoCompleteTextEdit(QTextEdit):
@@ -33,12 +44,7 @@ class AutoCompleteTextEdit(QTextEdit):
         self.setPalette(palette)
 
     def setup_completer(self):
-        words = load_words()
-        self.completer_model = QStringListModel(words)
-
-        self.completer = QCompleter(self.completer_model, self)
-        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.completer = WordsCompleter(self)
         self.completer.setWidget(self)
 
         self.completer.activated.connect(self.insert_completion)
