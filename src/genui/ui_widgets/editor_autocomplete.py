@@ -29,7 +29,12 @@ class PromptHighlighter(QSyntaxHighlighter):
 
         # self.add_rule(r"\,", Qt.GlobalColor.green, None)
         # self.add_rule(r"\.", Qt.GlobalColor.green, None)
+        # # case: `apricots+`
         self.add_rule(r"\b\S+[\+\-]+", None, settings.prompt_editor.compel_font_weight)
+        # case: `(picking apricots)++`
+        self.add_rule(r"\(.+?\)[\+\-]+", None, settings.prompt_editor.compel_font_weight)
+        # case: `(picking (apricots)1.3)1.1, (apricots)1.1`
+        self.add_rule(r"\([^,]+\)\d\.\d\b", None, settings.prompt_editor.compel_font_weight)
         
     def add_rule(self, pattern, color: Qt.GlobalColor | None, weight: int | None):
         regex = QRegularExpression(pattern)
