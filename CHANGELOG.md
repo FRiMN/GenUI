@@ -8,6 +8,8 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+## [v2025.3.1] - 2025-03-13
+
 ### Added
 
 - Added support for custom fonts, font weight, and font size for prompt editors.
