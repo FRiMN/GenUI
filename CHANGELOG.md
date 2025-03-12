@@ -8,6 +8,11 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+### Added
+
+- Added support for custom fonts, font weight, and font size for prompt editors.
+- Added support for custom font weight for compel syntax highlighting in prompt editors.
+
 ### Fixed
 
 - Fixed reading configuration file.
@@ -25,3 +30,4 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Using Stable Diffusion SDXL based models (SDXL, Pony, Illustrious, etc.) for rendering.
 - UI to control rendering.
 - Using [DeepCache](https://github.com/horseee/DeepCache) to dramatically accelerate rendering. 
+- Added support [Compel](https://github.com/damian0815/compel/blob/main/doc/syntax.md) for prompts.

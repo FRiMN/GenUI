@@ -3,6 +3,7 @@ from pydantic import DirectoryPath, BaseModel
 from pydantic.types import NewPath, StrictInt
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource, TomlConfigSettingsSource
 from platformdirs import user_config_dir
+from PyQt6.QtGui import QFont
 
 
 APP_NAME = "genui"
@@ -43,11 +44,19 @@ class DeepCacheSettings(BaseModel):
     cache_interval: StrictInt = 3
     cache_branch_id: StrictInt = 0
     skip_mode: str = "uniform"
+    
+    
+class PromptEditorSettings(BaseModel):
+    font_family: str | None = None
+    font_size: int = 10
+    font_weight: int = QFont.Weight.Normal
+    compel_font_weight: int = QFont.Weight.Bold
 
-
+    
 class Settings(BaseGenUISettings):
     autosave_image: AutoSaveImageSettings = AutoSaveImageSettings()
     deep_cache: DeepCacheSettings = DeepCacheSettings()
+    prompt_editor: PromptEditorSettings = PromptEditorSettings()
 
 
 settings = Settings()

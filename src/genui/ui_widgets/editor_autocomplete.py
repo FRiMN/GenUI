@@ -1,10 +1,11 @@
 from importlib.resources import open_text
 
 from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView
-from PyQt6.QtCore import Qt, QStringListModel
-from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent
+from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression
+from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QSyntaxHighlighter, QTextCharFormat, QFont
 
 from ..utils import Timer, BACKGROUND_COLOR_HEX
+from ..settings import settings
 
 
 @Timer("Autocomplete words loader")
@@ -19,6 +20,35 @@ def load_words() -> list[str]:
         words.append(word)
 
     return words
+    
+    
+class PromptHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.highlighting_rules = []
+
+        # self.add_rule(r"\,", Qt.GlobalColor.green, None)
+        # self.add_rule(r"\.", Qt.GlobalColor.green, None)
+        self.add_rule(r"\b\S+[\+\-]+", None, settings.prompt_editor.compel_font_weight)
+        
+    def add_rule(self, pattern, color: Qt.GlobalColor | None, weight: int | None):
+        regex = QRegularExpression(pattern)
+        format = QTextCharFormat()
+        
+        if weight is not None:
+            format.setFontWeight(weight)
+        if color:
+            format.setForeground(QColor(color))
+            
+        self.highlighting_rules.append((regex, format))
+
+    def highlightBlock(self, text):
+        """Apply highlighting rules to the current block of text."""
+        for regex, format in self.highlighting_rules:
+            match_iterator = regex.globalMatch(text)
+            while match_iterator.hasNext():
+                match = match_iterator.next()
+                self.setFormat(match.capturedStart(), match.capturedLength(), format)
     
     
 class WordsCompleter(QCompleter):
@@ -37,7 +67,9 @@ class AutoCompleteTextEdit(QTextEdit):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setup_font()
         self.setup_completer()
+        self.highlighter = PromptHighlighter(self.document())
         
         palette = self.palette()
         palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Base, QColor.fromString(BACKGROUND_COLOR_HEX))
@@ -49,6 +81,16 @@ class AutoCompleteTextEdit(QTextEdit):
 
         self.completer.activated.connect(self.insert_completion)
         self.textChanged.connect(self.updateCompleter)
+        
+    def setup_font(self):
+        s = settings.prompt_editor
+        
+        font = QFont()
+        font.setFamily(s.font_family or self.font().family())
+        font.setPointSize(s.font_size)
+        font.setWeight(s.font_weight)
+        
+        self.setFont(font)
         
     def fix_special_symbols_selected(self, cursor: QTextCursor) -> None:
         """

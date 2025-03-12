@@ -44,6 +44,21 @@ cache_branch_id = 1
 skip_mode = "specific"
 ```
 
+### 3. Prompt Editor
+This section allows you to configure the font settings for the prompt editor (positive and negative).
+
+- **font_family**: The font family used in the prompt editor. This defaults to `None` and use system default font.
+- **font_size**: The font size (integer) used in the prompt editor. This defaults to `10`.
+- **font_weight**: The font weight (integer) used in the prompt editor. Can be `100`, `200`, `300`, `400`, `500`, `600`, `700`, `800`, `900`. This defaults to `400`.
+
+Example:
+```toml
+[prompt_editor]
+font_family = "Arial"
+font_size = 10
+font_weight = 200
+```
+
 ## Configuration File Location
 The location of the configuration file can be overridden by setting the environment variable `GENUI_CONFIG_FILE` before running the application. If this variable is set, it will point to a different path for the configuration file.
 
@@ -65,4 +80,9 @@ path = "./result/"
 cache_interval = 3
 cache_branch_id = 0
 skip_mode = "uniform"
+
+[prompt_editor]
+font_family = None
+font_size = 10
+font_weight = 400
 ```
