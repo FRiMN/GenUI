@@ -6,7 +6,7 @@ The Genui application is designed to provide a set of customizable settings that
 About syntax of TOML file you can find more information in [official documentation](https://toml.io/en/).
 
 ## Configuration File Path
-By default, the path to the configuration file (`config.toml`) for Genui is:
+By default, the path to the configuration file (`config.toml`) for Genui on Linux is:
 ```
 /home/user/.config/genui/config.toml
 ```

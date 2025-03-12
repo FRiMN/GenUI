@@ -12,6 +12,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 - Added support for custom fonts, font weight, and font size for prompt editors.
 - Added support for custom font weight for compel syntax highlighting in prompt editors.
+- Added showing path of saved image after generating while auto-saving enabled.
 
 ### Fixed
 
