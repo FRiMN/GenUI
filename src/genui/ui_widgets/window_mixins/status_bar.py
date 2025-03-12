@@ -11,8 +11,8 @@ class StatusBarMixin:
         self.label_process.setFormat("%v/%m")
         self.label_process.setFixedWidth(150)
 
-        self.label_status = QLabel(self)
-
+        self.label_status = QLabel()
+        self.label_image_path = QLabel()
         self.zoom_label = QLabel()
 
         icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest)
@@ -34,6 +34,7 @@ class StatusBarMixin:
         status_bar = QStatusBar()
         status_bar.addWidget(self.label_process)
         status_bar.addWidget(self.label_status)
+        status_bar.addWidget(self.label_image_path)
 
         # Add a spacer widget to push the next status bar widgets to the right.
         spacer = QWidget()

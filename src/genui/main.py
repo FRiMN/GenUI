@@ -17,6 +17,7 @@ from .ui_widgets.window_mixins.seed import SeedMixin
 from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .utils import TOOLBAR_MARGIN
 from .worker import Worker
+from .settings import settings
 
 
 class Window(
@@ -124,8 +125,7 @@ class Window(
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
         
-    def handle_done(self):
-        from .generator.sdxl import generate
+    def handle_done(self):        
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
         
@@ -169,11 +169,16 @@ class Window(
         else:
             self.viewer.setPhoto(pixmap)
             self.preview_viewer.set_pixmap(None)
+            
+            if settings.autosave_image.enabled:
+                filepath = self.viewer.save_image()
+                self.label_image_path.setText(f"Image saved to `{filepath}`")
 
     def threaded_generate(self):
         self.label_status.setText("Generation...")
         self.label_process.setMaximum(self.steps_editor.value())
         self.label_process.setValue(0)
+        self.label_image_path.setText("")
 
         prompt = GenerationPrompt(
             model_path=self.model_path,

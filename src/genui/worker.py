@@ -68,9 +68,6 @@ class Worker(QObject):
                     # Set result image. We use `self.steps`, because in this case step -- it is last step.
                     self.callback_preview(image, self.steps, t.delta)
 
-                    if settings.autosave_image.enabled:
-                        self.save_image(image)
-
                 self.done.emit()
 
     def stop(self):
@@ -79,12 +76,3 @@ class Worker(QObject):
         # This pause needed, because we wait data in pipe (self.child_conn.poll).
         time.sleep(self.poll_timeout)
         self.finished.emit()
-
-    def generate_filepath(self) -> Path:
-        t = int(time.time())
-        return settings.autosave_image.path / Path(f"{t}.jpg")
-
-    def save_image(self, image: Image.Image):
-        p = self.generate_filepath()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        image.save(p)

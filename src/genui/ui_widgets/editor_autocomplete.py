@@ -29,7 +29,7 @@ class PromptHighlighter(QSyntaxHighlighter):
 
         # self.add_rule(r"\,", Qt.GlobalColor.green, None)
         # self.add_rule(r"\.", Qt.GlobalColor.green, None)
-        # # case: `apricots+`
+        # case: `apricots+`
         self.add_rule(r"\b\S+[\+\-]+", None, settings.prompt_editor.compel_font_weight)
         # case: `(picking apricots)++`
         self.add_rule(r"\(.+?\)[\+\-]+", None, settings.prompt_editor.compel_font_weight)

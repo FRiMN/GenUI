@@ -4,6 +4,10 @@ import tracemalloc
 from contextlib import ContextDecorator
 from pathlib import Path
 import collections
+import time
+
+from .settings import settings
+
 
 BACKGROUND_COLOR_HEX = "#1e1e1e"
 TOOLBAR_MARGIN = (3, 0, 3, 0)
@@ -91,3 +95,9 @@ class TraceMem(ContextDecorator):
             print(f"{len(other)} other: {size / 1024:.1f} KiB")
         total = sum(stat.size for stat in top_stats)
         print("Total allocated size: %.1f KiB" % (total / 1024))
+        
+        
+def generate_image_filepath() -> Path:
+    """Generate a unique image filepath."""
+    t = int(time.time())
+    return settings.autosave_image.path / Path(f"{t}.jpg")

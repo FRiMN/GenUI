@@ -1,11 +1,13 @@
 from typing import Any
+from pathlib import Path
 
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
 from PyQt6.QtWidgets import QApplication
 
-from ..utils import BACKGROUND_COLOR_HEX
+from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath
+
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100
@@ -51,9 +53,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self.context_menu = menu = QtWidgets.QMenu(self)
 
         save_action = menu.addAction("Save Image")
-        save_action.triggered.connect(self.save_image)
+        save_action.triggered.connect(self.save_image_manual)
 
-    def save_image(self):
+    def save_image_manual(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save Image",
@@ -62,7 +64,15 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         )
 
         if file_name:
-            self._photo.pixmap().save(file_name)
+            self.save_image(file_name)
+            
+    def save_image(self, file_path: str | Path | None = None) -> str:
+        if file_path is None:
+            file_path = generate_image_filepath()
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+        self._photo.pixmap().save(str(file_path))
+        return str(file_path)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         if self.hasPhoto():
