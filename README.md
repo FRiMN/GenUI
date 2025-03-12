@@ -8,6 +8,9 @@ Key Features:
 
 - **User-Friendly Interface:** A clean and simple design that makes image generation accessible to users of all skill levels.
 - **Customizable Parameters:** Fine-tune your image generation with options for prompts, sampling methods, steps, and more.
+- **Image Preview:** Preview generated images in real-time to ensure they meet your expectations.
+- **Progress Tracking:** Monitor the progress of your image generation in real-time.
+- **Automatic Image Saving:** Images are automatically saved to a designated folder for easy access and sharing.
 
 For a detailed overview of **important changes, updates, and releases**, please refer to the **[CHANGELOG](./CHANGELOG.md)** file. This document provides a comprehensive history of significant developments in the project.
 
