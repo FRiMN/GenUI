@@ -9,6 +9,7 @@ class GenerationCommandMixin:
         super().__init__()
 
         self._generate_method = None
+        self._fix_method = None
         self._validate_data_for_generation_method = None
 
         self.button_generate = bg = QtWidgets.QPushButton("Generate", self)
@@ -22,6 +23,11 @@ class GenerationCommandMixin:
         # Note: This button is disabled until generation starts
         bi.setDisabled(True)
         bi.clicked.connect(self.handle_interrupt)
+        
+        self.button_fix = QtWidgets.QPushButton("Fix", self)
+        self.button_fix.clicked.connect(self.handle_fix)
+        
+        self.fix_steps = 20
 
         self.action_toolbar = self._create_action_toolbar()
 
@@ -29,6 +35,7 @@ class GenerationCommandMixin:
         action_toolbar = QtWidgets.QToolBar("Action", self)
         action_toolbar.addWidget(self.button_generate)
         action_toolbar.addWidget(self.button_interrupt)
+        action_toolbar.addWidget(self.button_fix)
         return action_toolbar
 
     def handle_generate(self):
@@ -38,6 +45,7 @@ class GenerationCommandMixin:
 
         self.button_generate.setDisabled(True)
         self.button_interrupt.setDisabled(False)
+        self.button_fix.setDisabled(True)
 
         try:
             self._generate_method()
@@ -45,6 +53,24 @@ class GenerationCommandMixin:
             self.show_modal_dialog(str(e))
             self.button_generate.setDisabled(False)
             self.button_interrupt.setDisabled(True)
+            self.button_fix.setDisabled(False)
+            
+    def handle_fix(self):
+        if not self._validate_data_for_generation_method():
+            self.show_modal_dialog()
+            return
+            
+        self.button_generate.setDisabled(True)
+        self.button_interrupt.setDisabled(False)
+        self.button_fix.setDisabled(True)
+
+        try:
+            self._fix_method()
+        except ValueError as e:
+            self.show_modal_dialog(str(e))
+            self.button_generate.setDisabled(False)
+            self.button_interrupt.setDisabled(True)
+            self.button_fix.setDisabled(False)
 
     def handle_interrupt(self):
         self.button_interrupt.setDisabled(True)

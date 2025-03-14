@@ -196,6 +196,7 @@ class GenerationPrompt:
     deepcache_enabled: bool
     use_karras_sigmas: bool
     use_vpred: bool
+    use_adetailer: bool = False
     callback: Callable | None = None
 
 
@@ -395,3 +396,33 @@ def get_scheduler(
 
     print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=} and {use_vpred=}")
     return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
+    
+    
+def fix_by_adetailer(image: Image.Image, model_path: str) -> Image.Image | None:
+    from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
+    
+    pipe = load_pipeline(model_path)
+    ad_components = pipe.components
+    ad_pipe = AdPipelineBase(**ad_components)
+    
+    common = {
+        "prompt": "good detailed hands",
+        "n_prompt" : "bad hands, bad anatomy, extra fingers, missing fingers", 
+        "num_inference_steps": 20, 
+        # "target_size" : image.size
+        "target_size" : (200, 200)
+    }
+    inpaint_only = {'strength': 0.4}
+    yolov_model_path = "/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/dz_facedetailer/yolo/hand_yolov9c.pt"
+    
+    result: ADOutput = ad_pipe(
+        common=common, 
+        inpaint_only=inpaint_only, 
+        images=[image],
+        mask_dilation=4, 
+        mask_blur=4, 
+        mask_padding=32, 
+        model_path=yolov_model_path
+    )
+    print(result)
+    return result.images[0] if result.images else None

@@ -33,6 +33,7 @@ class Window(
         super().__init__(*args, **kwargs)
 
         self._generate_method = self.threaded_generate
+        self._fix_method = self.threaded_fix
         self._validate_data_for_generation_method = self.validate_data_for_generation
 
         self._build_threaded_worker()
@@ -128,6 +129,7 @@ class Window(
     def handle_done(self):        
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
+        self.button_fix.setDisabled(False)
         
         pipe = load_pipeline(self.model_path)
         if pipe._interrupt:
@@ -173,13 +175,8 @@ class Window(
             if settings.autosave_image.enabled:
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
-
-    def threaded_generate(self):
-        self.label_status.setText("Generation...")
-        self.label_process.setMaximum(self.steps_editor.value())
-        self.label_process.setValue(0)
-        self.label_image_path.setText("")
-
+                
+    def get_prompt(self) -> GenerationPrompt:
         prompt = GenerationPrompt(
             model_path=self.model_path,
             scheduler_name=self.scheduler_selector.currentText(),
@@ -193,7 +190,27 @@ class Window(
             use_karras_sigmas=self.karras_sigmas_editor.isChecked(),
             use_vpred=self.vpred_editor.isChecked(),
         )
+        return prompt
+
+    def threaded_generate(self):
+        self.label_status.setText("Generation...")
+        self.label_process.setMaximum(self.steps_editor.value())
+        self.label_process.setValue(0)
+        self.label_image_path.setText("")
+
+        prompt = self.get_prompt()
         # Send prompt to worker for start of generation.
+        self.gen_worker.parent_conn.send(prompt)
+        
+    def threaded_fix(self):
+        self.label_status.setText("Adetailer fix...")
+        self.label_process.setMaximum(self.fix_steps)
+        self.label_process.setValue(0)
+        self.label_image_path.setText("")
+        
+        prompt = self.get_prompt()
+        prompt.use_adetailer = True
+        # Send prompt to worker for start of fixing image.
         self.gen_worker.parent_conn.send(prompt)
 
     def validate_data_for_generation(self) -> bool:

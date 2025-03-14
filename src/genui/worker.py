@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from genui.generator.sdxl import fix_by_adetailer
+
 from .utils import Timer
 
 if TYPE_CHECKING:
@@ -65,6 +67,10 @@ class Worker(QObject):
                 if not pipe._interrupt:
                     # Set result image. We use `self.steps`, because in this case step -- it is last step.
                     self.callback_preview(image, self.steps, t.delta)
+                    if prompt.use_adetailer:
+                        fixed_image = fix_by_adetailer(image, prompt.model_path)
+                        if fixed_image:
+                            self.callback_preview(fixed_image, self.steps, t.delta)
 
                 self.done.emit()
 
