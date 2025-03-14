@@ -8,6 +8,15 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+### Added
+
+- Added support v-prediction models.
+- Added controls in the UI for v-prediction models.
+
+### Fixed
+
+### Changed
+
 ## [v2025.3.1] - 2025-03-13
 
 ### Added

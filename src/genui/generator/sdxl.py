@@ -173,6 +173,8 @@ class GenerationPrompt:
         guidance_scale: Guidance scale for the generation.
         inference_steps: Number of inference steps.
         deepcache_enabled: Whether to enable deepcache.
+        use_karras_sigmas: Whether to use Karras sigmas.
+        use_vpred: Whether to use VPred.
         callback: Callback function to be called with the decoded image.
 
     Returns:
@@ -189,6 +191,7 @@ class GenerationPrompt:
     inference_steps: int
     deepcache_enabled: bool
     use_karras_sigmas: bool
+    use_vpred: bool
     callback: Callable | None = None
 
 
@@ -221,7 +224,7 @@ def generate(
     prompt: GenerationPrompt
 ) -> Image.Image:
     import torch
-    
+
     if prompt in IMAGE_CACHE:
         return IMAGE_CACHE[prompt]
 
@@ -242,6 +245,7 @@ def generate(
         prompt.scheduler_name,
         get_scheduler_config(prompt.model_path),
         use_karras_sigmas=prompt.use_karras_sigmas,
+        use_vpred=prompt.use_vpred,
     )
 
     # We prepare latents for reproducible (bug in diffusers lib?).
@@ -275,7 +279,7 @@ def generate(
 
     with torch.inference_mode():
         image = pipeline(**data).images[0]
-        
+
     if not pipeline._interrupt:
         IMAGE_CACHE[prompt] = image
 
@@ -375,12 +379,15 @@ def get_scheduler(
     scheduler_config: frozenset[tuple],
     *,
     use_karras_sigmas: bool,
+    use_vpred: bool,
 ):
     schedulers_map = get_schedulers_map()
     scheduler_class = schedulers_map[scheduler_name]
 
     # frozenset convert to dict
     scheduler_config = {k: v for k, v in scheduler_config}
+    if use_vpred:
+        scheduler_config["prediction_type"] = "v_prediction"
 
-    print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=}")
+    print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=} and {use_vpred=}")
     return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)

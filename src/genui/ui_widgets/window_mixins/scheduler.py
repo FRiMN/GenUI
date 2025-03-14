@@ -35,6 +35,9 @@ class SchedulerMixin:
 
         self.karras_sigmas_editor = kse = QCheckBox()
         kse.setChecked(True)
+        
+        self.vpred_editor = vpe = QCheckBox()
+        vpe.setChecked(False)
 
         self.scheduler_toolbar = self._create_scheduler_toolbar()
 
@@ -45,6 +48,8 @@ class SchedulerMixin:
         steps_label.setContentsMargins(*TOOLBAR_MARGIN)
         karras_sigmas_label = QLabel("Karras sigmas:")
         karras_sigmas_label.setContentsMargins(*TOOLBAR_MARGIN)
+        vpred_label = QLabel("VPred:")
+        vpred_label.setContentsMargins(*TOOLBAR_MARGIN)
 
         scheduler_toolbar = QToolBar("Scheduler", self)
 
@@ -61,6 +66,10 @@ class SchedulerMixin:
 
         scheduler_toolbar.addWidget(karras_sigmas_label)
         scheduler_toolbar.addWidget(self.karras_sigmas_editor)
+        scheduler_toolbar.addSeparator()
+        
+        scheduler_toolbar.addWidget(vpred_label)
+        scheduler_toolbar.addWidget(self.vpred_editor)
         scheduler_toolbar.addSeparator()
 
         scheduler_toolbar.addWidget(self.model_path_btn)
