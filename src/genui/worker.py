@@ -3,13 +3,11 @@ from __future__ import annotations
 import datetime
 import time
 from multiprocessing import Pipe
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from .settings import settings
 from .utils import Timer
 
 if TYPE_CHECKING:
