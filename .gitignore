@@ -2,6 +2,7 @@
 .obsidian
 .ropeproject
 .zed
+.DS_Store
 .venv
 __pycache__
 *.egg-info
