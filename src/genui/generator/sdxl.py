@@ -137,6 +137,10 @@ def accelerate(pipe: GenUIStableDiffusionXLPipeline):
 
     # pipe.unet = torch.compile(pipe.unet, mode="reduce-overhead", fullgraph=True)
     pipe.unet.to(memory_format=torch.channels_last)
+    pipe.vae.to(memory_format=torch.channels_last)
+    
+    # pipe.unet = torch.compile(pipe.unet, mode="max-autotune", fullgraph=True)
+    # pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
 
 @lru_cache(maxsize=1)
