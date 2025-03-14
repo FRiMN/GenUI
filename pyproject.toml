@@ -33,6 +33,7 @@ dependencies = [
     "pydantic-settings[toml]",
     #    "xformers >= 0.0.29.post1",
     "platformdirs",
+    "pyexiv2",
 ]
 dynamic = ["version"]
 

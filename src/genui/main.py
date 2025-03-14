@@ -167,7 +167,7 @@ class Window(
         if is_latent_image:
             self.preview_viewer.set_pixmap(pixmap)
         else:
-            self.viewer.setPhoto(pixmap)
+            self.viewer.setPhoto(pixmap, self.prompt)
             self.preview_viewer.set_pixmap(None)
             
             if settings.autosave_image.enabled:
@@ -180,7 +180,7 @@ class Window(
         self.label_process.setValue(0)
         self.label_image_path.setText("")
 
-        prompt = GenerationPrompt(
+        self.prompt = GenerationPrompt(
             model_path=self.model_path,
             scheduler_name=self.scheduler_selector.currentText(),
             prompt=self.prompt_editor.toPlainText(),
@@ -194,7 +194,7 @@ class Window(
             use_vpred=self.vpred_editor.isChecked(),
         )
         # Send prompt to worker for start of generation.
-        self.gen_worker.parent_conn.send(prompt)
+        self.gen_worker.parent_conn.send(self.prompt)
 
     def validate_data_for_generation(self) -> bool:
         return bool(

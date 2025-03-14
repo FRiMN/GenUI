@@ -1,3 +1,5 @@
+import dataclasses
+import json
 from typing import Any
 from pathlib import Path
 
@@ -5,13 +7,17 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
 from PyQt6.QtWidgets import QApplication
+import pyexiv2
 
+from ..generator.sdxl import GenerationPrompt
 from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath
 
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100
 MIN_SCALE = -100
+
+pyexiv2.registerNs('GenUI namespace', 'genui')
 
 
 class PhotoViewer(QtWidgets.QGraphicsView):
@@ -30,6 +36,8 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._photo = QtWidgets.QGraphicsPixmapItem()
         self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
         self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
+        
+        self.prompt: GenerationPrompt | None = None
 
         self._build_context_menu()
 
@@ -72,7 +80,20 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
         self._photo.pixmap().save(str(file_path))
+        self._save_metadata_to_image(file_path)
         return str(file_path)
+        
+    def _save_metadata_to_image(self, file_path: Path | str):
+        d = dataclasses.asdict(self.prompt)
+        d.pop("callback")
+        d.pop("model_path")
+        
+        metadata = {
+            "Xmp.genui.prompt": json.dumps(d)
+        }
+        
+        with pyexiv2.Image(str(file_path)) as img:
+            img.modify_xmp(metadata)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         if self.hasPhoto():
@@ -132,7 +153,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self._scene.views()[0].viewport().repaint()
             self.repainted.emit()
 
-    def setPhoto(self, pixmap: QPixmap | None = None):
+    def setPhoto(self, pixmap: QPixmap | None = None, prompt: GenerationPrompt | None = None):
+        self.prompt = prompt
+        
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
