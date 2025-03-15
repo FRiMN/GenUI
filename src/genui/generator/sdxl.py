@@ -13,7 +13,8 @@ from compel import Compel, ReturnedEmbeddingsType
 from diffusers import StableDiffusionXLPipeline
 
 from ..settings import settings
-from ..utils import Timer, FIFODict
+from ..common.trace import Timer
+from ..utils import FIFODict
 
 if TYPE_CHECKING:
     import torch

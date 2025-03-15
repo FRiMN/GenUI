@@ -4,7 +4,8 @@ from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView
 from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression
 from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QSyntaxHighlighter, QTextCharFormat, QFont
 
-from ..utils import Timer, BACKGROUND_COLOR_HEX
+from ..utils import BACKGROUND_COLOR_HEX
+from ..common.trace import Timer
 from ..settings import settings
 
 

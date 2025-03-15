@@ -1,12 +1,18 @@
-import datetime
-import linecache
-import tracemalloc
-from contextlib import ContextDecorator
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from pathlib import Path
 import collections
 import time
+from functools import lru_cache
+import dataclasses
+import json
 
 from .settings import settings
+from .__version__ import __version__
+
+if TYPE_CHECKING:
+    from .generator.sdxl import GenerationPrompt
 
 
 BACKGROUND_COLOR_HEX = "#1e1e1e"
@@ -25,79 +31,57 @@ class FIFODict(collections.OrderedDict):
             if len(self) + 1 > self.maxsize:
                 self.popitem(last=False)
         super().__setitem__(key, value)
-
-
-class Timer(ContextDecorator):
-    """Timer context manager and decorator.
-
-    Usage:
-        with Timer("My task"):
-            do_something()
-
-    or:
-        @Timer("My task")
-        def my_function():
-            do_something()
-    """
-
-    started: datetime.datetime
-    delta: datetime.timedelta
-
-    def __init__(self, name: str):
-        self.name = name
-
-    def __enter__(self):
-        # We use relative time and not need to use timezone.
-        self.started = datetime.datetime.now()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
-        ended = datetime.datetime.now()
-        self.delta = ended - self.started
-
-        print(f"{self.name} completed in {self.delta}")
-
-
-class TraceMem(ContextDecorator):
-    """Context manager to trace memory usage."""
-
-    def __enter__(self):
-        tracemalloc.start()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):  # noqa: ANN001
-        snapshot = tracemalloc.take_snapshot()
-        self.display_top(snapshot)
-
-    @staticmethod
-    def display_top(snapshot: tracemalloc.Snapshot, key_type: str = "lineno", limit: int = 3):
-        snapshot = snapshot.filter_traces(
-            (
-                tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),  # noqa: FBT003
-                tracemalloc.Filter(False, "<unknown>"),  # noqa: FBT003
-            )
-        )
-        top_stats = snapshot.statistics(key_type)
-
-        print(f"Top {limit} lines")
-        for index, stat in enumerate(top_stats[:limit], 1):
-            frame = stat.traceback[0]
-            # replace "/path/to/module/file.py" with "module/file.py"
-            module_name, file_name = Path(frame.filename).parts[-2:]
-            filename = Path(module_name) / Path(file_name)
-            print(f"#{index}: {filename}:{frame.lineno}: {stat.size / 1024:.1f} KiB")
-            line = linecache.getline(frame.filename, frame.lineno).strip()
-            if line:
-                print(f"    {line}")
-
-        other = top_stats[limit:]
-        if other:
-            size = sum(stat.size for stat in other)
-            print(f"{len(other)} other: {size / 1024:.1f} KiB")
-        total = sum(stat.size for stat in top_stats)
-        print("Total allocated size: %.1f KiB" % (total / 1024))
         
         
 def generate_image_filepath() -> Path:
     """Generate a unique image filepath."""
     t = int(time.time())
     return settings.autosave_image.path / Path(f"{t}.jpg")
+    
+    
+@lru_cache(maxsize=1)
+def get_file_hash(filename, algorithm='sha256') -> str:
+    """Compute the hash of the given file using the specified algorithm."""
+    import hashlib
+    
+    hasher = hashlib.new(algorithm)
+    
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(65536)  # Read in chunks of 64KB for efficiency
+            if not data:
+                break
+            hasher.update(data)
+    
+    # Return the hexadecimal representation of the hash
+    return hasher.hexdigest()
+    
+    
+def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
+    """Return metadata from a GenerationPrompt object.
+    
+    This function extracts relevant information from the prompt object and returns it as a dictionary.
+    We use the XMP metadata format to store the prompt information.
+    We compress some fields using Zstandard compression for saving space.
+    """
+    from .generator.sdxl import load_pipeline
+    
+    d = dataclasses.asdict(prompt)
+    d.pop("callback")
+    
+    model_path = d.pop("model_path")
+    model_name = model_path.split("/")[-1]
+    
+    pipeline = load_pipeline(model_path)
+    scheduler_config = pipeline.scheduler.config
+    
+    metadata = {
+        "Xmp.genui.prompt": json.dumps(d),
+        "Xmp.genui.generator": "Genui",
+        "Xmp.genui.generator_version": __version__,
+        "Xmp.genui.model_name": model_name,
+        # "Xmp.genui.model_hash_sha256": get_file_hash(model_path),
+        "Xmp.genui.scheduler_config": json.dumps(scheduler_config),
+        "Xmp.genui.deepcache": settings.deep_cache.json(),
+    }
+    return metadata

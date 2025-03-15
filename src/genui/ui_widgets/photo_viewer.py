@@ -1,5 +1,3 @@
-import dataclasses
-import json
 from typing import Any
 from pathlib import Path
 
@@ -10,7 +8,7 @@ from PyQt6.QtWidgets import QApplication
 import pyexiv2
 
 from ..generator.sdxl import GenerationPrompt
-from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath
+from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath, get_metadata_from_prompt
 
 
 SCALE_FACTOR = 1.05
@@ -84,13 +82,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         return str(file_path)
         
     def _save_metadata_to_image(self, file_path: Path | str):
-        d = dataclasses.asdict(self.prompt)
-        d.pop("callback")
-        d.pop("model_path")
-        
-        metadata = {
-            "Xmp.genui.prompt": json.dumps(d)
-        }
+        metadata = get_metadata_from_prompt(self.prompt)
         
         with pyexiv2.Image(str(file_path)) as img:
             img.modify_xmp(metadata)

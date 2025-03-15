@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING
 from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from .utils import Timer
+from .common.trace import Timer
 
 if TYPE_CHECKING:
-    from generator.sdxl import GenerationPrompt
+    from .generator.sdxl import GenerationPrompt
     from multiprocessing.connection import Connection
 
 

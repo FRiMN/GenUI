@@ -12,6 +12,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 - Added support v-prediction models.
 - Added controls in the UI for v-prediction models.
+- Added saving generation metadata into XMP in JPEG files.
 
 ### Fixed
 
