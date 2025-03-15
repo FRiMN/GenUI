@@ -39,6 +39,7 @@ dynamic = ["version"]
 
 [tool.setuptools_scm]
 #version_file = "genui/_version.py"
+write_to = "src/genui/__version__.py"
 
 [project.optional-dependencies]
 dev = [
