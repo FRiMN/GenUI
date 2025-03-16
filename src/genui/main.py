@@ -213,7 +213,7 @@ class Window(
                 metadata:dict = img.read_xmp()
         
             prompt: GenerationPrompt = get_prompt_from_metadata(metadata)
-        except Exception:
+        except Exception:   # noqa: BLE001
             print(traceback.format_exc())
             self.show_modal_dialog("File does not contain a valid metadata")
             return

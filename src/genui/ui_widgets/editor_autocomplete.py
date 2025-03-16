@@ -1,6 +1,6 @@
 from importlib.resources import open_text
 
-from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView
+from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView, QWidget
 from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression
 from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QSyntaxHighlighter, QTextCharFormat, QFont
 
@@ -24,7 +24,7 @@ def load_words() -> list[str]:
     
     
 class PromptHighlighter(QSyntaxHighlighter):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.highlighting_rules = []
 
@@ -39,7 +39,7 @@ class PromptHighlighter(QSyntaxHighlighter):
         # TODO: case: `off-topic,`
         # TODO: case: `(koseki bijou), (ixy)0.7, (kanzarin)0.85, healthyman+, (quasarcake)0.5, (jonpei)0.9, (jima)1.1, realistic, (hi res)1.2, hololive, hololive english, (dongtan dress)1.3, (chest jewel)+`
         
-    def add_rule(self, pattern, color: Qt.GlobalColor | None, weight: int | None):
+    def add_rule(self, pattern: str, color: Qt.GlobalColor | None, weight: int | None):
         regex = QRegularExpression(pattern)
         format = QTextCharFormat()
         
@@ -50,7 +50,7 @@ class PromptHighlighter(QSyntaxHighlighter):
             
         self.highlighting_rules.append((regex, format))
 
-    def highlightBlock(self, text):
+    def highlightBlock(self, text: str):
         """Apply highlighting rules to the current block of text."""
         for regex, format in self.highlighting_rules:
             match_iterator = regex.globalMatch(text)
@@ -63,7 +63,7 @@ class WordsCompleter(QCompleter):
     words = load_words()
     completer_model = QStringListModel(words)
     
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(self.completer_model, parent)
         
         self.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
