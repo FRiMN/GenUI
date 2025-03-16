@@ -41,22 +41,22 @@ class PromptHighlighter(QSyntaxHighlighter):
         
     def add_rule(self, pattern: str, color: Qt.GlobalColor | None, weight: int | None):
         regex = QRegularExpression(pattern)
-        format = QTextCharFormat()
+        format_rule = QTextCharFormat()
         
         if weight is not None:
-            format.setFontWeight(weight)
+            format_rule.setFontWeight(weight)
         if color:
-            format.setForeground(QColor(color))
+            format_rule.setForeground(QColor(color))
             
-        self.highlighting_rules.append((regex, format))
+        self.highlighting_rules.append((regex, format_rule))
 
     def highlightBlock(self, text: str):
         """Apply highlighting rules to the current block of text."""
-        for regex, format in self.highlighting_rules:
+        for regex, format_rule in self.highlighting_rules:
             match_iterator = regex.globalMatch(text)
             while match_iterator.hasNext():
                 match = match_iterator.next()
-                self.setFormat(match.capturedStart(), match.capturedLength(), format)
+                self.setFormat(match.capturedStart(), match.capturedLength(), format_rule)
     
     
 class WordsCompleter(QCompleter):
