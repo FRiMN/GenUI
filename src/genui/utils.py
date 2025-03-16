@@ -39,24 +39,6 @@ def generate_image_filepath() -> Path:
     return settings.autosave_image.path / Path(f"{t}.jpg")
     
     
-@lru_cache(maxsize=1)
-def get_file_hash(filename, algorithm='sha256') -> str:
-    """Compute the hash of the given file using the specified algorithm."""
-    import hashlib
-    
-    hasher = hashlib.new(algorithm)
-    
-    with open(filename, 'rb') as f:
-        while True:
-            data = f.read(65536)  # Read in chunks of 64KB for efficiency
-            if not data:
-                break
-            hasher.update(data)
-    
-    # Return the hexadecimal representation of the hash
-    return hasher.hexdigest()
-    
-    
 def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
     """Return metadata from a GenerationPrompt object.
     
@@ -79,7 +61,6 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
         "Xmp.genui.generator": "Genui",
         "Xmp.genui.generator_version": __version__,
         "Xmp.genui.model_name": model_name,
-        # "Xmp.genui.model_hash_sha256": get_file_hash(model_path),
         "Xmp.genui.scheduler_config": json.dumps(scheduler_config),
         "Xmp.genui.deepcache": settings.deep_cache.json(),
     }
