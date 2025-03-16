@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QLabel, QPushButton, QStatusBar, QWidget, QProgressBar, QFileDialog
-from typing import Callable
+from collections.abc import Callable
 
 
 class StatusBarMixin:

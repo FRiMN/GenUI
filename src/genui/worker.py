@@ -5,7 +5,6 @@ import time
 from multiprocessing import Pipe
 from typing import TYPE_CHECKING
 
-from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from .common.trace import Timer
@@ -13,6 +12,7 @@ from .common.trace import Timer
 if TYPE_CHECKING:
     from .generator.sdxl import GenerationPrompt
     from multiprocessing.connection import Connection
+    from PIL import Image
 
 
 class Worker(QObject):

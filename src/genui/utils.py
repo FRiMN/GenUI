@@ -17,9 +17,8 @@ class FIFODict(collections.OrderedDict):
     def __setitem__(self, key, value):
         if key in self:
             self.move_to_end(key)
-        else:
-            if len(self) + 1 > self.maxsize:
-                self.popitem(last=False)
+        elif len(self) + 1 > self.maxsize:
+            self.popitem(last=False)
         super().__setitem__(key, value)
 
 
