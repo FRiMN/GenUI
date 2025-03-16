@@ -109,7 +109,7 @@ class AutoCompleteTextEdit(QTextEdit):
             Actual: "selected_word<start selection><cursor_position>,<end selection>"
         """
         word_under_cursor = cursor.selectedText()
-        is_compel_operator = word_under_cursor.startswith("+") or word_under_cursor.startswith("-")
+        is_compel_operator = word_under_cursor.startswith(("+", "-"))
         is_comma = word_under_cursor == ","
         if is_comma or is_compel_operator:
             cursor.movePosition(QTextCursor.MoveOperation.Left, QTextCursor.MoveMode.MoveAnchor, 2)
@@ -170,9 +170,8 @@ class AutoCompleteTextEdit(QTextEdit):
         self.completer.complete(cr) # Show popup
         
     def keyPressEvent(self, e: QKeyEvent):
-        if self.completer.popup().isVisible():
-            if e.key() == Qt.Key.Key_Return:
-                e.ignore()
-                return
+        if self.completer.popup().isVisible() and e.key() == Qt.Key.Key_Return:
+            e.ignore()
+            return
                 
         super().keyPressEvent(e)
