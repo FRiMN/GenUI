@@ -46,6 +46,7 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
     We use the XMP metadata format to store the prompt information.
     """
     from .generator.sdxl import load_pipeline
+    # from safetensors import safe_open
     
     d = dataclasses.asdict(prompt)
     d.pop("callback")
@@ -55,6 +56,10 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
     
     pipeline = load_pipeline(model_path)
     scheduler_config = pipeline.scheduler.config
+    
+    # with safe_open(model_path, framework="pt", device="cuda") as f:
+    #     for key, value in f.metadata().items():
+    #         print(key, value)
     
     metadata = {
         "Xmp.genui.prompt": json.dumps(d),
