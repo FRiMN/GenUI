@@ -4,7 +4,7 @@ import sys
 from PIL import Image
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize
-from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtGui import QCloseEvent, QDropEvent
 
 from .generator.sdxl import GenerationPrompt, load_pipeline
 from .ui_widgets.photo_viewer import PhotoViewer, FastViewer
@@ -37,6 +37,8 @@ class Window(
 
         self._build_threaded_worker()
         self._build_widgets()
+        
+        self.setAcceptDrops(True)
 
     def closeEvent(self, event: QCloseEvent):
         self.gen_worker.stop()
@@ -245,6 +247,15 @@ class Window(
         self.viewer.setPhoto(pixmap, prompt, metadata)
         
         self.label_image_path.setText(f"Loaded Image: `{image_path}`")
+
+
+    def dropEvent(self, event: QDropEvent):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            image_path = url.toLocalFile()
+            self.load_image(image_path)
+
+        event.accept()
 
 
 def main():

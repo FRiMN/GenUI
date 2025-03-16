@@ -7,6 +7,7 @@ from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QSyntaxHighlig
 from ..utils import BACKGROUND_COLOR_HEX
 from ..common.trace import Timer
 from ..settings import settings
+from .window_mixins.propagate_events import PropagateEventsMixin
 
 
 @Timer("Autocomplete words loader")
@@ -72,7 +73,7 @@ class WordsCompleter(QCompleter):
         self.setFilterMode(Qt.MatchFlag.MatchContains)
 
 
-class AutoCompleteTextEdit(QTextEdit):
+class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
     min_word_length = 2
     
     def __init__(self, *args, **kwargs):

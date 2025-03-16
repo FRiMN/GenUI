@@ -10,6 +10,7 @@ import pyexiv2
 from ..generator.sdxl import GenerationPrompt
 from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath
 from ..common.metadata import get_metadata_from_prompt
+from .window_mixins.propagate_events import PropagateEventsMixin
 
 
 SCALE_FACTOR = 1.05
@@ -19,7 +20,7 @@ MIN_SCALE = -100
 pyexiv2.registerNs('GenUI namespace', 'genui')
 
 
-class PhotoViewer(QtWidgets.QGraphicsView):
+class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
     """PhotoViewer is a custom QGraphicsView widget that displays a image and allows zooming and panning."""
 
     repainted = QtCore.pyqtSignal()
