@@ -37,7 +37,9 @@ class PromptHighlighter(QSyntaxHighlighter):
         # case: `(picking (apricots)1.3)1.1, (apricots)1.1`
         self.add_rule(r"\([^,]+\)\d\.\d\b", None, settings.prompt_editor.compel_font_weight)
         # TODO: case: `off-topic,`
-        # TODO: case: `(koseki bijou), (ixy)0.7, (kanzarin)0.85, healthyman+, (quasarcake)0.5, (jonpei)0.9, (jima)1.1, realistic, (hi res)1.2, hololive, hololive english, (dongtan dress)1.3, (chest jewel)+`
+        # TODO: case: 
+            # `(koseki bijou), (ixy)0.7, (kanzarin)0.85, healthyman+, (quasarcake)0.5, (jonpei)0.9, 
+            # (jima)1.1, realistic, (hi res)1.2, hololive, hololive english, (dongtan dress)1.3, (chest jewel)+`
         
     def add_rule(self, pattern: str, color: Qt.GlobalColor | None, weight: int | None):
         regex = QRegularExpression(pattern)
