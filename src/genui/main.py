@@ -1,5 +1,4 @@
 import datetime
-import os
 import sys
 
 from PIL import Image
@@ -257,9 +256,3 @@ def main():
     window.show()
 
     app.exec()
-
-
-if __name__ == "__main__":
-    # Добавляем путь к src в sys.path
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    sys.exit(main())
