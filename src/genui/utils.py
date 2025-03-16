@@ -62,7 +62,6 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
     
     This function extracts relevant information from the prompt object and returns it as a dictionary.
     We use the XMP metadata format to store the prompt information.
-    We compress some fields using Zstandard compression for saving space.
     """
     from .generator.sdxl import load_pipeline
     
