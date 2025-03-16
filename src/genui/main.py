@@ -243,7 +243,7 @@ class Window(
             
         image = Image.open(image_path)
         pixmap = image.toqpixmap()
-        self.viewer.setPhoto(pixmap, prompt)
+        self.viewer.setPhoto(pixmap, prompt, metadata)
         
         self.label_image_path.setText(f"Loaded Image: `{image_path}`")
 

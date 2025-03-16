@@ -27,6 +27,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
+        self.prompt: GenerationPrompt | None = None
+        self.metadata: dict | None = None
+        
         self._zoom = 0
         self._pinned = False
         self._empty = True
@@ -35,8 +38,6 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         self._photo = QtWidgets.QGraphicsPixmapItem()
         self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
         self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
-        
-        self.prompt: GenerationPrompt | None = None
 
         self._build_context_menu()
 
@@ -83,7 +84,7 @@ class PhotoViewer(QtWidgets.QGraphicsView):
         return str(file_path)
         
     def _save_metadata_to_image(self, file_path: Path | str):
-        metadata = get_metadata_from_prompt(self.prompt)
+        metadata = self.metadata or get_metadata_from_prompt(self.prompt)
         
         with pyexiv2.Image(str(file_path)) as img:
             img.modify_xmp(metadata)
@@ -146,8 +147,14 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self._scene.views()[0].viewport().repaint()
             self.repainted.emit()
 
-    def setPhoto(self, pixmap: QPixmap | None = None, prompt: GenerationPrompt | None = None):
+    def setPhoto(
+        self, 
+        pixmap: QPixmap | None = None, 
+        prompt: GenerationPrompt | None = None,
+        metadata: dict | None = None
+    ):
         self.prompt = prompt
+        self.metadata = metadata
         
         if pixmap and not pixmap.isNull():
             self._empty = False
