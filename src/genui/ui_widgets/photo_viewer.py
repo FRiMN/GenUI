@@ -8,7 +8,8 @@ from PyQt6.QtWidgets import QApplication
 import pyexiv2
 
 from ..generator.sdxl import GenerationPrompt
-from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath, get_metadata_from_prompt
+from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath
+from ..common.metadata import get_metadata_from_prompt
 
 
 SCALE_FACTOR = 1.05

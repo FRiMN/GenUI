@@ -34,6 +34,7 @@ class Window(
 
         self._generate_method = self.threaded_generate
         self._validate_data_for_generation_method = self.validate_data_for_generation
+        self._load_image = self.load_image
 
         self._build_threaded_worker()
         self._build_widgets()
@@ -202,6 +203,49 @@ class Window(
             and self.scheduler_selector.currentText()
             and self.image_size
         )
+        
+    def load_image(self, image_path: str):
+        from .common.metadata import get_prompt_from_metadata
+        import pyexiv2
+        import traceback
+        
+        try:
+            with pyexiv2.Image(image_path) as img:
+                metadata:dict = img.read_xmp()
+        
+            prompt: GenerationPrompt = get_prompt_from_metadata(metadata)
+        except Exception:
+            print(traceback.format_exc())
+            self.show_modal_dialog("File does not contain a valid metadata")
+            return
+        
+        self.prompt = prompt    # TODO: Safe?
+        
+        self.prompt_editor.setPlainText(prompt.prompt)
+        self.negative_editor.setPlainText(prompt.neg_prompt)
+        self.seed_editor.setValue(prompt.seed)
+        self.image_size = tuple(prompt.size)
+        self.scheduler_selector.setCurrentText(prompt.scheduler_name)
+        self.cfg_editor.setValue(prompt.guidance_scale)
+        self.steps_editor.setValue(prompt.inference_steps)
+        self.deepcache_enabled_editor.setChecked(prompt.deepcache_enabled)
+        self.karras_sigmas_editor.setChecked(prompt.use_karras_sigmas)
+        self.vpred_editor.setChecked(prompt.use_vpred)
+        
+        orig_model_name = prompt.model_path.split(".safetensors")[0]
+        if orig_model_name != self.model_name:
+            prompt.model_path = self.model_path or ""
+            self.show_modal_dialog(
+                f"The model in the image (<b>{orig_model_name}</b>) "
+                f"does not match the current model (<b>{self.model_name}</b>). "
+                "Model not changed"
+            )
+            
+        image = Image.open(image_path)
+        pixmap = image.toqpixmap()
+        self.viewer.setPhoto(pixmap, prompt)
+        
+        self.label_image_path.setText(f"Loaded Image: `{image_path}`")
 
 
 def main():
