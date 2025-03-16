@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
@@ -5,11 +6,11 @@ from ...generator.sdxl import interrupt
 
 
 class GenerationCommandMixin:
+    _generate_method: Callable
+    _validate_data_for_generation_method: Callable
+    
     def __init__(self):
         super().__init__()
-
-        self._generate_method = None
-        self._validate_data_for_generation_method = None
 
         self.button_generate = bg = QtWidgets.QPushButton("Generate", self)
         bg.setStyleSheet("background-color: darkblue")
