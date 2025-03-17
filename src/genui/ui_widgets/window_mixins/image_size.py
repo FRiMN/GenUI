@@ -1,8 +1,26 @@
 from PyQt6 import QtWidgets
 
-from ...utils import TOOLBAR_MARGIN
+from ...utils import TOOLBAR_MARGIN, get_aspect_ratios
 
-ASPECT_RATIOS = (
+# ASPECT_RATIOS = (
+#     ("1:1", 1),
+#     ("L 5:4", round(4/5, 2)),
+#     ("L 4:3", round(3/4, 2)),
+#     ("L 3:2", round(2/3, 2)),
+#     ("L 16:10", round(10/16, 2)),
+#     ("L 16:9", round(9/16, 2)),
+#     ("L 21:9", round(9/21, 2)),
+#     ("P 4:5", round(5/4, 2)),
+#     ("P 3:4", round(4/3, 2)),
+#     ("P 2:3", round(3/2, 2)),
+#     ("P 9:10", round(10/9, 2)),
+#     ("P 9:16", round(16/9, 2)),
+#     ("P 9:21", round(21/9, 2)),
+# )
+# ASPECT_RATIOS_LABELS = [label for label, _ in ASPECT_RATIOS]
+# ASPECT_RATIOS_VALUES = [value for _, value in ASPECT_RATIOS]
+
+ASPECT_RATIOS_LABELS = [
     "1:1",
     "L 5:4",
     "L 4:3",
@@ -16,14 +34,16 @@ ASPECT_RATIOS = (
     "P 9:10",
     "P 9:16",
     "P 9:21",
-)
+]
+ASPECT_RATIOS = get_aspect_ratios(ASPECT_RATIOS_LABELS)
+ASPECT_RATIOS_VALUES = [value for _, value in ASPECT_RATIOS]
 
 
 class ImageSizeMixin:
     def __init__(self):
         super().__init__()
 
-        self.image_size = (0, 0)
+        self.image_size = (0, 0)    # width, height
 
         self.base_size_editor = bse = QtWidgets.QSpinBox()
         bse.setMinimum(512)
@@ -36,7 +56,7 @@ class ImageSizeMixin:
         self.label_size = QtWidgets.QLabel()
 
         self.size_aspect_ratio = sar = QtWidgets.QComboBox()
-        sar.addItems(ASPECT_RATIOS)
+        sar.addItems(ASPECT_RATIOS_LABELS)
         sar.currentTextChanged.connect(self.handle_change_size_aspect_ratio)
         sar.setCurrentText("P 4:5")
 
@@ -61,12 +81,7 @@ class ImageSizeMixin:
         if " " not in text:
             self.image_size = (base_size, base_size)
         else:
-            algn, s = text.split(" ")
-            w, h = s.split(":")
-            w = int(w)
-            h = int(h)
-
-            ratio: float = h / w
+            ratio: float = next(iter([value for label, value in ASPECT_RATIOS if label == text]))
             w = base_size
             h = base_size
             if ratio > 1:
@@ -89,3 +104,14 @@ class ImageSizeMixin:
     def handle_change_base_size(self, val: int):
         t = self.size_aspect_ratio.currentText()
         self.handle_change_size_aspect_ratio(t)
+        
+    def set_image_size(self, size: tuple[int, int]):
+        """Correctly set the image size on all widgets."""
+        base_size = max(size)
+        w, h = size
+        aspect_ratio = round(h / w, 2)
+        closest = min(ASPECT_RATIOS_VALUES, key=lambda x: abs(x - aspect_ratio))
+        aspect_ratio_label = next(iter([label for label, value in ASPECT_RATIOS if value == closest]))
+        
+        self.base_size_editor.setValue(base_size)
+        self.size_aspect_ratio.setCurrentText(aspect_ratio_label)

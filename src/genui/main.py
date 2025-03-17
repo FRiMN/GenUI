@@ -129,7 +129,7 @@ class Window(
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
         
-    def handle_done(self):        
+    def handle_done(self):
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
         
@@ -233,7 +233,7 @@ class Window(
         self.prompt_editor.setPlainText(prompt.prompt)
         self.negative_editor.setPlainText(prompt.neg_prompt)
         self.seed_editor.setValue(prompt.seed)
-        self.image_size = tuple(prompt.size)
+        self.set_image_size(prompt.size)
         self.scheduler_selector.setCurrentText(prompt.scheduler_name)
         self.cfg_editor.setValue(prompt.guidance_scale)
         self.steps_editor.setValue(prompt.inference_steps)
