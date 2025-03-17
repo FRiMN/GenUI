@@ -17,6 +17,7 @@ from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .utils import TOOLBAR_MARGIN
 from .worker import Worker
 from .settings import settings
+from .__version__ import __version__
 
 
 class Window(
@@ -266,6 +267,7 @@ class Window(
 
 
 def main():
+    print(f"Version: {__version__}")
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("GenUI")
 
