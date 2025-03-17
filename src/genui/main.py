@@ -256,7 +256,6 @@ class Window(
         
         self.label_image_path.setText(f"Loaded Image: `{image_path}`")
 
-
     def dropEvent(self, event: QDropEvent):
         if event.mimeData().hasUrls():
             url = event.mimeData().urls()[0]

@@ -55,6 +55,7 @@ class GenerationCommandMixin:
 
     def show_error_modal_dialog(self, err_data: str | None = None):
         """Show a modal dialog with an error message."""
+        # TODO: Extract to a separate mixin or function.
 
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("Error")

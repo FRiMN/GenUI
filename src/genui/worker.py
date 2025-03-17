@@ -34,6 +34,7 @@ class Worker(QObject):
         self._started = False
         self.step = 0  # Current step of the current generation process.
         self.steps = 0  # Total steps of the current generation process.
+        # We really need to use multiprocessing.Pipe() instead of simple list?
         self.parent_conn, self.child_conn = Pipe()
 
     def callback_preview(self, image: Image.Image, step: int, gen_time: datetime.timedelta | None = None):

@@ -183,7 +183,7 @@ class GenerationPrompt:
         inference_steps: Number of inference steps.
         deepcache_enabled: Whether to enable deepcache.
         use_karras_sigmas: Whether to use Karras sigmas.
-        use_vpred: Whether to use VPred.
+        use_vpred: Whether to use v-prediction.
         callback: Callback function to be called with the decoded image.
 
     Returns:
