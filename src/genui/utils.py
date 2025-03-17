@@ -34,5 +34,5 @@ def get_aspect_ratios(labels: list[str]) -> list[tuple[str, float]]:
     labels_ = [(label, label.split(" ")) for label in labels]   # ["1:1"], ["P", "4:5"]
     labels_ = [(label, x[1]) if len(x) > 1 else (label, x[0]) for label, x in labels_]  # "1:1", "4:5"
     labels_ = [(label, x.split(":")) for label, x in labels_]   # ["1", "1"], ["4", "5"]
-    labels_ = [(label, int(x[0]) / int(x[1])) for label, x in labels_]  # 1.0, 1.2555555
+    labels_ = [(label, int(x[1]) / int(x[0])) for label, x in labels_]  # 1.0, 1.2555555
     return [(label, round(x, 2)) for label, x in labels_]   # 1.00, 1.26
