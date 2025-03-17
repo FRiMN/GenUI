@@ -57,6 +57,8 @@ class Window(
         self.gen_worker.done.connect(self.handle_done)
 
         self.gen_worker.progress_preview.connect(self.repaint_image)
+        
+        self.gen_worker.error.connect(self.handle_error)
 
         self.gen_thread.start()
 
@@ -135,6 +137,12 @@ class Window(
         if pipe._interrupt:
             self.label_status.setText("Interrupted")
             self.preview_viewer.set_pixmap(None)
+            
+    def handle_error(self, error: str):
+        self.button_interrupt.setDisabled(True)
+        self.button_generate.setDisabled(False)
+        
+        self.show_error_modal_dialog(error)
 
     def repaint_image(  # noqa: PLR0913
             self,
@@ -217,7 +225,7 @@ class Window(
             prompt: GenerationPrompt = get_prompt_from_metadata(metadata)
         except Exception:   # noqa: BLE001
             print(traceback.format_exc())
-            self.show_modal_dialog("File does not contain a valid metadata")
+            self.show_error_modal_dialog("File does not contain a valid metadata")
             return
         
         self.prompt = prompt    # TODO: Safe?
@@ -236,7 +244,7 @@ class Window(
         orig_model_name = prompt.model_path.split(".safetensors")[0]
         if orig_model_name != self.model_name:
             prompt.model_path = self.model_path or ""
-            self.show_modal_dialog(
+            self.show_error_modal_dialog(
                 f"The model in the image (<b>{orig_model_name}</b>) "
                 f"does not match the current model (<b>{self.model_name}</b>). "
                 "Model not changed"

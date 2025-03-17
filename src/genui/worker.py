@@ -6,6 +6,7 @@ from multiprocessing import Pipe
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject, pyqtSignal
+from torch import OutOfMemoryError
 
 from .common.trace import Timer
 
@@ -20,6 +21,7 @@ class Worker(QObject):
 
     finished = pyqtSignal()  # Worker is finished and starts to close (close the main application).
     done = pyqtSignal()  # Worker is done with the generation task.
+    error = pyqtSignal(str)  # Worker encountered an error.
     progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)
 
     poll_timeout = 0.3  # Poll timeout for checking data availability
@@ -45,7 +47,7 @@ class Worker(QObject):
 
         NOTE: What about [torch.multiprocessing](https://pytorch.org/docs/stable/multiprocessing.html)?
         """
-        from .generator.sdxl import generate, load_pipeline
+        from .generator.sdxl import generate, load_pipeline, PIPELINE_CACHE
 
         self._started = True
         print("loop start")
@@ -58,15 +60,23 @@ class Worker(QObject):
                 self.steps = prompt.inference_steps
 
                 prompt.callback = self.callback_preview
-                with Timer("Image generation") as t:
-                    image: Image.Image = generate(prompt)
-
-                pipe = load_pipeline(prompt.model_path)
-                if not pipe._interrupt:
-                    # Set result image. We use `self.steps`, because in this case step -- it is last step.
-                    self.callback_preview(image, self.steps, t.delta)
-
-                self.done.emit()
+                
+                try:
+                    with Timer("Image generation") as t:
+                        image: Image.Image = generate(prompt)
+                    
+                except OutOfMemoryError as e:
+                    self.error.emit(str(e))
+                    # Clear pipeline cache, because it can store corrupted pipeline.
+                    PIPELINE_CACHE.clear()
+                    
+                else:
+                    pipe = load_pipeline(prompt.model_path)
+                    if not pipe._interrupt:
+                        # Set result image. We use `self.steps`, because in this case step -- it is last step.
+                        self.callback_preview(image, self.steps, t.delta)
+    
+                    self.done.emit()
 
     def stop(self):
         print("stopping")

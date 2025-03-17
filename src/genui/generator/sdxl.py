@@ -28,6 +28,7 @@ Docs:
 """
 
 IMAGE_CACHE = FIFODict(maxsize=3)
+PIPELINE_CACHE = FIFODict(maxsize=1)
 
 
 def empty_cache():
@@ -144,8 +145,10 @@ def accelerate(pipe: GenUIStableDiffusionXLPipeline):
     # pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
 
-@lru_cache(maxsize=1)
 def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
+    if model_path in PIPELINE_CACHE:
+        return PIPELINE_CACHE[model_path]
+        
     print("start load pipeline")
     import torch
 
@@ -161,6 +164,7 @@ def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
 
     accelerate(pipe)
 
+    PIPELINE_CACHE[model_path] = pipe
     return pipe
 
 

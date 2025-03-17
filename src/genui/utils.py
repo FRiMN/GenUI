@@ -11,6 +11,7 @@ TOOLBAR_MARGIN = (3, 0, 3, 0)
 
 
 class FIFODict(collections.OrderedDict):
+    """FIFO dictionary that automatically removes the oldest item when the maximum size is reached."""
     def __init__(self, maxsize: int = 128):
         super().__init__()
         self.maxsize = maxsize

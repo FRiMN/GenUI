@@ -17,6 +17,8 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ### Fixed
 
+- Fixed error on generation after CUDA OutOfMemoryError. Clearing pipeline cache after OutOfMemoryError.
+
 ### Changed
 
 ## [v2025.3.1] - 2025-03-13
