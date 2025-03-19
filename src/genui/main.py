@@ -132,9 +132,7 @@ class Window(
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
         
     def handle_done(self):
-        self.button_interrupt.setDisabled(True)
-        self.button_generate.setDisabled(False)
-        self.button_fix.setDisabled(False)
+        self.reset_command_buttons()
         
         pipe = load_pipeline(self.model_path)
         if pipe._interrupt:
@@ -142,8 +140,7 @@ class Window(
             self.preview_viewer.set_pixmap(None)
             
     def handle_error(self, error: str):
-        self.button_interrupt.setDisabled(True)
-        self.button_generate.setDisabled(False)
+        self.reset_command_buttons()
         
         self.show_error_modal_dialog(error)
 

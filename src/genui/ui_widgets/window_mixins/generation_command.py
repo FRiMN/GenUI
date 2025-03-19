@@ -46,40 +46,46 @@ class GenerationCommandMixin:
         action_toolbar.addWidget(self.button_fix)
         action_toolbar.addWidget(self.button_show_rects)
         return action_toolbar
+        
+    def reset_command_buttons(self):
+        self.button_generate.setDisabled(False)
+        self.button_interrupt.setDisabled(True)
+        self.button_fix.setDisabled(False)
+        self.button_show_rects.setDisabled(False)
+        self.button_show_rects.setChecked(False)
+        
+    def disable_command_buttons_on_inference(self):
+        self.button_generate.setDisabled(True)
+        self.button_interrupt.setDisabled(False)
+        self.button_fix.setDisabled(True)
+        self.button_show_rects.setDisabled(True)
+        self.button_show_rects.setChecked(False)
 
     def handle_generate(self):
         if not self._validate_data_for_generation_method():
             self.show_error_modal_dialog()
             return
 
-        self.button_generate.setDisabled(True)
-        self.button_interrupt.setDisabled(False)
-        self.button_fix.setDisabled(True)
+        self.disable_command_buttons_on_inference()
 
         try:
             self._generate_method()
         except ValueError as e:
             self.show_error_modal_dialog(str(e))
-            self.button_generate.setDisabled(False)
-            self.button_interrupt.setDisabled(True)
-            self.button_fix.setDisabled(False)
+            self.reset_command_buttons()
             
     def handle_fix(self):
         if not self._validate_data_for_generation_method():
             self.show_modal_dialog()
             return
             
-        self.button_generate.setDisabled(True)
-        self.button_interrupt.setDisabled(False)
-        self.button_fix.setDisabled(True)
+        self.disable_command_buttons_on_inference()
 
         try:
             self._fix_method()
         except ValueError as e:
             self.show_modal_dialog(str(e))
-            self.button_generate.setDisabled(False)
-            self.button_interrupt.setDisabled(True)
-            self.button_fix.setDisabled(False)
+            self.reset_command_buttons()
 
     def handle_interrupt(self):
         self.button_interrupt.setDisabled(True)
