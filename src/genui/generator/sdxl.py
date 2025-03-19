@@ -124,7 +124,8 @@ class GenUIStableDiffusionXLPipeline(
     CachedStableDiffusionXLPipeline,
     CompelStableDiffusionXLPipeline
 ):
-    pass
+    # Bug in diffusers library.
+    _interrupt = False
 
 
 def accelerate(pipe: GenUIStableDiffusionXLPipeline):

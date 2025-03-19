@@ -53,4 +53,5 @@ def get_prompt_from_metadata(metadata: dict) -> GenerationPrompt:
     }
     prompt = json.loads(metadata["Xmp.genui.prompt"])
     prompt["model_path"] = metadata["Xmp.genui.model_name"]
+    prompt["size"] = tuple(prompt["size"])
     return GenerationPrompt(**prompt)

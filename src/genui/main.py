@@ -187,14 +187,10 @@ class Window(
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
                 
-    def show_adetailer_rect(self, *rect):
-        rects = [
-            QRectF(
-                rect[0], rect[1], # x, y
-                rect[2] - rect[0], # width
-                rect[3] - rect[1], # height
-            )
-        ]
+    def show_adetailer_rect(self, x: int, y: int, x2: int, y2: int):
+        width = x2 - x
+        height = y2 - y
+        rects = [QRectF(x, y, width, height)]
         self.viewer.set_rects(rects)
         self.label_status.setText(f"Found {len(self.viewer.rects)} rects. Inpainting...")
         
