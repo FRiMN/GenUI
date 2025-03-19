@@ -14,7 +14,7 @@ from .ui_widgets.window_mixins.prompt import PromptMixin
 from .ui_widgets.window_mixins.scheduler import SchedulerMixin
 from .ui_widgets.window_mixins.seed import SeedMixin
 from .ui_widgets.window_mixins.status_bar import StatusBarMixin
-from .utils import TOOLBAR_MARGIN
+from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
 from .worker import Worker
 from .settings import settings
 from .__version__ import __version__
@@ -231,6 +231,19 @@ class Window(
         self.viewer.clear_rects()
 
         self.prompt = self.get_prompt()
+        
+        if self.viewer.prompt:
+            is_same_model = self.viewer.prompt.model_path == self.prompt.model_path
+            is_empty_model = self.viewer.prompt.model_path == ""
+            is_same_pathless_model = self.prompt.model_path.endswith(self.viewer.prompt.model_path)
+
+            if not is_same_model and (is_empty_model or is_same_pathless_model):
+                self.viewer.prompt.model_path = self.prompt.model_path
+                
+            if self.prompt == self.viewer.prompt:
+                print("same prompt")
+                self.prompt.image = pixmap_to_bytes(self.viewer._photo.pixmap())
+                
         self.prompt.use_adetailer = True
         # Send prompt to worker for start of fixing image.
         self.gen_worker.parent_conn.send(self.prompt)

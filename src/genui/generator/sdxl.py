@@ -205,6 +205,7 @@ class GenerationPrompt:
     use_vpred: bool
     use_adetailer: bool = False
     callback: Callable | None = None
+    image: bytes | None = None
 
 
 @lru_cache(maxsize=1)
@@ -237,7 +238,7 @@ def generate(
 ) -> Image.Image:
     import torch
     
-    cache_key = replace(prompt, use_adetailer=False)
+    cache_key = replace(prompt, use_adetailer=False, image=None)
 
     if cache_key in IMAGE_CACHE:
         return IMAGE_CACHE[cache_key]

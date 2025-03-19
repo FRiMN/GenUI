@@ -4,9 +4,11 @@ import datetime
 import time
 from multiprocessing import Pipe
 from typing import TYPE_CHECKING
+from io import BytesIO
 
 from PyQt6.QtCore import QObject, pyqtSignal
 from torch import OutOfMemoryError
+from PIL import Image
 
 from .generator.sdxl import fix_by_adetailer
 from .common.trace import Timer
@@ -14,7 +16,6 @@ from .common.trace import Timer
 if TYPE_CHECKING:
     from .generator.sdxl import GenerationPrompt
     from multiprocessing.connection import Connection
-    from PIL import Image
 
 
 class Worker(QObject):
@@ -68,15 +69,16 @@ class Worker(QObject):
             is_data_exist = self.child_conn.poll(timeout=self.poll_timeout)
             if is_data_exist:
                 prompt: GenerationPrompt = self.child_conn.recv()
+                prompt.callback = self.callback_preview
 
                 self.steps = prompt.inference_steps
-
-                prompt.callback = self.callback_preview
+                image: Image.Image | None = Image.open(BytesIO(prompt.image)) if prompt.image else None
                 
                 try:
                     with Timer("Image generation") as t:
-                        image: Image.Image = generate(prompt)
-                    
+                        if not image:
+                            image = generate(prompt)
+
                 except OutOfMemoryError as e:
                     self.error.emit(str(e))
                     # Clear pipeline cache, because it can store corrupted pipeline.

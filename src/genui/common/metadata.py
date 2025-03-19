@@ -18,6 +18,7 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
     
     d = dataclasses.asdict(prompt)
     d.pop("callback")
+    d.pop("image")
     
     model_path = d.pop("model_path")
     model_name = model_path.split("/")[-1]
