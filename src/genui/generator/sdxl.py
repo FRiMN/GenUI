@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import gc
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache, cached_property
 from typing import TYPE_CHECKING
 
@@ -10,7 +10,7 @@ from PIL import Image
 from compel import Compel, ReturnedEmbeddingsType
 
 # from diffusers.utils.testing_utils import enable_full_determinism
-from diffusers import StableDiffusionXLPipeline
+from diffusers import StableDiffusionXLPipeline, StableDiffusionXLInpaintPipeline
 
 from ..settings import settings
 from ..common.trace import Timer
@@ -235,9 +235,11 @@ def generate(
     prompt: GenerationPrompt
 ) -> Image.Image:
     import torch
+    
+    cache_key = replace(prompt, use_adetailer=False)
 
-    if prompt in IMAGE_CACHE:
-        return IMAGE_CACHE[prompt]
+    if cache_key in IMAGE_CACHE:
+        return IMAGE_CACHE[cache_key]
 
     # enable_full_determinism()
 
@@ -292,7 +294,7 @@ def generate(
         image = pipeline(**data).images[0]
 
     if not pipeline._interrupt:
-        IMAGE_CACHE[prompt] = image
+        IMAGE_CACHE[cache_key] = image
 
     return image
 
@@ -332,7 +334,7 @@ def latents_to_rgb_vae(latents: torch.Tensor, pipe: GenUIStableDiffusionXLPipeli
     return pipe.image_processor.postprocess(image, output_type="pil")[0]
 
 
-def callback_factory(callback: callable) -> callable:
+def callback_factory(callback: Callable) -> Callable:
     """Factory function to create a callback function for decoding tensors.
 
     Args:
@@ -355,6 +357,20 @@ def callback_factory(callback: callable) -> callable:
         image = latents_to_rgb(latents[0])
         callback(image, step + 1)
 
+        return callback_kwargs
+
+    return callback_wrap
+    
+    
+def callback_adetailer_factory(callback: Callable) -> Callable:
+    def callback_wrap(
+            pipe: StableDiffusionXLInpaintPipeline,
+            step: int,
+            timestep: torch.Tensor,
+            callback_kwargs: dict
+    ) -> dict:
+        steps = pipe._num_timesteps
+        callback(step + 1, steps)
         return callback_kwargs
 
     return callback_wrap
@@ -404,7 +420,7 @@ def get_scheduler(
     return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
     
     
-def fix_by_adetailer(image: Image.Image, model_path: str, callback: Callable) -> Image.Image | None:
+def fix_by_adetailer(image: Image.Image, model_path: str, callback: Callable, callback_step: Callable) -> Image.Image | None:
     from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
     
     pipe = load_pipeline(model_path)
@@ -430,6 +446,6 @@ def fix_by_adetailer(image: Image.Image, model_path: str, callback: Callable) ->
         mask_padding=32, 
         model_path=yolov_model_path,
         rect_callback=callback,
+        callback=callback_adetailer_factory(callback_step),
     )
-    print(result)
     return result.images[0] if result.images else None

@@ -60,6 +60,7 @@ class Window(
         self.gen_worker.progress_preview.connect(self.repaint_image)
         self.gen_worker.error.connect(self.handle_error)
         self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
+        self.gen_worker.progress_adetailer.connect(self.update_adetailer_progress)
 
         self.gen_thread.start()
 
@@ -187,7 +188,6 @@ class Window(
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
                 
     def show_adetailer_rect(self, *rect):
-        print(f"{rect=}")
         rects = [
             QRectF(
                 rect[0], rect[1], # x, y
@@ -196,6 +196,13 @@ class Window(
             )
         ]
         self.viewer.set_rects(rects)
+        self.label_status.setText(f"Found {len(self.viewer.rects)} rects. Inpainting...")
+        
+    def update_adetailer_progress(self, progress: int, total: int):
+        multiplier = len(self.viewer.rects)
+        all_total = total * multiplier
+        self.label_process.setMaximum(all_total)
+        self.label_process.setValue(progress)
   
     def get_prompt(self) -> GenerationPrompt:
         prompt = GenerationPrompt(

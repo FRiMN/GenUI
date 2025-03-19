@@ -113,6 +113,7 @@ class AdPipelineBase:
         mask_padding: int = 32,
         model_path: str | None = None,
         rect_callback: Callable | None = None,
+        callback: Callable | None = None,
     ):
         if common is None:
             common = {}
@@ -139,13 +140,16 @@ class AdPipelineBase:
         final_images = []
 
         for i, init_image in enumerate(txt2img_images):
-            print(f"Processing image {i+1}: {init_image}")
             init_images.append(init_image.copy())
             final_image = None
+            
+            detectors_contexts: list[list[dict]] = []
 
             for j, detector in enumerate(detectors):
+                detector_contexts: list[dict] = []
+                
                 if model_path:
-                    masks = detector(init_image, model_path = model_path)
+                    masks = detector(init_image, model_path=model_path)
                 else:
                     masks = detector(init_image)
                 
@@ -155,9 +159,10 @@ class AdPipelineBase:
                     )
                     continue
 
-                print(f"{masks=}")
                 masks: List[Image.Image]
                 for k, mask in enumerate(masks):
+                    detector_context = {}
+                    
                     mask = mask.convert("L")
                     mask = mask_dilate(mask, mask_dilation)
                     bbox = mask.getbbox()
@@ -169,12 +174,27 @@ class AdPipelineBase:
 
                     if rect_callback:
                         rect_callback(bbox_padded)
+                        
+                    detector_context = {
+                        "bbox_padded": bbox_padded,
+                        "mask": mask,
+                    }
+                    detector_contexts.append(detector_context)
+                    
+                detectors_contexts.append(detector_contexts)
+                
+            for detector_contexts in detectors_contexts:
+                for detector_context in detector_contexts:
+                    bbox_padded = detector_context["bbox_padded"]
+                    mask = detector_context["mask"]
+                    
                     inpaint_output = self.process_inpainting(
                         common,
                         inpaint_only,
                         init_image,
                         mask,
                         bbox_padded,
+                        callback,
                     )
                     inpaint_image = inpaint_output[0][0]
                     print("generated inpaint dim:",inpaint_image.size) ## remove
@@ -221,12 +241,14 @@ class AdPipelineBase:
         init_image: Image.Image,
         mask: Image.Image,
         bbox_padded: tuple[int, int, int, int],
+        callback: Callable | None = None,
     ):
         crop_image = init_image.crop(bbox_padded)
         crop_mask = mask.crop(bbox_padded)
         inpaint_args = self._get_inpaint_args(common, inpaint_only)
         inpaint_args["image"] = crop_image
         inpaint_args["mask_image"] = crop_mask
+        inpaint_args["callback_on_step_end"] = callback
 
         if "control_image" in inpaint_args:
             inpaint_args["control_image"] = inpaint_args["control_image"].resize(
