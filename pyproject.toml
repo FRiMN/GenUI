@@ -35,11 +35,12 @@ dependencies = [
     "platformdirs",
     "torchvision >= 0.15.1",
     "ultralytics >= 8.2.32",
+    "pyexiv2",
 ]
 dynamic = ["version"]
 
 [tool.setuptools_scm]
-#version_file = "genui/_version.py"
+write_to = "src/genui/__version__.py"
 
 [project.optional-dependencies]
 dev = [

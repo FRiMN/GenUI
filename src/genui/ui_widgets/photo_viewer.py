@@ -5,16 +5,22 @@ from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
 from PyQt6.QtWidgets import QApplication
+import pyexiv2
 
+from ..generator.sdxl import GenerationPrompt
 from ..utils import BACKGROUND_COLOR_HEX, generate_image_filepath
+from ..common.metadata import get_metadata_from_prompt
+from .window_mixins.propagate_events import PropagateEventsMixin
 
 
 SCALE_FACTOR = 1.05
 MAX_SCALE = 100
 MIN_SCALE = -100
 
+pyexiv2.registerNs('GenUI namespace', 'genui')
 
-class PhotoViewer(QtWidgets.QGraphicsView):
+
+class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
     """PhotoViewer is a custom QGraphicsView widget that displays a image and allows zooming and panning."""
 
     repainted = QtCore.pyqtSignal()
@@ -22,6 +28,9 @@ class PhotoViewer(QtWidgets.QGraphicsView):
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
+        self.prompt: GenerationPrompt | None = None
+        self.metadata: dict | None = None
+        
         self._zoom = 0
         self._pinned = False
         self._empty = True
@@ -72,7 +81,14 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
         self._photo.pixmap().save(str(file_path))
+        self._save_metadata_to_image(file_path)
         return str(file_path)
+        
+    def _save_metadata_to_image(self, file_path: Path | str):
+        metadata = self.metadata or get_metadata_from_prompt(self.prompt)
+        
+        with pyexiv2.Image(str(file_path)) as img:
+            img.modify_xmp(metadata)
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         if self.hasPhoto():
@@ -132,7 +148,15 @@ class PhotoViewer(QtWidgets.QGraphicsView):
             self._scene.views()[0].viewport().repaint()
             self.repainted.emit()
 
-    def setPhoto(self, pixmap: QPixmap | None = None):
+    def setPhoto(
+        self, 
+        pixmap: QPixmap | None = None, 
+        prompt: GenerationPrompt | None = None,
+        metadata: dict | None = None
+    ):
+        self.prompt = prompt
+        self.metadata = metadata
+        
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)

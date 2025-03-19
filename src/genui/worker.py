@@ -5,16 +5,16 @@ import time
 from multiprocessing import Pipe
 from typing import TYPE_CHECKING
 
-from PIL import Image
 from PyQt6.QtCore import QObject, pyqtSignal
+from torch import OutOfMemoryError
 
-from genui.generator.sdxl import fix_by_adetailer
-
-from .utils import Timer
+from .generator.sdxl import fix_by_adetailer
+from .common.trace import Timer
 
 if TYPE_CHECKING:
-    from generator.sdxl import GenerationPrompt
+    from .generator.sdxl import GenerationPrompt
     from multiprocessing.connection import Connection
+    from PIL import Image
 
 
 class Worker(QObject):
@@ -22,7 +22,9 @@ class Worker(QObject):
 
     finished = pyqtSignal()  # Worker is finished and starts to close (close the main application).
     done = pyqtSignal()  # Worker is done with the generation task.
+    error = pyqtSignal(str)  # Worker encountered an error.
     progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)
+    show_adetailer_rect = pyqtSignal(int, int, int, int)
 
     poll_timeout = 0.3  # Poll timeout for checking data availability
 
@@ -34,6 +36,7 @@ class Worker(QObject):
         self._started = False
         self.step = 0  # Current step of the current generation process.
         self.steps = 0  # Total steps of the current generation process.
+        # We really need to use multiprocessing.Pipe() instead of simple list?
         self.parent_conn, self.child_conn = Pipe()
 
     def callback_preview(self, image: Image.Image, step: int, gen_time: datetime.timedelta | None = None):
@@ -41,13 +44,16 @@ class Worker(QObject):
         gen_time = gen_time or datetime.timedelta()
         image_data = image.tobytes()
         self.progress_preview.emit(image_data, step, self.steps, image.width, image.height, gen_time)
+        
+    def callback_adetailer_rect(self, rect: tuple[int, int, int, int]):
+        self.show_adetailer_rect.emit(*rect)
 
     def run(self):
         """Run in thread.
 
         NOTE: What about [torch.multiprocessing](https://pytorch.org/docs/stable/multiprocessing.html)?
         """
-        from .generator.sdxl import generate, load_pipeline
+        from .generator.sdxl import generate, load_pipeline, PIPELINE_CACHE
 
         self._started = True
         print("loop start")
@@ -60,19 +66,29 @@ class Worker(QObject):
                 self.steps = prompt.inference_steps
 
                 prompt.callback = self.callback_preview
-                with Timer("Image generation") as t:
-                    image: Image.Image = generate(prompt)
-
-                pipe = load_pipeline(prompt.model_path)
-                if not pipe._interrupt:
-                    # Set result image. We use `self.steps`, because in this case step -- it is last step.
-                    self.callback_preview(image, self.steps, t.delta)
-                    if prompt.use_adetailer:
-                        fixed_image = fix_by_adetailer(image, prompt.model_path)
-                        if fixed_image:
-                            self.callback_preview(fixed_image, self.steps, t.delta)
-
-                self.done.emit()
+                
+                try:
+                    with Timer("Image generation") as t:
+                        image: Image.Image = generate(prompt)
+                    
+                except OutOfMemoryError as e:
+                    self.error.emit(str(e))
+                    # Clear pipeline cache, because it can store corrupted pipeline.
+                    PIPELINE_CACHE.clear()
+                    
+                else:
+                    pipe = load_pipeline(prompt.model_path)
+                    if not pipe._interrupt:
+                        # Set result image. We use `self.steps`, because in this case step -- it is last step.
+                        self.callback_preview(image, self.steps, t.delta)
+                        if prompt.use_adetailer:
+                            fixed_image = fix_by_adetailer(
+                                image, prompt.model_path, self.callback_adetailer_rect
+                            )
+                            if fixed_image:
+                                self.callback_preview(fixed_image, self.steps, t.delta)
+    
+                    self.done.emit()
 
     def stop(self):
         print("stopping")

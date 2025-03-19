@@ -1,8 +1,11 @@
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QLabel, QPushButton, QStatusBar, QWidget, QProgressBar
+from PyQt6.QtWidgets import QLabel, QPushButton, QStatusBar, QWidget, QProgressBar, QFileDialog
+from collections.abc import Callable
 
 
 class StatusBarMixin:
+    _load_image: Callable[[str], None]
+    
     def __init__(self):
         super().__init__()
 
@@ -26,6 +29,12 @@ class StatusBarMixin:
         self.zoom_orig_button.setToolTip("Set original size of image")
 
         self.label_viewer_image_size = QLabel()
+        
+        self.load_image_button = QPushButton()
+        self.load_image_button.setToolTip("Load image and read metadata")
+        icon = QIcon.fromTheme("accessories-text-editor")
+        self.load_image_button.setIcon(icon)
+        self.load_image_button.clicked.connect(self.load_image_button_clicked)
 
         self.status_bar = self._create_status_bar()
         self.setStatusBar(self.status_bar)
@@ -42,7 +51,13 @@ class StatusBarMixin:
 
         status_bar.addWidget(self.label_viewer_image_size)
         status_bar.addWidget(self.zoom_label)
+        status_bar.addWidget(self.load_image_button)
         status_bar.addWidget(self.zoom_fit_button)
         status_bar.addWidget(self.zoom_orig_button)
 
         return status_bar
+        
+    def load_image_button_clicked(self):
+        image_path = QFileDialog.getOpenFileName(self, "Model")[0]
+        if image_path:
+            self._load_image(image_path)

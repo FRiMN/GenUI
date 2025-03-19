@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
@@ -5,6 +6,9 @@ from ...generator.sdxl import interrupt
 
 
 class GenerationCommandMixin:
+    _generate_method: Callable
+    _validate_data_for_generation_method: Callable
+    
     def __init__(self):
         super().__init__()
 
@@ -27,6 +31,10 @@ class GenerationCommandMixin:
         self.button_fix = QtWidgets.QPushButton("Fix", self)
         self.button_fix.clicked.connect(self.handle_fix)
         
+        self.button_show_rects = QtWidgets.QPushButton("Show Fix Rects", self)
+        self.button_show_rects.setCheckable(True)
+        self.button_show_rects.toggled.connect(self.switch_rects)
+        
         self.fix_steps = 20
 
         self.action_toolbar = self._create_action_toolbar()
@@ -36,11 +44,12 @@ class GenerationCommandMixin:
         action_toolbar.addWidget(self.button_generate)
         action_toolbar.addWidget(self.button_interrupt)
         action_toolbar.addWidget(self.button_fix)
+        action_toolbar.addWidget(self.button_show_rects)
         return action_toolbar
 
     def handle_generate(self):
         if not self._validate_data_for_generation_method():
-            self.show_modal_dialog()
+            self.show_error_modal_dialog()
             return
 
         self.button_generate.setDisabled(True)
@@ -50,7 +59,7 @@ class GenerationCommandMixin:
         try:
             self._generate_method()
         except ValueError as e:
-            self.show_modal_dialog(str(e))
+            self.show_error_modal_dialog(str(e))
             self.button_generate.setDisabled(False)
             self.button_interrupt.setDisabled(True)
             self.button_fix.setDisabled(False)
@@ -78,17 +87,24 @@ class GenerationCommandMixin:
         # FIXME: `self.model_path` can be changed. Need using prompt.
         interrupt(self.model_path)
 
-    def show_modal_dialog(self, err_data: str | None = None):
+    def show_error_modal_dialog(self, err_data: str | None = None):
         """Show a modal dialog with an error message."""
+        # TODO: Extract to a separate mixin or function.
 
         msg = QtWidgets.QMessageBox()
-        msg.setWindowTitle("Data error")
+        msg.setWindowTitle("Error")
 
         if err_data:
-            msg.setText(f"Data for generation not valid! {err_data}.")
+            msg.setText(err_data)
         else:
-            msg.setText("Data for generation not valid! Try check model is chose.")
+            msg.setText("Data for generation not valid! Try check a model is chosen.")
 
         msg.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         msg.exec()
+        
+    def switch_rects(self, checked: bool):
+        if checked:
+            self.viewer.show_rects()
+        else:
+            self.viewer.hide_rects()

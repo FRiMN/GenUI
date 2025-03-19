@@ -13,7 +13,8 @@ from compel import Compel, ReturnedEmbeddingsType
 from diffusers import StableDiffusionXLPipeline
 
 from ..settings import settings
-from ..utils import Timer, FIFODict
+from ..common.trace import Timer
+from ..utils import FIFODict
 
 if TYPE_CHECKING:
     import torch
@@ -27,6 +28,7 @@ Docs:
 """
 
 IMAGE_CACHE = FIFODict(maxsize=3)
+PIPELINE_CACHE = FIFODict(maxsize=1)
 
 
 def empty_cache():
@@ -143,8 +145,10 @@ def accelerate(pipe: GenUIStableDiffusionXLPipeline):
     # pipe.vae.decode = torch.compile(pipe.vae.decode, mode="max-autotune", fullgraph=True)
 
 
-@lru_cache(maxsize=1)
 def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
+    if model_path in PIPELINE_CACHE:
+        return PIPELINE_CACHE[model_path]
+        
     print("start load pipeline")
     import torch
 
@@ -160,6 +164,7 @@ def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
 
     accelerate(pipe)
 
+    PIPELINE_CACHE[model_path] = pipe
     return pipe
 
 
@@ -178,7 +183,7 @@ class GenerationPrompt:
         inference_steps: Number of inference steps.
         deepcache_enabled: Whether to enable deepcache.
         use_karras_sigmas: Whether to use Karras sigmas.
-        use_vpred: Whether to use VPred.
+        use_vpred: Whether to use v-prediction.
         callback: Callback function to be called with the decoded image.
 
     Returns:

@@ -1,11 +1,10 @@
 import datetime
-import os
 import sys
 
 from PIL import Image
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import QThread, QSize
-from PyQt6.QtGui import QCloseEvent
+from PyQt6.QtCore import QThread, QSize, QRectF
+from PyQt6.QtGui import QCloseEvent, QDropEvent
 
 from .generator.sdxl import GenerationPrompt, load_pipeline
 from .ui_widgets.photo_viewer import PhotoViewer, FastViewer
@@ -18,6 +17,7 @@ from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .utils import TOOLBAR_MARGIN
 from .worker import Worker
 from .settings import settings
+from .__version__ import __version__
 
 
 class Window(
@@ -35,9 +35,12 @@ class Window(
         self._generate_method = self.threaded_generate
         self._fix_method = self.threaded_fix
         self._validate_data_for_generation_method = self.validate_data_for_generation
+        self._load_image = self.load_image
 
         self._build_threaded_worker()
         self._build_widgets()
+        
+        self.setAcceptDrops(True)
 
     def closeEvent(self, event: QCloseEvent):
         self.gen_worker.stop()
@@ -54,8 +57,9 @@ class Window(
         self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
         self.gen_worker.done.connect(self.handle_done)
-
         self.gen_worker.progress_preview.connect(self.repaint_image)
+        self.gen_worker.error.connect(self.handle_error)
+        self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
 
         self.gen_thread.start()
 
@@ -126,7 +130,7 @@ class Window(
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
         
-    def handle_done(self):        
+    def handle_done(self):
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
         self.button_fix.setDisabled(False)
@@ -135,6 +139,12 @@ class Window(
         if pipe._interrupt:
             self.label_status.setText("Interrupted")
             self.preview_viewer.set_pixmap(None)
+            
+    def handle_error(self, error: str):
+        self.button_interrupt.setDisabled(True)
+        self.button_generate.setDisabled(False)
+        
+        self.show_error_modal_dialog(error)
 
     def repaint_image(  # noqa: PLR0913
             self,
@@ -169,13 +179,24 @@ class Window(
         if is_latent_image:
             self.preview_viewer.set_pixmap(pixmap)
         else:
-            self.viewer.setPhoto(pixmap)
+            self.viewer.setPhoto(pixmap, self.prompt)
             self.preview_viewer.set_pixmap(None)
             
             if settings.autosave_image.enabled:
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
                 
+    def show_adetailer_rect(self, *rect):
+        print(f"{rect=}")
+        rects = [
+            QRectF(
+                rect[0], rect[1], # x, y
+                rect[2] - rect[0], # width
+                rect[3] - rect[1], # height
+            )
+        ]
+        self.viewer.set_rects(rects)
+  
     def get_prompt(self) -> GenerationPrompt:
         prompt = GenerationPrompt(
             model_path=self.model_path,
@@ -198,20 +219,21 @@ class Window(
         self.label_process.setValue(0)
         self.label_image_path.setText("")
 
-        prompt = self.get_prompt()
+        self.prompt = self.get_prompt()
         # Send prompt to worker for start of generation.
-        self.gen_worker.parent_conn.send(prompt)
+        self.gen_worker.parent_conn.send(self.prompt)
         
     def threaded_fix(self):
         self.label_status.setText("Adetailer fix...")
         self.label_process.setMaximum(self.fix_steps)
         self.label_process.setValue(0)
         self.label_image_path.setText("")
-        
-        prompt = self.get_prompt()
-        prompt.use_adetailer = True
+        self.viewer.clear_rects()
+
+        self.prompt = self.get_prompt()
+        self.prompt.use_adetailer = True
         # Send prompt to worker for start of fixing image.
-        self.gen_worker.parent_conn.send(prompt)
+        self.gen_worker.parent_conn.send(self.prompt)
 
     def validate_data_for_generation(self) -> bool:
         return bool(
@@ -219,9 +241,61 @@ class Window(
             and self.scheduler_selector.currentText()
             and self.image_size
         )
+        
+    def load_image(self, image_path: str):
+        from .common.metadata import get_prompt_from_metadata
+        import pyexiv2
+        import traceback
+        
+        try:
+            with pyexiv2.Image(image_path) as img:
+                metadata:dict = img.read_xmp()
+        
+            prompt: GenerationPrompt = get_prompt_from_metadata(metadata)
+        except Exception:   # noqa: BLE001
+            print(traceback.format_exc())
+            self.show_error_modal_dialog("File does not contain a valid metadata")
+            return
+        
+        self.prompt = prompt    # TODO: Safe?
+        
+        self.prompt_editor.setPlainText(prompt.prompt)
+        self.negative_editor.setPlainText(prompt.neg_prompt)
+        self.seed_editor.setValue(prompt.seed)
+        self.set_image_size(prompt.size)
+        self.scheduler_selector.setCurrentText(prompt.scheduler_name)
+        self.cfg_editor.setValue(prompt.guidance_scale)
+        self.steps_editor.setValue(prompt.inference_steps)
+        self.deepcache_enabled_editor.setChecked(prompt.deepcache_enabled)
+        self.karras_sigmas_editor.setChecked(prompt.use_karras_sigmas)
+        self.vpred_editor.setChecked(prompt.use_vpred)
+        
+        orig_model_name = prompt.model_path.split(".safetensors")[0]
+        if orig_model_name != self.model_name:
+            prompt.model_path = self.model_path or ""
+            self.show_error_modal_dialog(
+                f"The model in the image (<b>{orig_model_name}</b>) "
+                f"does not match the current model (<b>{self.model_name}</b>). "
+                "Model not changed"
+            )
+            
+        image = Image.open(image_path)
+        pixmap = image.toqpixmap()
+        self.viewer.setPhoto(pixmap, prompt, metadata)
+        
+        self.label_image_path.setText(f"Loaded Image: `{image_path}`")
+
+    def dropEvent(self, event: QDropEvent):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            image_path = url.toLocalFile()
+            self.load_image(image_path)
+
+        event.accept()
 
 
 def main():
+    print(f"Version: {__version__}")
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("GenUI")
 
@@ -230,9 +304,3 @@ def main():
     window.show()
 
     app.exec()
-
-
-if __name__ == "__main__":
-    # Добавляем путь к src в sys.path
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    sys.exit(main())

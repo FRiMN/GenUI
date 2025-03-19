@@ -8,14 +8,18 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+## [v2025.3.2] - 2025-03-18
+
 ### Added
 
 - Added support v-prediction models.
 - Added controls in the UI for v-prediction models.
+- Added saving/loading generation metadata into/from XMP in JPEG files.
+- Added loading metadata by dropping JPEG files into the application.
 
 ### Fixed
 
-### Changed
+- Fixed error on generation after CUDA OutOfMemoryError. Clearing pipeline cache after OutOfMemoryError.
 
 ## [v2025.3.1] - 2025-03-13
 
