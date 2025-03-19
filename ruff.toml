@@ -46,6 +46,12 @@ extend-ignore = [
     "E701",
 ]
 
+exclude = [
+    "**/docs/*",
+    "**resources/*",
+    "src/adetailer_sdxl/*",
+]
+
 [format]
 indent-style = "space"
 
