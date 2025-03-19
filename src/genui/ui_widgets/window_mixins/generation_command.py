@@ -109,7 +109,7 @@ class GenerationCommandMixin:
 
         msg.exec()
         
-    def switch_rects(self, checked: bool):
+    def switch_rects(self, checked: bool):  # noqa: FBT001
         if checked:
             self.viewer.show_rects()
         else:

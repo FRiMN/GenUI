@@ -3,7 +3,9 @@ from pathlib import Path
 
 from PyQt6 import QtWidgets, QtCore
 from PyQt6.QtCore import QRectF, Qt, QSize, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent, QPen
+from PyQt6.QtGui import (
+    QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent, QPen
+)
 from PyQt6.QtWidgets import QApplication
 import pyexiv2
 
