@@ -2,8 +2,8 @@ from typing import Any
 from pathlib import Path
 
 from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtCore import Qt, QSize, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
+from PyQt6.QtCore import QRectF, Qt, QSize, QPoint
+from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent, QPen
 from PyQt6.QtWidgets import QApplication
 import pyexiv2
 
@@ -45,6 +45,8 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self._scene = QtWidgets.QGraphicsScene(self)
         self._scene.addItem(self._photo)
         self.setScene(self._scene)
+        
+        self.rects = []
 
         va = QtWidgets.QGraphicsView.ViewportAnchor
         sb_policy = QtCore.Qt.ScrollBarPolicy
@@ -156,7 +158,8 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
     ):
         self.prompt = prompt
         self.metadata = metadata
-        
+        self.hide_rects()
+
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
@@ -224,6 +227,26 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             self.setDragMode(dm.NoDrag)
         elif not self._photo.pixmap().isNull():
             self.setDragMode(dm.ScrollHandDrag)
+            
+    def set_rects(self, rects: list[QRectF]):
+        rect_items = [QtWidgets.QGraphicsRectItem(rect) for rect in rects]
+        for item in rect_items:
+            item.setPen(QPen(Qt.GlobalColor.red, 2))
+            self.scene().addItem(item)
+        self.rects.extend(rect_items)
+
+    def hide_rects(self):
+        for item in self.rects:
+            item.hide()
+            
+    def show_rects(self):
+        for item in self.rects:
+            item.show()
+
+    def clear_rects(self):
+        for item in self.rects:
+            self.scene().removeItem(item)
+        self.rects = []
 
 
 class FastViewer(QtWidgets.QLabel):

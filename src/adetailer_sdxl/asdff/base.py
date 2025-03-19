@@ -111,8 +111,8 @@ class AdPipelineBase:
         mask_dilation: int = 4,
         mask_blur: int = 4,
         mask_padding: int = 32,
-
-        model_path: str = None
+        model_path: str | None = None,
+        rect_callback: Callable | None = None,
     ):
         if common is None:
             common = {}
@@ -156,6 +156,7 @@ class AdPipelineBase:
                     continue
 
                 print(f"{masks=}")
+                masks: List[Image.Image]
                 for k, mask in enumerate(masks):
                     mask = mask.convert("L")
                     mask = mask_dilate(mask, mask_dilation)
@@ -165,7 +166,9 @@ class AdPipelineBase:
                         continue
                     mask = mask_gaussian_blur(mask, mask_blur)
                     bbox_padded = bbox_padding(bbox, init_image.size, mask_padding)
-                    print("padded dim:",bbox_padded)
+
+                    if rect_callback:
+                        rect_callback(bbox_padded)
                     inpaint_output = self.process_inpainting(
                         common,
                         inpaint_only,

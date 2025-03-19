@@ -403,7 +403,7 @@ def get_scheduler(
     return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
     
     
-def fix_by_adetailer(image: Image.Image, model_path: str) -> Image.Image | None:
+def fix_by_adetailer(image: Image.Image, model_path: str, callback: Callable) -> Image.Image | None:
     from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
     
     pipe = load_pipeline(model_path)
@@ -427,7 +427,8 @@ def fix_by_adetailer(image: Image.Image, model_path: str) -> Image.Image | None:
         mask_dilation=4, 
         mask_blur=4, 
         mask_padding=32, 
-        model_path=yolov_model_path
+        model_path=yolov_model_path,
+        rect_callback=callback,
     )
     print(result)
     return result.images[0] if result.images else None
