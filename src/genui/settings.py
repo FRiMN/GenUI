@@ -70,6 +70,12 @@ class Settings(BaseGenUISettings):
     autosave_image: AutoSaveImageSettings = AutoSaveImageSettings()
     deep_cache: DeepCacheSettings = DeepCacheSettings()
     prompt_editor: PromptEditorSettings = PromptEditorSettings()
+    adetailer: ADetailerSettings = ADetailerSettings()
+    
+    
+def reload_settings():
+    settings = Settings()
+    print(f"SETTINGS={settings.json()}")
 
 
 settings = Settings()

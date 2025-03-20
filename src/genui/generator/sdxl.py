@@ -446,8 +446,6 @@ def fix_by_adetailer(
     }
     inpaint_only = {'strength': s.inpaint_strength}
     
-    print(f"{s=}")
-    
     result: ADOutput = ad_pipe(
         common=common, 
         inpaint_only=inpaint_only, 
