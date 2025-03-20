@@ -8,6 +8,12 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+### Added
+
+- Added ADetailer support.
+
+### Fixed
+
 ## [v2025.3.2] - 2025-03-18
 
 ### Added
