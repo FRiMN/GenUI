@@ -429,29 +429,33 @@ def fix_by_adetailer(
     callback_step: Callable,
 ) -> Image.Image | None:
     from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
+    from ..settings import ADetailerSettings
+    
+    s: ADetailerSettings = settings.adetailer
     
     pipe = load_pipeline(model_path)
     ad_components = pipe.components
     ad_pipe = AdPipelineBase(**ad_components)
     
     common = {
-        "prompt": "good detailed hands",
-        "n_prompt" : "bad hands, bad anatomy, extra fingers, missing fingers", 
-        "num_inference_steps": 20, 
+        "prompt": s.prompt,
+        "n_prompt" : s.n_prompt, 
+        "num_inference_steps": s.inference_steps, 
         # "target_size" : image.size
-        "target_size" : (200, 200)
+        "target_size" : s.target_size
     }
-    inpaint_only = {'strength': 0.4}
-    yolov_model_path = "/media/frimn/archive31/ai/stable_diffusion/ComfyUI/models/dz_facedetailer/yolo/hand_yolov9c.pt"
+    inpaint_only = {'strength': s.inpaint_strength}
+    
+    print(f"{s=}")
     
     result: ADOutput = ad_pipe(
         common=common, 
         inpaint_only=inpaint_only, 
         images=[image],
-        mask_dilation=4, 
-        mask_blur=4, 
-        mask_padding=32, 
-        model_path=yolov_model_path,
+        mask_dilation=s.mask_dilation, 
+        mask_blur=s.mask_blur, 
+        mask_padding=s.mask_padding, 
+        model_path=str(s.yolov_model_path),
         rect_callback=callback,
         callback=callback_adetailer_factory(callback_step),
     )
