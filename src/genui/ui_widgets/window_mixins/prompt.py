@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialog, QFileDialog
 from PyQt6.QtCore import Qt, QSize, QRect
-from PyQt6.QtGui import QColor, QBrush, QPainter
+from PyQt6.QtGui import QColor, QBrush, QPainter, QIcon
 
 from ...ui_widgets.editor_autocomplete import AutoCompleteTextEdit
 from ...ui_widgets.lora_table import LoraTable
@@ -14,60 +14,23 @@ class SquareButton(QPushButton):
         return QSize(side, side)
         
         
-class CounterButton(QPushButton):
-    text_margin = 5
-    
-    def __init__(self, text, number, color, parent=None):
+class CounterButton(QPushButton):    
+    def __init__(self, text: str, number: int, total: int, parent=None):
         super().__init__(text, parent)
         
+        self.text = text
         self.number = number
+        self.total = total
     
-    def setNumber(self, number: int):
+    def setNumber(self, number: int, total: int | None = None):
         self.number = number
+        if total is not None:
+            self.total = total
         self.update()   # Emit paintEvent
-        
-    @property
-    def _counter_radius(self) -> int:
-        return self.height()//2
-        
-    @property
-    def _counter_rect(self) -> QRect:
-        text_width = self.fontMetrics().horizontalAdvance(self.text())
-        text_start = (self.width() - text_width) // 2
-        radius = self._counter_radius
-        x = text_start + text_width + self.text_margin
-        print(f"{self.width()=}; {text_width=}; {text_start=}; {x=}")
-        y = (self.height()-radius)//2
-        
-        center = (x, y)
-        size = (radius, radius)
-        return QRect(*center, *size)
-        
-    @property
-    def color(self) -> QColor:
-        color = "gray" if self.number == 0 else "#f0a04b"
-        return QColor(color)
         
     def paintEvent(self, event):
         super().paintEvent(event)
-        
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        font = painter.font()
-        font.setPixelSize(self._counter_radius)
-        painter.setFont(font)
-        
-        paint_rect = self._counter_rect
-        
-        painter.setBrush(QBrush(self.color))
-        painter.drawEllipse(paint_rect)
-        
-        painter.setPen(QColor("white"))
-        painter.drawText(
-            paint_rect, 
-            Qt.AlignmentFlag.AlignCenter, str(self.number)
-        )
+        self.setText(f"{self.text}: {self.number}/{self.total}")
 
 
 class LoraWindow(QDialog):
@@ -78,13 +41,39 @@ class LoraWindow(QDialog):
         self.setWindowTitle("LoRAs")
         
         self.lora_table = LoraTable()
-        self.add_button = SquareButton("+")
-        self.add_button.clicked.connect(self.handle_add_button)
+        
+        icon = QIcon.fromTheme(QIcon.ThemeIcon.ListAdd)
+        self.add_button = add = SquareButton()
+        add.setIcon(icon)
+        add.setToolTip("Add a new LoRA")
+        add.clicked.connect(self.handle_add_button)
+        
+        icon = QIcon.fromTheme(QIcon.ThemeIcon.ListRemove)
+        self.remove_button = remove = SquareButton()
+        remove.setIcon(icon)
+        remove.setToolTip("Remove selected LoRAs")
+        remove.clicked.connect(self.lora_table.remove_selected)
+        
+        icon = QIcon.fromTheme("user-trash")
+        self.clear_button = clear = SquareButton()
+        clear.setIcon(icon)
+        clear.setToolTip("Clear all LoRAs")
+        clear.clicked.connect(self.lora_table.clear)
+        
+        icon = QIcon.fromTheme("emblem-synchronizing")
+        self.toggle_button = toggle = SquareButton()
+        toggle.setIcon(icon)
+        toggle.setToolTip("Toggle all LoRAs")
+        toggle.clicked.connect(self.lora_table.toggle_all)
         
         layout = QHBoxLayout()
         btn_layout = QVBoxLayout()
         btn_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         btn_layout.addWidget(self.add_button)
+        btn_layout.addWidget(self.remove_button)
+        btn_layout.addWidget(self.clear_button)
+        btn_layout.addWidget(self.toggle_button)
+        
         layout.addWidget(self.lora_table)
         layout.addLayout(btn_layout)
         
@@ -107,7 +96,7 @@ class PromptMixin:
         
         self.lora_window = LoraWindow()
         
-        self.open_lora_window_btn = CounterButton("LoRA", 0, "gray")
+        self.open_lora_window_btn = CounterButton("LoRA", 0, 0)
         self.open_lora_window_btn.clicked.connect(self.lora_window.show)
         
         self.lora_window.lora_table.updated.connect(self.open_lora_window_btn.setNumber)

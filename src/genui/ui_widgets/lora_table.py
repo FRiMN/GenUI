@@ -1,25 +1,31 @@
 from pathlib import Path
-import sys
-from PyQt6.QtWidgets import (QTableWidget, 
+from PyQt6.QtWidgets import (
                             QTableWidgetItem, QVBoxLayout, QWidget, 
-                            QPushButton, QCheckBox, QDoubleSpinBox, 
-                            QHeaderView, QHBoxLayout, QFileDialog)
-from PyQt6.QtCore import Qt, pyqtSignal
+                            QCheckBox, QDoubleSpinBox, QTableWidget,
+                            QHeaderView, QHBoxLayout, QAbstractItemView)
+from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
 
 
 class LoraTable(QWidget):
-    updated = pyqtSignal(int)
+    updated = pyqtSignal(int, int)
     
     header_labels = ["", "Name", "Weight"]
     files_paths: dict[str, Path] = {}
+    
+    cell_active = 0
+    cell_name = 1
+    cell_weight = 2
     
     def __init__(self, *args):
         super().__init__(*args)
         self.table = QTableWidget()
         self.table.setColumnCount(3)
         self.table.setMinimumSize(200, 200)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         
         self._set_columns()
+        
+        self.table.cellClicked.connect(self._handle_row_selection)
         
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -30,11 +36,13 @@ class LoraTable(QWidget):
         self.table.setHorizontalHeaderLabels(self.header_labels)
         
         rm = QHeaderView.ResizeMode
-        self.table.horizontalHeader().setSectionResizeMode(0, rm.Fixed)
-        self.table.setColumnWidth(0, 30)
-        self.table.horizontalHeader().setSectionResizeMode(1, rm.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(self.cell_active, rm.Fixed)
+        self.table.setColumnWidth(self.cell_active, 30)
+        self.table.horizontalHeader().setSectionResizeMode(self.cell_name, rm.Stretch)
         
-        # self.table.verticalHeader().setVisible(True)
+    def _handle_row_selection(self, row, column):
+        """Always select the row when a cell is clicked"""
+        self.table.selectRow(row)
         
     def _build_active_checkbox(self):
         check_widget = QWidget()
@@ -63,23 +71,73 @@ class LoraTable(QWidget):
     def get_active_loras_indexes(self) -> list[int]:
         indexes = []
         for row in range(self.table.rowCount()):
-            checkbox = self.table.cellWidget(row, 0).findChild(QCheckBox)
+            checkbox = self.get_active_checkbox(row)
             if checkbox.isChecked():
                 indexes.append(row)
         return indexes
         
+    def get_active_checkbox(self, row: int) -> QCheckBox:
+        return self.table.cellWidget(row, 0).findChild(QCheckBox)
+        
     def _handle_updates(self):
         active_rows = self.get_active_loras_indexes()
-        self.updated.emit(len(active_rows))
+        total_rows = self.table.rowCount()
+        self.updated.emit(len(active_rows), total_rows)
         
     def add_lora(self, filepath: Path):
+        name = self._build_name(filepath)
+        if name in self.files_paths:
+            return
+        
         next_row = self.table.rowCount()
         self.table.insertRow(next_row)
-        name = self._build_name(filepath)
         self.files_paths[name] = filepath
         
-        self.table.setCellWidget(next_row, 0, self._build_active_checkbox())
-        self.table.setItem(next_row, 1, QTableWidgetItem(name))
-        self.table.setCellWidget(next_row, 2, self._build_weight_spinbox())
+        self.table.setCellWidget(next_row, self.cell_active, self._build_active_checkbox())
+        self.table.setItem(next_row, self.cell_name, QTableWidgetItem(name))
+        self.table.setCellWidget(next_row, self.cell_weight, self._build_weight_spinbox())
         
+        self._handle_updates()
+        
+    def remove_lora(self, row: QModelIndex):
+        name = self.table.item(row.row(), self.cell_name).text()
+        self.table.removeRow(row.row())
+        del self.files_paths[name]
+        
+        self._handle_updates()
+        
+    def remove_selected(self):
+        selected_rows = self.table.selectionModel().selectedRows()
+        for row in selected_rows:
+            self.remove_lora(row)
+        
+    def clear(self):
+        while self.table.rowCount() > 0:
+            self.table.removeRow(0)
+        self.files_paths.clear()
+        
+        self._handle_updates()
+        
+    def deactivate_all(self):
+        active_rows = self.get_active_loras_indexes()
+        for row in active_rows:
+            checkbox = self.get_active_checkbox(row)
+            checkbox.setChecked(False)
+            
+        self._handle_updates()
+        
+    def activate_all(self):
+        for row in range(self.table.rowCount()):
+            checkbox = self.get_active_checkbox(row)
+            checkbox.setChecked(True)
+            
+        self._handle_updates()
+        
+    def toggle_all(self):
+        active_rows = self.get_active_loras_indexes()
+        new_state = len(active_rows) == 0
+        for row in range(self.table.rowCount()):
+            checkbox = self.get_active_checkbox(row)
+            checkbox.setChecked(new_state)
+                
         self._handle_updates()
