@@ -270,6 +270,8 @@ def main():
     print(f"Version: {__version__}")
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("GenUI")
+    
+    app.setStyle("Fusion")
 
     window = Window()
     window.setGeometry(500, 300, 1300, 800)
