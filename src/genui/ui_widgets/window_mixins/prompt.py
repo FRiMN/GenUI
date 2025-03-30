@@ -1,3 +1,5 @@
+from typing import Any
+
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialog, QFileDialog
 from PyQt6.QtCore import Qt, QSize, QRect
 from PyQt6.QtGui import QColor, QBrush, QPainter, QIcon
@@ -83,7 +85,7 @@ class LoraWindow(QDialog):
         filepath = QFileDialog.getOpenFileName(self, "LoRA Model")[0]
         if filepath:
             self.lora_table.add_lora(Path(filepath))
-
+            
 
 class PromptMixin:
     def __init__(self):
@@ -111,3 +113,6 @@ class PromptMixin:
         panel_box = QWidget()
         panel_box.setLayout(panel)
         return panel_box
+        
+    def get_loras(self) -> list[dict[str, Any]]:
+        return self.lora_window.lora_table.get_loras()

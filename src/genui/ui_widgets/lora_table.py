@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from PyQt6.QtWidgets import (
                             QTableWidgetItem, QVBoxLayout, QWidget, 
                             QCheckBox, QDoubleSpinBox, QTableWidget,
@@ -141,3 +142,14 @@ class LoraTable(QWidget):
             checkbox.setChecked(new_state)
                 
         self._handle_updates()
+        
+    def get_loras(self) -> list[dict[str, Any]]:
+        loras = []
+        for row in range(self.table.rowCount()):
+            name = self.table.item(row, self.cell_name).text()
+            filepath = self.files_paths[name]
+            weight = self.table.item(row, self.cell_weight).text()
+            active = self.get_active_checkbox(row).isChecked()
+            loras.append({"name": name, "filepath": filepath, "weight": weight, "active": active})
+        return loras
+        
