@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import gc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache, cached_property
 from typing import TYPE_CHECKING
 
@@ -11,6 +11,7 @@ from compel import Compel, ReturnedEmbeddingsType
 
 # from diffusers.utils.testing_utils import enable_full_determinism
 from diffusers import StableDiffusionXLPipeline
+from diffusers.loaders.lora_pipeline import StableDiffusionXLLoraLoaderMixin
 
 from ..settings import settings
 from ..common.trace import Timer
@@ -118,11 +119,35 @@ class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         self.stop_caching()
 
         return res
+        
+        
+class LoraStableDiffusionXLPipeline(StableDiffusionXLLoraLoaderMixin):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__loras = set([])
+        
+    def load_lora_weights(self, *args, **kwargs) -> None:
+        adapter_name = kwargs["adapter_name"]
+        if adapter_name in self.__loras:
+            print("skipping load - already loaded.")
+            return
+        
+        self.__loras.add(adapter_name)
+        return super().load_lora_weights(*args, **kwargs)
+        
+    def delete_adapters(self, adapter_names: list[str] | str) -> None:
+        an = adapter_names if isinstance(adapter_names, list) else [adapter_names]
+        self.__loras.remove(*an)
+        return super().delete_adapters(adapter_names)
+        
+    def get_all_adapters(self):
+        return self.__loras.copy()
 
 
 class GenUIStableDiffusionXLPipeline(
     CachedStableDiffusionXLPipeline,
-    CompelStableDiffusionXLPipeline
+    CompelStableDiffusionXLPipeline,
+    LoraStableDiffusionXLPipeline,
 ):
     pass
 
@@ -166,7 +191,30 @@ def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
 
     PIPELINE_CACHE[model_path] = pipe
     return pipe
-
+    
+    
+@dataclass(unsafe_hash=True)
+class LoRASettings:
+    name: str
+    filepath: str
+    weight: float
+    active: bool
+    
+    
+def load_loras(pipe: GenUIStableDiffusionXLPipeline, loras: frozenset[LoRASettings]) -> None:
+    # active_adapters = pipe.get_active_adapters()
+    for lora in loras:
+        # if lora.name not in active_adapters:
+        print(f"Loading LoRA {lora.name} ({lora.filepath})...")
+        pipe.load_lora_weights(lora.filepath, adapter_name=lora.name)
+            
+    # Delete old LoRAs
+    lora_names = [l.name for l in loras]
+    for adapter in pipe.get_all_adapters():
+        if adapter not in lora_names:
+            print(f"Deleting LoRA {adapter}...")
+            pipe.delete_adapters(adapter)
+    
 
 @dataclass(unsafe_hash=True)
 class GenerationPrompt:
@@ -202,6 +250,7 @@ class GenerationPrompt:
     use_karras_sigmas: bool
     use_vpred: bool
     callback: Callable | None = None
+    loras: frozenset[LoRASettings] = field(default_factory=frozenset)
 
 
 @lru_cache(maxsize=1)
@@ -237,56 +286,68 @@ def generate(
     if prompt in IMAGE_CACHE:
         return IMAGE_CACHE[prompt]
 
-    # enable_full_determinism()
-
-    generator = torch.manual_seed(prompt.seed)
-    pipeline = load_pipeline(prompt.model_path)
-
-    # scheduler_config = {
-    #     "beta_schedule": "scaled_linear",
-    #     "beta_start": 0.00085,
-    #     "beta_end": 0.014,
-    #     "num_train_timesteps": 1100,
-    #     "steps_offset": 1,
-    # }
-
-    pipeline.scheduler = get_scheduler(
-        prompt.scheduler_name,
-        get_scheduler_config(prompt.model_path),
-        use_karras_sigmas=prompt.use_karras_sigmas,
-        use_vpred=prompt.use_vpred,
-    )
-
-    # We prepare latents for reproducible (bug in diffusers lib?).
-    num_channels_latents = pipeline.unet.config.in_channels
-    latents = pipeline.prepare_latents(
-        1,
-        num_channels_latents,
-        prompt.size[1],
-        prompt.size[0],
-        torch.float16,
-        pipeline._execution_device,
-        generator,
-        None,
-    )
-
-    data = dict(
-        prompt=prompt.prompt,
-        negative_prompt=prompt.neg_prompt,
-        num_inference_steps=prompt.inference_steps,
-        width=prompt.size[0],
-        height=prompt.size[1],
-        callback_on_step_end=callback_factory(prompt.callback),
-        callback_on_step_end_tensor_inputs=["latents"],
-        generator=generator,
-        latents=latents,
-    )
-    if prompt.guidance_scale:
-        data["guidance_scale"] = prompt.guidance_scale
-
-    pipeline.deep_cache_enabled = prompt.deepcache_enabled
-
     with torch.inference_mode():
+    # with torch.no_grad():
+        # enable_full_determinism()
+    
+        generator = torch.manual_seed(prompt.seed)
+        pipeline = load_pipeline(prompt.model_path)
+        load_loras(pipeline, prompt.loras)
+        
+        active_loras = [l for l in prompt.loras if l.active]
+        if not active_loras:
+            pipeline.disable_lora()
+        else:
+            pipeline.enable_lora()
+            pipeline.set_adapters(
+                [l.name for l in active_loras],
+                [l.weight for l in active_loras],
+            )
+    
+        # scheduler_config = {
+        #     "beta_schedule": "scaled_linear",
+        #     "beta_start": 0.00085,
+        #     "beta_end": 0.014,
+        #     "num_train_timesteps": 1100,
+        #     "steps_offset": 1,
+        # }
+    
+        pipeline.scheduler = get_scheduler(
+            prompt.scheduler_name,
+            get_scheduler_config(prompt.model_path),
+            use_karras_sigmas=prompt.use_karras_sigmas,
+            use_vpred=prompt.use_vpred,
+        )
+    
+        # We prepare latents for reproducible (bug in diffusers lib?).
+        num_channels_latents = pipeline.unet.config.in_channels
+        latents = pipeline.prepare_latents(
+            1,
+            num_channels_latents,
+            prompt.size[1],
+            prompt.size[0],
+            torch.float16,
+            pipeline._execution_device,
+            generator,
+            None,
+        )
+    
+        data = dict(
+            prompt=prompt.prompt,
+            negative_prompt=prompt.neg_prompt,
+            num_inference_steps=prompt.inference_steps,
+            width=prompt.size[0],
+            height=prompt.size[1],
+            callback_on_step_end=callback_factory(prompt.callback),
+            callback_on_step_end_tensor_inputs=["latents"],
+            generator=generator,
+            latents=latents,
+        )
+        if prompt.guidance_scale:
+            data["guidance_scale"] = prompt.guidance_scale
+    
+        pipeline.deep_cache_enabled = prompt.deepcache_enabled
+    
         image = pipeline(**data).images[0]
 
     if not pipeline._interrupt:

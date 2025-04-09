@@ -203,6 +203,7 @@ class Window(
             deepcache_enabled=self.deepcache_enabled_editor.isChecked(),
             use_karras_sigmas=self.karras_sigmas_editor.isChecked(),
             use_vpred=self.vpred_editor.isChecked(),
+            loras=frozenset(self.get_loras()),
         )
         # Send prompt to worker for start of generation.
         self.gen_worker.parent_conn.send(self.prompt)

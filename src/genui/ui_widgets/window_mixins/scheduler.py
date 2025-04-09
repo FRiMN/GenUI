@@ -30,7 +30,7 @@ class SchedulerMixin:
         self.steps_editor = se = QSpinBox()
         se.setMaximum(1000)
         se.setMinimum(1)
-        se.setValue(50)
+        se.setValue(20)
         se.setToolTip("Inference steps. Default is 50.")
 
         self.karras_sigmas_editor = kse = QCheckBox()

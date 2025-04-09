@@ -4,7 +4,7 @@ import dataclasses
 import json
 
 from ..__version__ import __version__
-from ..generator.sdxl import GenerationPrompt, load_pipeline
+from ..generator.sdxl import GenerationPrompt, LoRASettings, load_pipeline
 from ..settings import settings
 
 
@@ -22,6 +22,14 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
     model_path = d.pop("model_path")
     model_name = model_path.split("/")[-1]
     
+    loras: frozenset[LoRASettings] = d.pop("loras")
+    d_loras = []
+    for lora in loras:
+        d_lora = dataclasses.asdict(lora)
+        d_lora.pop("filepath")
+        d_loras.append(d_lora)
+    d["loras"] = d_loras
+    
     pipeline = load_pipeline(model_path)
     scheduler_config = pipeline.scheduler.config
     
@@ -36,6 +44,7 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
         "Xmp.genui.model_name": model_name,
         "Xmp.genui.scheduler_config": json.dumps(scheduler_config),
         "Xmp.genui.deepcache": settings.deep_cache.json(),
+        # "Xmp.genui.loras": json.dumps(list(loras))
     }
     return metadata
     

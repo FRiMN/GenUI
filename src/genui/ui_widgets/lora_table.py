@@ -1,10 +1,13 @@
 from pathlib import Path
 from typing import Any
+
 from PyQt6.QtWidgets import (
                             QTableWidgetItem, QVBoxLayout, QWidget, 
                             QCheckBox, QDoubleSpinBox, QTableWidget,
                             QHeaderView, QHBoxLayout, QAbstractItemView)
 from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
+
+from ..generator.sdxl import LoRASettings
 
 
 class LoraTable(QWidget):
@@ -61,7 +64,7 @@ class LoraTable(QWidget):
     def _build_name(self, filepath: Path) -> str:
         return filepath.name.split(".")[0]
         
-    def _build_weight_spinbox(self):
+    def _build_weight_spinbox(self) -> QDoubleSpinBox:
         spinbox = QDoubleSpinBox()
         spinbox.setMinimum(0)
         spinbox.setMaximum(1)
@@ -78,11 +81,14 @@ class LoraTable(QWidget):
         return indexes
         
     def get_active_checkbox(self, row: int) -> QCheckBox:
-        return self.table.cellWidget(row, 0).findChild(QCheckBox)
+        return self.table.cellWidget(row, self.cell_active).findChild(QCheckBox)
         
     def _handle_updates(self):
         active_rows = self.get_active_loras_indexes()
         total_rows = self.table.rowCount()
+        for row in range(total_rows):
+            p = self.table.cellWidget(row, 0)
+            print(f"{p=}")
         self.updated.emit(len(active_rows), total_rows)
         
     def add_lora(self, filepath: Path):
@@ -143,13 +149,13 @@ class LoraTable(QWidget):
                 
         self._handle_updates()
         
-    def get_loras(self) -> list[dict[str, Any]]:
+    def get_loras(self) -> list[LoRASettings]:
         loras = []
         for row in range(self.table.rowCount()):
             name = self.table.item(row, self.cell_name).text()
-            filepath = self.files_paths[name]
-            weight = self.table.item(row, self.cell_weight).text()
+            filepath = str(self.files_paths[name])
+            weight = self.table.cellWidget(row, self.cell_weight).value()
             active = self.get_active_checkbox(row).isChecked()
-            loras.append({"name": name, "filepath": filepath, "weight": weight, "active": active})
+            loras.append(LoRASettings(name, filepath, weight, active))
         return loras
         

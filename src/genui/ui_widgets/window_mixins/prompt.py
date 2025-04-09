@@ -1,4 +1,5 @@
 from typing import Any
+from pathlib import Path
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QDialog, QFileDialog
 from PyQt6.QtCore import Qt, QSize, QRect
@@ -6,7 +7,8 @@ from PyQt6.QtGui import QColor, QBrush, QPainter, QIcon
 
 from ...ui_widgets.editor_autocomplete import AutoCompleteTextEdit
 from ...ui_widgets.lora_table import LoraTable
-from pathlib import Path
+from ...generator.sdxl import LoRASettings
+
 
 
 class SquareButton(QPushButton):
@@ -114,5 +116,5 @@ class PromptMixin:
         panel_box.setLayout(panel)
         return panel_box
         
-    def get_loras(self) -> list[dict[str, Any]]:
+    def get_loras(self) -> list[LoRASettings]:
         return self.lora_window.lora_table.get_loras()
