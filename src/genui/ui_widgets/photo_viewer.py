@@ -197,7 +197,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             file_path = generate_image_filepath()
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
-        self._photo.pixmap().save(str(file_path))
+        self._pixmap.save(str(file_path))
         self._save_metadata_to_image(file_path)
         return str(file_path)
         
