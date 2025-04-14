@@ -2,15 +2,9 @@ from typing import Any
 from pathlib import Path
 
 from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtCore import Qt, QSize, QPoint, QPropertyAnimation, QEasingCurve, QPointF, QRectF
+from PyQt6.QtCore import Qt, QSize, QPoint, QPropertyAnimation, QEasingCurve, QRectF, pyqtProperty, QObject
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
 from PyQt6.QtWidgets import QApplication, QGraphicsObject
-from PyQt6.QtWidgets import (QApplication, QGraphicsView, QGraphicsScene, 
-                            QVBoxLayout, QPushButton, QWidget, QMainWindow)
-from PyQt6.QtGui import QPixmap, QPainter
-from PyQt6.QtCore import (QPropertyAnimation, QEasingCurve, Qt, 
-                         QObject, QRectF)
-from PyQt6.QtWidgets import QGraphicsObject
 import pyexiv2
 
 from ..generator.sdxl import GenerationPrompt
@@ -27,109 +21,114 @@ pyexiv2.registerNs('GenUI namespace', 'genui')
 
 
 class AnimatedPixmapItem(QGraphicsObject):
-    def __init__(self, pixmap=None):
+    duration: int = 500
+    easing: QEasingCurve.Type = QEasingCurve.Type.InOutQuad
+    
+    def __init__(self, pixmap: QPixmap | None = None):
         super().__init__()
-        
         self._pixmap = QPixmap(pixmap) if pixmap else QPixmap()
         self._opacity = 1.0
-        self._scale = 1.0
-        self._pos = QPointF(0, 0)
         
     def boundingRect(self):
         return QRectF(self._pixmap.rect())
         
-    def paint(self, painter, option, widget=None):
+    def paint(self, painter, option, widget=None):  # noqa: ANN001
         painter.setOpacity(self._opacity)
-        painter.scale(self._scale, self._scale)
-        painter.drawPixmap(self._pos, self._pixmap)
+        painter.drawPixmap(0, 0, self._pixmap)
         
-    @QtCore.pyqtProperty(float)
+    def setPixmap(self, pixmap: QPixmap):
+        self._pixmap = QPixmap(pixmap)
+        self.update()
+        
+    def pixmap(self):
+        return self._pixmap
+        
+    # def setShapeMode(self, mode):
+    #     pass  # Реализуйте при необходимости
+        
+    # def setTransformationMode(self, mode):
+    #     pass  # Реализуйте при необходимости
+        
+    @pyqtProperty(float)
     def opacity(self):
         return self._opacity
         
     @opacity.setter
-    def opacity(self, value):
+    def opacity(self, value: float):
         self._opacity = value
         self.update()
         
-    @QtCore.pyqtProperty(float)
-    def scale(self):
-        return self._scale
-        
-    @scale.setter
-    def scale(self, value):
-        self._scale = value
-        self.update()
-        
-    @QtCore.pyqtProperty(QPointF)
-    def pos(self):
-        return self._pos
-        
-    @pos.setter
-    def pos(self, value):
-        self._pos = value
-        self.update()
-
-    def fade_in(self, duration=800, easing=QEasingCurve.Type.InOutQuad):
-        """Анимация появления"""
+    def fade_in(self):
         anim = QPropertyAnimation(self, b"opacity")
-        anim.setDuration(duration)
+        anim.setDuration(self.duration)
         anim.setStartValue(0)
         anim.setEndValue(1)
-        anim.setEasingCurve(easing)
+        anim.setEasingCurve(self.easing)
         return anim
         
-    def fade_out(self, duration=800, easing=QEasingCurve.Type.InOutQuad):
-        """Анимация исчезновения"""
+    def fade_out(self):
         anim = QPropertyAnimation(self, b"opacity")
-        anim.setDuration(duration)
+        anim.setDuration(self.duration)
         anim.setStartValue(1)
         anim.setEndValue(0)
-        anim.setEasingCurve(easing)
+        anim.setEasingCurve(self.easing)
         return anim
         
         
 class ImageTransitionManager(QObject):
-    def __init__(self, scene):
+    def __init__(self, scene: QtWidgets.QGraphicsScene):
         super().__init__()
-        
         self.scene = scene
         self.current_item = None
         self.next_item = None
+        # Храним ссылки на активные анимации.
+        # Анимации QPropertyAnimation не сохраняются, если на них нет ссылок, 
+        # и они уничтожаются сборщиком мусора до завершения.
+        self._animations: list[QPropertyAnimation] = []
         
-    def set_image(self, pixmap, transition_type='fade'):
-        """Устанавливает новое изображение с указанным типом перехода"""
+    def set_image(self, pixmap: QPixmap, transition_type: str = 'fade'):
         new_item = AnimatedPixmapItem(pixmap)
         new_item.opacity = 0 if transition_type != 'none' else 1
         
-        if self.current_item is None:
-            # Первое изображение
+        if self.current_item is None or self.current_item.pixmap().isNull():
+            new_item.opacity = 1
             self.scene.addItem(new_item)
             self.current_item = new_item
         else:
-            # Добавляем новое изображение поверх старого
             self.scene.addItem(new_item)
             self.next_item = new_item
             self._start_transition(transition_type)
+            
+    def _clear_animations(self):
+        for anim in self._animations:
+            anim.stop()
+            try:
+                anim.finished.disconnect()
+            except Exception as e:  # noqa: BLE001
+                print(f"Error on disconnect finished event: {e}")
+        self._animations.clear()
     
-    def _start_transition(self, transition_type):
-        """Запускает анимацию перехода"""
+    def _start_transition(self, transition_type: str):
+        self._clear_animations()
+        
         if transition_type == 'fade':
             fade_out = self.current_item.fade_out()
             fade_in = self.next_item.fade_in()
-            fade_out.finished.connect(self._transition_completed)
-            fade_out.start()
-            fade_in.start()
+            fade_in.finished.connect(self._transition_completed)
             
+            self._animations.extend([fade_out, fade_in])
+            
+            # fade_out.start()
+            fade_in.start()
         elif transition_type == 'none':
             self._transition_completed()
     
     def _transition_completed(self):
-        """Завершение перехода"""
         if self.current_item and self.current_item in self.scene.items():
             self.scene.removeItem(self.current_item)
         self.current_item = self.next_item
         self.next_item = None
+        self._clear_animations()
 
 
 class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
@@ -147,10 +146,12 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self._pinned = False
         self._empty = True
         self._original_size = (0, 0)
+        self._pixmap = QPixmap()
 
-        self._photo = QtWidgets.QGraphicsPixmapItem()
-        self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
-        self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
+        # Заменяем QGraphicsPixmapItem на нашу анимированную версию
+        self._photo = AnimatedPixmapItem()
+        # self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
+        # self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
 
         self._build_context_menu()
 
@@ -169,6 +170,10 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self.setBackgroundBrush(QBrush(QColor.fromString(BACKGROUND_COLOR_HEX)))
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setRenderHints(rh.Antialiasing | rh.SmoothPixmapTransform)
+        
+        # Для управления переходами
+        self._transition_manager = ImageTransitionManager(self._scene)
+        self._transition_manager.current_item = self._photo
 
     def _build_context_menu(self):
         self.context_menu = menu = QtWidgets.QMenu(self)
@@ -222,8 +227,6 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             viewrect = self.viewport().rect()
             scenerect = self.transform().mapRect(rect)
 
-            # print(f"{id(self)}; {viewrect=}; {scenerect=}")
-
             factor = min(
                 viewrect.width() / scenerect.width(),
                 viewrect.height() / scenerect.height()
@@ -264,14 +267,20 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self, 
         pixmap: QPixmap | None = None, 
         prompt: GenerationPrompt | None = None,
-        metadata: dict | None = None
+        metadata: dict | None = None,
+        transition_type: str = 'fade'
     ):
         self.prompt = prompt
         self.metadata = metadata
+        self._pixmap = pixmap
         
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
+            
+            # Используем менеджер переходов для плавной смены изображения
+            self._transition_manager.set_image(pixmap, transition_type)
+            self._photo = self._transition_manager.current_item
         else:
             self._empty = True
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
