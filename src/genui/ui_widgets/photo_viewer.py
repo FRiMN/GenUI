@@ -208,7 +208,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         return not self._empty
 
     def resetView(self, scale: float = 1.0):
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
+        rect = QtCore.QRectF(self._pixmap.rect())
         if rect.isNull():
             return
 
@@ -280,7 +280,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         if not (self.zoomPinned() and self.hasPhoto()):
             self._zoom = 0
 
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
+        rect = QtCore.QRectF(self._pixmap.rect())
         self._original_size = (rect.width(), rect.height())
         self.resetView(SCALE_FACTOR ** self._zoom)
 
