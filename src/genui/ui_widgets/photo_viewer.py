@@ -22,12 +22,12 @@ pyexiv2.registerNs('GenUI namespace', 'genui')
 
 class AnimatedPixmapItem(QGraphicsObject):
     duration: int = 500
-    easing: QEasingCurve.Type = QEasingCurve.Type.InOutQuad
+    easing: QEasingCurve.Type = QEasingCurve.Type.Linear
+    _opacity = 1.0
     
     def __init__(self, pixmap: QPixmap | None = None):
         super().__init__()
         self._pixmap = QPixmap(pixmap) if pixmap else QPixmap()
-        self._opacity = 1.0
         
     def boundingRect(self):
         return QRectF(self._pixmap.rect())
@@ -50,7 +50,7 @@ class AnimatedPixmapItem(QGraphicsObject):
     #     pass  # Реализуйте при необходимости
         
     @pyqtProperty(float)
-    def opacity(self):
+    def opacity(self) -> float:
         return self._opacity
         
     @opacity.setter
@@ -86,18 +86,18 @@ class ImageTransitionManager(QObject):
         # и они уничтожаются сборщиком мусора до завершения.
         self._animations: list[QPropertyAnimation] = []
         
-    def set_image(self, pixmap: QPixmap, transition_type: str = 'fade'):
+    def set_image(self, pixmap: QPixmap):
         new_item = AnimatedPixmapItem(pixmap)
-        new_item.opacity = 0 if transition_type != 'none' else 1
         
         if self.current_item is None or self.current_item.pixmap().isNull():
             new_item.opacity = 1
             self.scene.addItem(new_item)
             self.current_item = new_item
         else:
+            new_item.opacity = 0
             self.scene.addItem(new_item)
             self.next_item = new_item
-            self._start_transition(transition_type)
+            self._start_transition()
             
     def _clear_animations(self):
         for anim in self._animations:
@@ -108,20 +108,15 @@ class ImageTransitionManager(QObject):
                 print(f"Error on disconnect finished event: {e}")
         self._animations.clear()
     
-    def _start_transition(self, transition_type: str):
+    def _start_transition(self):
         self._clear_animations()
         
-        if transition_type == 'fade':
-            fade_out = self.current_item.fade_out()
-            fade_in = self.next_item.fade_in()
-            fade_in.finished.connect(self._transition_completed)
-            
-            self._animations.extend([fade_out, fade_in])
-            
-            # fade_out.start()
-            fade_in.start()
-        elif transition_type == 'none':
-            self._transition_completed()
+        fade_in = self.next_item.fade_in()
+        fade_in.finished.connect(self._transition_completed)
+        
+        self._animations.extend([fade_in])
+        
+        fade_in.start()
     
     def _transition_completed(self):
         if self.current_item and self.current_item in self.scene.items():
@@ -148,7 +143,6 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self._original_size = (0, 0)
         self._pixmap = QPixmap()
 
-        # Заменяем QGraphicsPixmapItem на нашу анимированную версию
         self._photo = AnimatedPixmapItem()
         # self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
         # self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
@@ -171,7 +165,6 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setRenderHints(rh.Antialiasing | rh.SmoothPixmapTransform)
         
-        # Для управления переходами
         self._transition_manager = ImageTransitionManager(self._scene)
         self._transition_manager.current_item = self._photo
 
@@ -267,8 +260,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self, 
         pixmap: QPixmap | None = None, 
         prompt: GenerationPrompt | None = None,
-        metadata: dict | None = None,
-        transition_type: str = 'fade'
+        metadata: dict | None = None
     ):
         self.prompt = prompt
         self.metadata = metadata
@@ -278,8 +270,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
             
-            # Используем менеджер переходов для плавной смены изображения
-            self._transition_manager.set_image(pixmap, transition_type)
+            self._transition_manager.set_image(pixmap)
             self._photo = self._transition_manager.current_item
         else:
             self._empty = True
