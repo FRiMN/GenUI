@@ -2,9 +2,9 @@ from typing import Any
 from pathlib import Path
 
 from PyQt6 import QtWidgets, QtCore
-from PyQt6.QtCore import Qt, QSize, QPoint
+from PyQt6.QtCore import Qt, QSize, QPoint, QPropertyAnimation, QEasingCurve, QRectF, pyqtProperty, QObject
 from PyQt6.QtGui import QPainter, QColor, QPixmap, QBrush, QMouseEvent, QResizeEvent, QWheelEvent, QContextMenuEvent
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QGraphicsObject
 import pyexiv2
 
 from ..generator.sdxl import GenerationPrompt
@@ -20,6 +20,106 @@ MIN_SCALE = -100
 pyexiv2.registerNs('GenUI namespace', 'genui')
 
 
+class AnimatedPixmapItem(QGraphicsObject):
+    duration: int = 500
+    easing: QEasingCurve.Type = QEasingCurve.Type.Linear
+    _opacity = 1.0
+
+    def __init__(self, pixmap: QPixmap | None = None):
+        super().__init__()
+        self._pixmap = QPixmap(pixmap) if pixmap else QPixmap()
+
+    def boundingRect(self):
+        return QRectF(self._pixmap.rect())
+
+    def paint(self, painter, option, widget=None):  # noqa: ANN001
+        painter.setOpacity(self._opacity)
+        painter.drawPixmap(0, 0, self._pixmap)
+
+    def setPixmap(self, pixmap: QPixmap):
+        self._pixmap = QPixmap(pixmap)
+        self.update()
+
+    def pixmap(self):
+        return self._pixmap
+
+    @pyqtProperty(float)
+    def opacity(self) -> float:
+        return self._opacity
+
+    @opacity.setter
+    def opacity(self, value: float):
+        self._opacity = value
+        self.update()
+
+    def fade_in(self):
+        anim = QPropertyAnimation(self, b"opacity")
+        anim.setDuration(self.duration)
+        anim.setStartValue(0)
+        anim.setEndValue(1)
+        anim.setEasingCurve(self.easing)
+        return anim
+
+    def fade_out(self):
+        anim = QPropertyAnimation(self, b"opacity")
+        anim.setDuration(self.duration)
+        anim.setStartValue(1)
+        anim.setEndValue(0)
+        anim.setEasingCurve(self.easing)
+        return anim
+
+
+class ImageTransitionManager(QObject):
+    def __init__(self, scene: QtWidgets.QGraphicsScene):
+        super().__init__()
+        self.scene = scene
+        self.current_item = None
+        self.next_item = None
+        # Storing references to active animations.
+        # QPropertyAnimation objects are not preserved if there are no references to them,
+        # and they are destroyed by the garbage collector before completion.
+        self._animations: list[QPropertyAnimation] = []
+
+    def set_image(self, pixmap: QPixmap):
+        new_item = AnimatedPixmapItem(pixmap)
+
+        if self.current_item is None or self.current_item.pixmap().isNull():
+            new_item.opacity = 1
+            self.scene.addItem(new_item)
+            self.current_item = new_item
+        else:
+            new_item.opacity = 0
+            self.scene.addItem(new_item)
+            self.next_item = new_item
+            self._start_transition()
+
+    def _clear_animations(self):
+        for anim in self._animations:
+            anim.stop()
+            try:
+                anim.finished.disconnect()
+            except Exception as e:  # noqa: BLE001
+                print(f"Error on disconnect finished event: {e}")
+        self._animations.clear()
+
+    def _start_transition(self):
+        self._clear_animations()
+
+        fade_in = self.next_item.fade_in()
+        fade_in.finished.connect(self._transition_completed)
+
+        self._animations.extend([fade_in])
+
+        fade_in.start()
+
+    def _transition_completed(self):
+        if self.current_item and self.current_item in self.scene.items():
+            self.scene.removeItem(self.current_item)
+        self.current_item = self.next_item
+        self.next_item = None
+        self._clear_animations()
+
+
 class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
     """PhotoViewer is a custom QGraphicsView widget that displays a image and allows zooming and panning."""
 
@@ -30,15 +130,13 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         super().__init__(parent)
         self.prompt: GenerationPrompt | None = None
         self.metadata: dict | None = None
-        
+
         self._zoom = 0
         self._pinned = False
         self._empty = True
         self._original_size = (0, 0)
-
-        self._photo = QtWidgets.QGraphicsPixmapItem()
-        self._photo.setShapeMode(QtWidgets.QGraphicsPixmapItem.ShapeMode.HeuristicMaskShape)
-        self._photo.setTransformationMode(QtCore.Qt.TransformationMode.SmoothTransformation)
+        self._pixmap = QPixmap()
+        self._photo = AnimatedPixmapItem()
 
         self._build_context_menu()
 
@@ -58,6 +156,9 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setRenderHints(rh.Antialiasing | rh.SmoothPixmapTransform)
 
+        self._transition_manager = ImageTransitionManager(self._scene)
+        self._transition_manager.current_item = self._photo
+
     def _build_context_menu(self):
         self.context_menu = menu = QtWidgets.QMenu(self)
 
@@ -74,19 +175,19 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
 
         if file_name:
             self.save_image(file_name)
-            
+
     def save_image(self, file_path: str | Path | None = None) -> str:
         if file_path is None:
             file_path = generate_image_filepath()
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            
-        self._photo.pixmap().save(str(file_path))
+
+        self._pixmap.save(str(file_path))
         self._save_metadata_to_image(file_path)
         return str(file_path)
-        
+
     def _save_metadata_to_image(self, file_path: Path | str):
         metadata = self.metadata or get_metadata_from_prompt(self.prompt)
-        
+
         with pyexiv2.Image(str(file_path)) as img:
             img.modify_xmp(metadata)
 
@@ -98,7 +199,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         return not self._empty
 
     def resetView(self, scale: float = 1.0):
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
+        rect = QtCore.QRectF(self._pixmap.rect())
         if rect.isNull():
             return
 
@@ -109,8 +210,6 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         if self.hasPhoto():
             viewrect = self.viewport().rect()
             scenerect = self.transform().mapRect(rect)
-
-            # print(f"{id(self)}; {viewrect=}; {scenerect=}")
 
             factor = min(
                 viewrect.width() / scenerect.width(),
@@ -149,18 +248,23 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             self.repainted.emit()
 
     def setPhoto(
-        self, 
-        pixmap: QPixmap | None = None, 
+        self,
+        pixmap: QPixmap | None = None,
         prompt: GenerationPrompt | None = None,
         metadata: dict | None = None
     ):
         self.prompt = prompt
         self.metadata = metadata
+        self._pixmap = pixmap
         
+        self.resetView(SCALE_FACTOR ** self._zoom)
+
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
-            self._photo.setPixmap(pixmap)
+
+            self._transition_manager.set_image(pixmap)
+            self._photo = self._transition_manager.current_item
         else:
             self._empty = True
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
@@ -169,7 +273,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         if not (self.zoomPinned() and self.hasPhoto()):
             self._zoom = 0
 
-        rect = QtCore.QRectF(self._photo.pixmap().rect())
+        rect = QtCore.QRectF(self._pixmap.rect())
         self._original_size = (rect.width(), rect.height())
         self.resetView(SCALE_FACTOR ** self._zoom)
 
