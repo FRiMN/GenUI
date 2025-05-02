@@ -75,9 +75,9 @@ class ImageTransitionManager(QObject):
         self.scene = scene
         self.current_item = None
         self.next_item = None
-        # Храним ссылки на активные анимации.
-        # Анимации QPropertyAnimation не сохраняются, если на них нет ссылок, 
-        # и они уничтожаются сборщиком мусора до завершения.
+        # Storing references to active animations.
+        # QPropertyAnimation objects are not preserved if there are no references to them,
+        # and they are destroyed by the garbage collector before completion.
         self._animations: list[QPropertyAnimation] = []
 
     def set_image(self, pixmap: QPixmap):
