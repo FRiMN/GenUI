@@ -257,6 +257,8 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self.metadata = metadata
         self._pixmap = pixmap
         
+        self.resetView(SCALE_FACTOR ** self._zoom)
+
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QtWidgets.QGraphicsView.DragMode.ScrollHandDrag)
