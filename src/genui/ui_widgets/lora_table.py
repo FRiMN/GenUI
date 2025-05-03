@@ -86,9 +86,6 @@ class LoraTable(QWidget):
     def _handle_updates(self):
         active_rows = self.get_active_loras_indexes()
         total_rows = self.table.rowCount()
-        for row in range(total_rows):
-            p = self.table.cellWidget(row, 0)
-            print(f"{p=}")
         self.updated.emit(len(active_rows), total_rows)
         
     def add_lora(self, filepath: Path):

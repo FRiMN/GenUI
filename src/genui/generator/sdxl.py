@@ -129,14 +129,17 @@ class LoraStableDiffusionXLPipeline(StableDiffusionXLLoraLoaderMixin):
     def load_lora_weights(self, *args, **kwargs) -> None:
         adapter_name = kwargs["adapter_name"]
         if adapter_name in self.__loras:
-            print("skipping load - already loaded.")
             return
         
+        lora_filepath = args[0]
+        print(f"Loading LoRA {adapter_name} ({lora_filepath})...")
         self.__loras.add(adapter_name)
         return super().load_lora_weights(*args, **kwargs)
         
     def delete_adapters(self, adapter_names: list[str] | str) -> None:
         an = adapter_names if isinstance(adapter_names, list) else [adapter_names]
+        for a in an:
+            print(f"Deleting LoRA {a}...")
         self.__loras.remove(*an)
         return super().delete_adapters(adapter_names)
         
@@ -202,17 +205,13 @@ class LoRASettings:
     
     
 def load_loras(pipe: GenUIStableDiffusionXLPipeline, loras: frozenset[LoRASettings]) -> None:
-    # active_adapters = pipe.get_active_adapters()
     for lora in loras:
-        # if lora.name not in active_adapters:
-        print(f"Loading LoRA {lora.name} ({lora.filepath})...")
         pipe.load_lora_weights(lora.filepath, adapter_name=lora.name)
             
     # Delete old LoRAs
     lora_names = [l.name for l in loras]
     for adapter in pipe.get_all_adapters():
         if adapter not in lora_names:
-            print(f"Deleting LoRA {adapter}...")
             pipe.delete_adapters(adapter)
     
 
