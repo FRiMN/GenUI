@@ -81,6 +81,7 @@ class LoraTable(QWidget):
         return indexes
         
     def get_active_checkbox(self, row: int) -> QCheckBox:
+        """Returns the checkbox widget from Active cell for the given row."""
         return self.table.cellWidget(row, self.cell_active).findChild(QCheckBox)
         
     def _handle_updates(self):
@@ -111,11 +112,13 @@ class LoraTable(QWidget):
         self._handle_updates()
         
     def remove_selected(self):
+        """Removes the selected rows from the table."""
         selected_rows = self.table.selectionModel().selectedRows()
         for row in selected_rows:
             self.remove_lora(row)
         
     def clear(self):
+        """Clears the table."""
         while self.table.rowCount() > 0:
             self.table.removeRow(0)
         self.files_paths.clear()
@@ -123,6 +126,7 @@ class LoraTable(QWidget):
         self._handle_updates()
         
     def deactivate_all(self):
+        """Deactivates all rows in the table."""
         active_rows = self.get_active_loras_indexes()
         for row in active_rows:
             checkbox = self.get_active_checkbox(row)
@@ -131,6 +135,7 @@ class LoraTable(QWidget):
         self._handle_updates()
         
     def activate_all(self):
+        """Activates all rows in the table."""
         for row in range(self.table.rowCount()):
             checkbox = self.get_active_checkbox(row)
             checkbox.setChecked(True)
@@ -138,6 +143,7 @@ class LoraTable(QWidget):
         self._handle_updates()
         
     def toggle_all(self):
+        """Toggle activation for all rows in the table."""
         active_rows = self.get_active_loras_indexes()
         new_state = len(active_rows) == 0
         for row in range(self.table.rowCount()):
