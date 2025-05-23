@@ -70,6 +70,7 @@ class AnimatedPixmapItem(QGraphicsObject):
 
 
 class ImageTransitionManager(QObject):
+    """Manages transitions between images in a QGraphicsScene."""
     def __init__(self, scene: QtWidgets.QGraphicsScene):
         super().__init__()
         self.scene = scene
