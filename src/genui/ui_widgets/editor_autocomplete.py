@@ -1,7 +1,7 @@
 from importlib.resources import open_text
 
 from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView, QWidget
-from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression
+from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression, QMimeData
 from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QSyntaxHighlighter, QTextCharFormat, QFont
 
 from ..utils import BACKGROUND_COLOR_HEX
@@ -171,6 +171,14 @@ class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
             + popup.verticalScrollBar().sizeHint().width()
         )
         self.completer.complete(cr) # Show popup
+        
+    def insertFromMimeData(self, source: QMimeData, src_type: str = ""):
+        """Insert text via drag&drop, Ctrl+V, menu and etc."""
+        if not source.hasText():
+            super().insertFromMimeData(source)
+            
+        self.insertPlainText(source.text())
+            
         
     def keyPressEvent(self, e: QKeyEvent):
         if self.completer.popup().isVisible() and e.key() == Qt.Key.Key_Return:

@@ -16,6 +16,10 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 - Now image changing is smooth.
 
+### Fixed
+
+- Fix copy text decoration while paste text in prompt editors. Now decoration is dropped.
+
 ## [v2025.3.2] - 2025-03-18
 
 ### Added
