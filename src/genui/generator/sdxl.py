@@ -45,6 +45,7 @@ def empty_cache():
 
 
 def pipeline_cache_callback(cache: FIFODict):
+    """We need to clear the CUDA cache because of a memory leak issue. Even after deleting the pipeline, the model data remains allocated in memory."""
     empty_cache()
 
 
