@@ -2,6 +2,7 @@ from pathlib import Path
 import collections
 import time
 from typing import Any
+import gc
 
 from .settings import settings
 
@@ -12,15 +13,20 @@ TOOLBAR_MARGIN = (3, 0, 3, 0)
 
 class FIFODict(collections.OrderedDict):
     """FIFO dictionary that automatically removes the oldest item when the maximum size is reached."""
-    def __init__(self, maxsize: int = 128):
+    def __init__(self, maxsize: int = 128, remove_callback=None):
         super().__init__()
         self.maxsize = maxsize
+        self.remove_callback = remove_callback
 
     def __setitem__(self, key: Any, value: Any):
         if key in self:
             self.move_to_end(key)
         elif len(self) + 1 > self.maxsize:
-            self.popitem(last=False)
+            item = self.popitem(last=False)
+            del item
+            gc.collect()
+            if self.remove_callback:
+                self.remove_callback(self)
         super().__setitem__(key, value)
 
 

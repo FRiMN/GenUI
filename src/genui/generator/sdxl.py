@@ -28,9 +28,6 @@ Docs:
     - <https://huggingface.co/docs/diffusers/using-diffusers/sdxl>
 """
 
-IMAGE_CACHE = FIFODict(maxsize=3)
-PIPELINE_CACHE = FIFODict(maxsize=1)
-
 
 def empty_cache():
     print("empty cache")
@@ -45,6 +42,14 @@ def empty_cache():
             d.empty_cache()
         except (AttributeError, RuntimeError):  # noqa: PERF203
             pass
+
+
+def pipeline_cache_callback(cache: FIFODict):
+    empty_cache()
+
+
+IMAGE_CACHE = FIFODict(maxsize=3)
+PIPELINE_CACHE = FIFODict(maxsize=1, remove_callback=pipeline_cache_callback)
 
 
 class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
