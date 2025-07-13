@@ -50,6 +50,7 @@ class GenerationCommandMixin:
     def handle_interrupt(self):
         self.button_interrupt.setDisabled(True)
         self.label_status.setText("Interrupting...")
+        self.setWindowTitle(None)
         # FIXME: `self.model_path` can be changed. Need using prompt.
         interrupt(self.model_path)
 

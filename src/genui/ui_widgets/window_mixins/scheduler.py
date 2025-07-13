@@ -38,6 +38,7 @@ class SchedulerMixin:
 
         self.vpred_editor = vpe = QCheckBox()
         vpe.setChecked(False)
+        vpe.setToolTip("Check for v-prediction models")
 
         self.scheduler_toolbar = self._create_scheduler_toolbar()
 
