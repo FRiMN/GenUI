@@ -3,6 +3,7 @@ import collections
 import time
 from typing import Any
 import gc
+import os.path
 
 from .settings import settings
 
@@ -30,10 +31,16 @@ class FIFODict(collections.OrderedDict):
         super().__setitem__(key, value)
 
 
-def generate_image_filepath() -> Path:
+def generate_image_filepath(suffix: str = "") -> Path:
     """Generate a unique image filepath."""
     t = int(time.time())
-    return settings.autosave_image.path / Path(f"{t}.jpg")
+    file_path = settings.autosave_image.path / Path(f"{t}{suffix}.jpg")
+    
+    if os.path.exists(file_path):
+        new_suffix = f"{suffix}0"
+        file_path = generate_image_filepath(new_suffix)
+    
+    return file_path
 
 
 def get_aspect_ratios(labels: list[str]) -> list[tuple[str, float]]:

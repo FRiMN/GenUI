@@ -181,6 +181,9 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         if file_path is None:
             file_path = generate_image_filepath()
             file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+        if os.path.exists(file_path):
+            raise FileExistsError(f"File {file_path} already exists.")
 
         self._pixmap.save(str(file_path))
         self._save_metadata_to_image(file_path)

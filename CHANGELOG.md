@@ -21,6 +21,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 - Fixed rich text paste handling in prompt editors - formatting (bold/italic/colors/size) is now dropped during clipboard operations.
 - Fixed CUDA cache leak where model data persisted after pipeline deletion.
+- Fixed potential file overwrite during automatic image saving.
 
 ## [v2025.3.2] - 2025-03-18
 
