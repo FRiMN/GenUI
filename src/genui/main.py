@@ -156,7 +156,7 @@ class Window(
     ):
         self.label_process.setMaximum(steps)
         self.label_process.setValue(step)
-        self.setWindowTitle(f"Generation: {int(step*100/steps)}%")
+        self.setWindowTitle(f"Generating: {int(step*100/steps)}%")
         if gen_time:
             # TODO: extract to signal.
             self.label_status.setText(f"Done in {gen_time.seconds} sec.")
@@ -188,7 +188,8 @@ class Window(
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
 
     def threaded_generate(self):
-        self.label_status.setText("Generation...")
+        self.label_status.setText("Generating...")
+        self.setWindowTitle("Generating...")
         self.label_process.setMaximum(self.steps_editor.value())
         self.label_process.setValue(0)
         self.label_image_path.setText("")
