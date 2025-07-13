@@ -174,6 +174,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             "Images JPEG (*.jpg *.jpeg);;All Files (*)",
         )
 
+        # Note: In the Qt file picker dialog, the "Save" button remains disabled if the filename field is empty.
         if file_name:
             self.save_image(file_name)
 
@@ -260,7 +261,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self.prompt = prompt
         self.metadata = metadata
         self._pixmap = pixmap
-        
+
         self.resetView(SCALE_FACTOR ** self._zoom)
 
         if pixmap and not pixmap.isNull():

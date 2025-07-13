@@ -35,7 +35,7 @@ class SchedulerMixin:
 
         self.karras_sigmas_editor = kse = QCheckBox()
         kse.setChecked(True)
-        
+
         self.vpred_editor = vpe = QCheckBox()
         vpe.setChecked(False)
 
@@ -67,7 +67,7 @@ class SchedulerMixin:
         scheduler_toolbar.addWidget(karras_sigmas_label)
         scheduler_toolbar.addWidget(self.karras_sigmas_editor)
         scheduler_toolbar.addSeparator()
-        
+
         scheduler_toolbar.addWidget(vpred_label)
         scheduler_toolbar.addWidget(self.vpred_editor)
         scheduler_toolbar.addSeparator()
