@@ -38,7 +38,7 @@ class Window(
 
         self._build_threaded_worker()
         self._build_widgets()
-        
+
         self.setAcceptDrops(True)
 
     def closeEvent(self, event: QCloseEvent):
@@ -58,7 +58,7 @@ class Window(
         self.gen_worker.done.connect(self.handle_done)
 
         self.gen_worker.progress_preview.connect(self.repaint_image)
-        
+
         self.gen_worker.error.connect(self.handle_error)
 
         self.gen_thread.start()
@@ -78,7 +78,7 @@ class Window(
         self.preview_viewer.setStyleSheet("border: 5px solid white; border-radius: 5px")
 
         self._build_cache_widgets()
-        
+
         panel_box = self._build_prompt_panel()
 
         splitter = QtWidgets.QSplitter()
@@ -129,20 +129,20 @@ class Window(
     def handle_repainted(self):
         s = self.viewer.pixmap_size()
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
-        
+
     def handle_done(self):
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
-        
+
         pipe = load_pipeline(self.model_path)
         if pipe._interrupt:
             self.label_status.setText("Interrupted")
             self.preview_viewer.set_pixmap(None)
-            
+
     def handle_error(self, error: str):
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
-        
+
         self.show_error_modal_dialog(error)
 
     def repaint_image(  # noqa: PLR0913
@@ -182,7 +182,7 @@ class Window(
         else:
             self.viewer.setPhoto(pixmap, self.prompt)
             self.preview_viewer.set_pixmap(None)
-            
+
             if settings.autosave_image.enabled:
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
@@ -216,24 +216,24 @@ class Window(
             and self.scheduler_selector.currentText()
             and self.image_size
         )
-        
+
     def load_image(self, image_path: str):
         from .common.metadata import get_prompt_from_metadata
         import pyexiv2
         import traceback
-        
+
         try:
             with pyexiv2.Image(image_path) as img:
                 metadata:dict = img.read_xmp()
-        
+
             prompt: GenerationPrompt = get_prompt_from_metadata(metadata)
         except Exception:   # noqa: BLE001
             print(traceback.format_exc())
             self.show_error_modal_dialog("File does not contain a valid metadata")
             return
-        
+
         self.prompt = prompt    # TODO: Safe?
-        
+
         self.prompt_editor.setPlainText(prompt.prompt)
         self.negative_editor.setPlainText(prompt.neg_prompt)
         self.seed_editor.setValue(prompt.seed)
@@ -244,7 +244,7 @@ class Window(
         self.deepcache_enabled_editor.setChecked(prompt.deepcache_enabled)
         self.karras_sigmas_editor.setChecked(prompt.use_karras_sigmas)
         self.vpred_editor.setChecked(prompt.use_vpred)
-        
+
         orig_model_name = prompt.model_path.split(".safetensors")[0]
         if orig_model_name != self.model_name:
             prompt.model_path = self.model_path or ""
@@ -253,11 +253,11 @@ class Window(
                 f"does not match the current model (<b>{self.model_name}</b>). "
                 "Model not changed"
             )
-            
+
         image = Image.open(image_path)
         pixmap = image.toqpixmap()
         self.viewer.setPhoto(pixmap, prompt, metadata)
-        
+
         self.label_image_path.setText(f"Loaded Image: `{image_path}`")
 
     def dropEvent(self, event: QDropEvent):
@@ -273,7 +273,7 @@ def main():
     print(f"Version: {__version__}")
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("GenUI")
-    
+
     app.setStyle("Fusion")
 
     window = Window()
