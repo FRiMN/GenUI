@@ -156,9 +156,11 @@ class Window(
     ):
         self.label_process.setMaximum(steps)
         self.label_process.setValue(step)
+        self.setWindowTitle(f"Generation: {int(step*100/steps)}%")
         if gen_time:
             # TODO: extract to signal.
             self.label_status.setText(f"Done in {gen_time.seconds} sec.")
+            self.setWindowTitle(None)
 
         # FIXME: base size can changed.
         base_size = self.base_size_editor.value()
