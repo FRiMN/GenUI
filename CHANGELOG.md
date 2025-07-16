@@ -16,6 +16,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 ### Changed
 
 - Now image changing is smooth.
+- Change focus after push "generate" button to positive prompt editor.
 
 ### Fixed
 

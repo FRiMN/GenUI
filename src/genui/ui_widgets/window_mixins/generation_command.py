@@ -8,7 +8,7 @@ from ...generator.sdxl import interrupt
 class GenerationCommandMixin:
     _generate_method: Callable
     _validate_data_for_generation_method: Callable
-    
+
     def __init__(self):
         super().__init__()
 
@@ -39,6 +39,7 @@ class GenerationCommandMixin:
 
         self.button_generate.setDisabled(True)
         self.button_interrupt.setDisabled(False)
+        self.prompt_editor.setFocus()
 
         try:
             self._generate_method()
