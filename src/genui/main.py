@@ -220,6 +220,7 @@ class Window(
 
     def load_image(self, image_path: str):
         from .common.metadata import get_prompt_from_metadata
+        from .generator.sdxl import LoRASettings
         import pyexiv2
         import traceback
 
@@ -246,13 +247,31 @@ class Window(
         self.karras_sigmas_editor.setChecked(prompt.use_karras_sigmas)
         self.vpred_editor.setChecked(prompt.use_vpred)
 
+        errors = []
+
         orig_model_name = prompt.model_path.split(".safetensors")[0]
         if orig_model_name != self.model_name:
             prompt.model_path = self.model_path or ""
-            self.show_error_modal_dialog(
+            errors.append(
                 f"The model in the image (<b>{orig_model_name}</b>) "
                 f"does not match the current model (<b>{self.model_name}</b>). "
-                "Model not changed"
+                "Model not changed."
+            )
+
+        exist_loras = frozenset(self.lora_window.lora_table.get_loras())
+        prompt_loras_names = set([(l.name, l.weight) for l in prompt.loras if l.active])
+        exist_loras_names = set([(l.name, l.weight) for l in exist_loras if l.active])
+        if len(exist_loras) != len(prompt.loras) or prompt_loras_names != exist_loras_names:
+            prompt.loras = exist_loras
+            errors.append(
+                "The LoRAs in the image do not match the current LoRAs. "
+                f"LoRAs (with weights) in image: <b>{prompt_loras_names}</b>. "
+                "LoRAs not changed."
+            )
+
+        if errors:
+            self.show_error_modal_dialog(
+                "\n".join(errors)
             )
 
         image = Image.open(image_path)

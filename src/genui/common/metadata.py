@@ -62,4 +62,12 @@ def get_prompt_from_metadata(metadata: dict) -> GenerationPrompt:
     }
     prompt = json.loads(metadata["Xmp.genui.prompt"])
     prompt["model_path"] = metadata["Xmp.genui.model_name"]
+    
+    loras = []
+    for lora in prompt["loras"]:
+        lora = LoRASettings(**lora, filepath="")
+        if lora.active:
+            loras.append(lora)
+    prompt["loras"] = loras
+    
     return GenerationPrompt(**prompt)

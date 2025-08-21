@@ -238,6 +238,7 @@ class GenerationPrompt:
         use_karras_sigmas: Whether to use Karras sigmas.
         use_vpred: Whether to use v-prediction.
         callback: Callback function to be called with the decoded image.
+        loras: Set of used LoRAs.
 
     Returns:
         GenerationPrompt object.
@@ -433,9 +434,9 @@ def get_schedulers_map() -> dict:
     result = {}
 
     karras_schedulers = [e.name for e in KarrasDiffusionSchedulers]
-    schedulers: list[str] = dir(diffusers_schedulers)
+    schedulers_: list[str] = dir(diffusers_schedulers)
     schedulers: list[SchedulerMixin] = [
-        getattr(diffusers_schedulers, x) for x in schedulers
+        getattr(diffusers_schedulers, x) for x in schedulers_
         if x.endswith("Scheduler")
            and x in karras_schedulers
     ]
