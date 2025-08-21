@@ -3,7 +3,7 @@ import sys
 
 from PIL import Image
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import QThread, QSize
+from PyQt6.QtCore import QThread, QSize, QRectF
 from PyQt6.QtGui import QCloseEvent, QDropEvent
 
 from .generator.sdxl import GenerationPrompt, load_pipeline
@@ -14,7 +14,7 @@ from .ui_widgets.window_mixins.prompt import PromptMixin
 from .ui_widgets.window_mixins.scheduler import SchedulerMixin
 from .ui_widgets.window_mixins.seed import SeedMixin
 from .ui_widgets.window_mixins.status_bar import StatusBarMixin
-from .utils import TOOLBAR_MARGIN
+from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
 from .worker import Worker
 from .settings import settings
 from .__version__ import __version__
@@ -33,6 +33,7 @@ class Window(
         super().__init__(*args, **kwargs)
 
         self._generate_method = self.threaded_generate
+        self._fix_method = self.threaded_fix
         self._validate_data_for_generation_method = self.validate_data_for_generation
         self._load_image = self.load_image
 
@@ -56,10 +57,11 @@ class Window(
         self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
         self.gen_worker.done.connect(self.handle_done)
-
         self.gen_worker.progress_preview.connect(self.repaint_image)
 
         self.gen_worker.error.connect(self.handle_error)
+        self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
+        self.gen_worker.progress_adetailer.connect(self.update_adetailer_progress)
 
         self.gen_thread.start()
 
@@ -134,6 +136,8 @@ class Window(
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
 
+        self.reset_command_buttons()
+        
         pipe = load_pipeline(self.model_path)
         if pipe._interrupt:
             self.label_status.setText("Interrupted")
@@ -143,6 +147,8 @@ class Window(
         self.button_interrupt.setDisabled(True)
         self.button_generate.setDisabled(False)
 
+        self.reset_command_buttons()
+        
         self.show_error_modal_dialog(error)
 
     def repaint_image(  # noqa: PLR0913
@@ -187,14 +193,22 @@ class Window(
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
 
-    def threaded_generate(self):
-        self.label_status.setText("Generating...")
-        self.setWindowTitle("Generating...")
-        self.label_process.setMaximum(self.steps_editor.value())
-        self.label_process.setValue(0)
-        self.label_image_path.setText("")
-
-        self.prompt = GenerationPrompt(
+                
+    def show_adetailer_rect(self, x: int, y: int, x2: int, y2: int):
+        width = x2 - x
+        height = y2 - y
+        rects = [QRectF(x, y, width, height)]
+        self.viewer.set_rects(rects)
+        self.label_status.setText(f"Found {len(self.viewer.rects)} rects. Inpainting...")
+        
+    def update_adetailer_progress(self, progress: int, total: int):
+        multiplier = len(self.viewer.rects)
+        all_total = total * multiplier
+        self.label_process.setMaximum(all_total)
+        self.label_process.setValue(progress)
+  
+    def get_prompt(self) -> GenerationPrompt:
+        prompt = GenerationPrompt(
             model_path=self.model_path,
             scheduler_name=self.scheduler_selector.currentText(),
             prompt=self.prompt_editor.toPlainText(),
@@ -208,7 +222,41 @@ class Window(
             use_vpred=self.vpred_editor.isChecked(),
             loras=frozenset(self.get_loras()),
         )
+        return prompt
+
+    def threaded_generate(self):
+        self.label_status.setText("Generation...")
+        self.label_process.setMaximum(self.steps_editor.value())
+        self.label_process.setValue(0)
+        self.label_image_path.setText("")
+
+        self.prompt = self.get_prompt()
         # Send prompt to worker for start of generation.
+        self.gen_worker.parent_conn.send(self.prompt)
+        
+    def threaded_fix(self):
+        self.label_status.setText("Adetailer fix...")
+        self.label_process.setMaximum(self.fix_steps)
+        self.label_process.setValue(0)
+        self.label_image_path.setText("")
+        self.viewer.clear_rects()
+
+        self.prompt = self.get_prompt()
+        
+        if self.viewer.prompt:
+            is_same_model = self.viewer.prompt.model_path == self.prompt.model_path
+            is_empty_model = self.viewer.prompt.model_path == ""
+            is_same_pathless_model = self.prompt.model_path.endswith(self.viewer.prompt.model_path)
+
+            if not is_same_model and (is_empty_model or is_same_pathless_model):
+                self.viewer.prompt.model_path = self.prompt.model_path
+                
+            if self.prompt == self.viewer.prompt:
+                print("same prompt")
+                self.prompt.image = pixmap_to_bytes(self.viewer._photo.pixmap())
+                
+        self.prompt.use_adetailer = True
+        # Send prompt to worker for start of fixing image.
         self.gen_worker.parent_conn.send(self.prompt)
 
     def validate_data_for_generation(self) -> bool:

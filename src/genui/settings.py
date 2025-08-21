@@ -1,6 +1,7 @@
 from pathlib import Path
-from pydantic import DirectoryPath, BaseModel
-from pydantic.types import NewPath, StrictInt
+
+from pydantic import BaseModel
+from pydantic.types import NewPath, StrictInt, FilePath, DirectoryPath
 from pydantic_settings import BaseSettings, SettingsConfigDict, PydanticBaseSettingsSource, TomlConfigSettingsSource
 from platformdirs import user_config_dir
 from PyQt6.QtGui import QFont
@@ -51,14 +52,31 @@ class PromptEditorSettings(BaseModel):
     font_size: int = 10
     font_weight: int = QFont.Weight.Normal
     compel_font_weight: int = QFont.Weight.Bold
-
     
+    
+class ADetailerSettings(BaseModel):
+    yolov_model_path: FilePath | None = None
+    prompt: str = ""
+    n_prompt: str = ""
+    inpaint_strength: float = 0.4
+    target_size: tuple[int, int] = (512, 512)
+    inference_steps: int = 20
+    mask_dilation: int = 4
+    mask_blur: int = 4
+    mask_padding: int = 32
+    
+
 class Settings(BaseGenUISettings):
     autosave_image: AutoSaveImageSettings = AutoSaveImageSettings()
     deep_cache: DeepCacheSettings = DeepCacheSettings()
     prompt_editor: PromptEditorSettings = PromptEditorSettings()
+    adetailer: ADetailerSettings = ADetailerSettings()
+    
+    
+def reload_settings():
+    settings = Settings()
+    print(f"SETTINGS={settings.json()}")
 
 
 settings = Settings()
-j = settings.json()
-print(f"SETTINGS={j}")
+print(f"SETTINGS={settings.json()}")

@@ -33,6 +33,8 @@ dependencies = [
     "pydantic-settings[toml]",
     #    "xformers >= 0.0.29.post1",
     "platformdirs",
+    "torchvision >= 0.15.1",
+    "ultralytics >= 8.2.32",
     "pyexiv2",
     "peft>=0.15.1",
     "torchsde>=0.2.6",

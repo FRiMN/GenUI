@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import gc
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass, field, replace
 from functools import lru_cache, cached_property
 from typing import TYPE_CHECKING
 
@@ -10,7 +11,8 @@ from PIL import Image
 from compel import Compel, ReturnedEmbeddingsType
 
 # from diffusers.utils.testing_utils import enable_full_determinism
-from diffusers import StableDiffusionXLPipeline
+
+from diffusers import StableDiffusionXLPipeline, StableDiffusionXLInpaintPipeline
 from diffusers.loaders.lora_pipeline import StableDiffusionXLLoraLoaderMixin
 
 from ..settings import settings
@@ -158,7 +160,8 @@ class GenUIStableDiffusionXLPipeline(
     CompelStableDiffusionXLPipeline,
     LoraStableDiffusionXLPipeline,
 ):
-    pass
+    # Bug in diffusers library.
+    _interrupt = False
 
 
 def accelerate(pipe: GenUIStableDiffusionXLPipeline):
@@ -237,6 +240,7 @@ class GenerationPrompt:
         deepcache_enabled: Whether to enable deepcache.
         use_karras_sigmas: Whether to use Karras sigmas.
         use_vpred: Whether to use v-prediction.
+        use_adetailer: Whether to use adetailer.
         callback: Callback function to be called with the decoded image.
         loras: Set of used LoRAs.
 
@@ -255,8 +259,10 @@ class GenerationPrompt:
     deepcache_enabled: bool
     use_karras_sigmas: bool
     use_vpred: bool
+    use_adetailer: bool = False
     callback: Callable | None = None
     loras: frozenset[LoRASettings] = field(default_factory=frozenset)
+    image: bytes | None = None
 
 
 @lru_cache(maxsize=1)
@@ -288,9 +294,11 @@ def generate(
     prompt: GenerationPrompt
 ) -> Image.Image:
     import torch
+    
+    cache_key = replace(prompt, use_adetailer=False, image=None)
 
-    if prompt in IMAGE_CACHE:
-        return IMAGE_CACHE[prompt]
+    if cache_key in IMAGE_CACHE:
+        return IMAGE_CACHE[cache_key]
 
     with torch.inference_mode():
     # with torch.no_grad():
@@ -357,7 +365,7 @@ def generate(
         image = pipeline(**data).images[0]
 
     if not pipeline._interrupt:
-        IMAGE_CACHE[prompt] = image
+        IMAGE_CACHE[cache_key] = image
 
     return image
 
@@ -397,7 +405,7 @@ def latents_to_rgb_vae(latents: torch.Tensor, pipe: GenUIStableDiffusionXLPipeli
     return pipe.image_processor.postprocess(image, output_type="pil")[0]
 
 
-def callback_factory(callback: callable) -> callable:
+def callback_factory(callback: Callable) -> Callable:
     """Factory function to create a callback function for decoding tensors.
 
     Args:
@@ -420,6 +428,20 @@ def callback_factory(callback: callable) -> callable:
         image = latents_to_rgb(latents[0])
         callback(image, step + 1)
 
+        return callback_kwargs
+
+    return callback_wrap
+    
+    
+def callback_adetailer_factory(callback: Callable) -> Callable:
+    def callback_wrap(
+            pipe: StableDiffusionXLInpaintPipeline,
+            step: int,
+            timestep: torch.Tensor,
+            callback_kwargs: dict
+    ) -> dict:
+        steps = pipe._num_timesteps
+        callback(step + 1, steps)
         return callback_kwargs
 
     return callback_wrap
@@ -467,3 +489,41 @@ def get_scheduler(
 
     print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=} and {use_vpred=}")
     return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
+    
+    
+def fix_by_adetailer(
+    image: Image.Image, 
+    model_path: str, 
+    callback: Callable, 
+    callback_step: Callable,
+) -> Image.Image | None:
+    from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
+    from ..settings import ADetailerSettings
+    
+    s: ADetailerSettings = settings.adetailer
+    
+    pipe = load_pipeline(model_path)
+    ad_components = pipe.components
+    ad_pipe = AdPipelineBase(**ad_components)
+    
+    common = {
+        "prompt": s.prompt,
+        "n_prompt" : s.n_prompt, 
+        "num_inference_steps": s.inference_steps, 
+        # "target_size" : image.size
+        "target_size" : s.target_size
+    }
+    inpaint_only = {'strength': s.inpaint_strength}
+    
+    result: ADOutput = ad_pipe(
+        common=common, 
+        inpaint_only=inpaint_only, 
+        images=[image],
+        mask_dilation=s.mask_dilation, 
+        mask_blur=s.mask_blur, 
+        mask_padding=s.mask_padding, 
+        model_path=str(s.yolov_model_path),
+        rect_callback=callback,
+        callback=callback_adetailer_factory(callback_step),
+    )
+    return result.images[0] if result.images else None

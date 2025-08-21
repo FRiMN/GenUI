@@ -5,6 +5,8 @@ from typing import Any
 import gc
 import os.path
 
+from PyQt6 import QtCore, QtGui
+
 from .settings import settings
 
 
@@ -49,3 +51,12 @@ def get_aspect_ratios(labels: list[str]) -> list[tuple[str, float]]:
     labels_ = [(label, x.split(":")) for label, x in labels_]   # ["1", "1"], ["4", "5"]
     labels_ = [(label, int(x[1]) / int(x[0])) for label, x in labels_]  # 1.0, 1.2555555
     return [(label, round(x, 2)) for label, x in labels_]   # 1.00, 1.26
+    
+    
+def pixmap_to_bytes(pixmap: QtGui.QPixmap) -> bytes:
+    """Convert a QPixmap to bytes."""
+    buffer = QtCore.QBuffer()
+    buffer.open(QtCore.QIODevice.OpenModeFlag.WriteOnly)
+    pixmap.save(buffer, "PNG")
+    buffer.close()
+    return buffer.data().data()

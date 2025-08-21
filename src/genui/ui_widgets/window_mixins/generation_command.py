@@ -12,6 +12,10 @@ class GenerationCommandMixin:
     def __init__(self):
         super().__init__()
 
+        self._generate_method = None
+        self._fix_method = None
+        self._validate_data_for_generation_method = None
+
         self.button_generate = bg = QtWidgets.QPushButton("Generate", self)
         bg.setStyleSheet("background-color: darkblue")
         bg.clicked.connect(self.handle_generate)
@@ -23,6 +27,15 @@ class GenerationCommandMixin:
         # Note: This button is disabled until generation starts
         bi.setDisabled(True)
         bi.clicked.connect(self.handle_interrupt)
+        
+        self.button_fix = QtWidgets.QPushButton("Fix", self)
+        self.button_fix.clicked.connect(self.handle_fix)
+        
+        self.button_show_rects = QtWidgets.QPushButton("Show Fix Rects", self)
+        self.button_show_rects.setCheckable(True)
+        self.button_show_rects.toggled.connect(self.switch_rects)
+        
+        self.fix_steps = 20
 
         self.action_toolbar = self._create_action_toolbar()
 
@@ -30,7 +43,23 @@ class GenerationCommandMixin:
         action_toolbar = QtWidgets.QToolBar("Action", self)
         action_toolbar.addWidget(self.button_generate)
         action_toolbar.addWidget(self.button_interrupt)
+        action_toolbar.addWidget(self.button_fix)
+        action_toolbar.addWidget(self.button_show_rects)
         return action_toolbar
+        
+    def reset_command_buttons(self):
+        self.button_generate.setDisabled(False)
+        self.button_interrupt.setDisabled(True)
+        self.button_fix.setDisabled(False)
+        self.button_show_rects.setDisabled(False)
+        self.button_show_rects.setChecked(False)
+        
+    def disable_command_buttons_on_inference(self):
+        self.button_generate.setDisabled(True)
+        self.button_interrupt.setDisabled(False)
+        self.button_fix.setDisabled(True)
+        self.button_show_rects.setDisabled(True)
+        self.button_show_rects.setChecked(False)
 
     def handle_generate(self):
         if not self._validate_data_for_generation_method():
@@ -41,12 +70,26 @@ class GenerationCommandMixin:
         self.button_interrupt.setDisabled(False)
         self.prompt_editor.setFocus()
 
+        self.disable_command_buttons_on_inference()
+
         try:
             self._generate_method()
         except ValueError as e:
             self.show_error_modal_dialog(str(e))
-            self.button_generate.setDisabled(False)
-            self.button_interrupt.setDisabled(True)
+            self.reset_command_buttons()
+            
+    def handle_fix(self):
+        if not self._validate_data_for_generation_method():
+            self.show_modal_dialog()
+            return
+            
+        self.disable_command_buttons_on_inference()
+
+        try:
+            self._fix_method()
+        except ValueError as e:
+            self.show_modal_dialog(str(e))
+            self.reset_command_buttons()
 
     def handle_interrupt(self):
         self.button_interrupt.setDisabled(True)
@@ -70,3 +113,9 @@ class GenerationCommandMixin:
         msg.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         msg.exec()
+        
+    def switch_rects(self, checked: bool):  # noqa: FBT001
+        if checked:
+            self.viewer.show_rects()
+        else:
+            self.viewer.hide_rects()
