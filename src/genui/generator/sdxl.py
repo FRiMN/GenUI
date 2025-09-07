@@ -294,7 +294,7 @@ def generate(
     prompt: GenerationPrompt
 ) -> Image.Image:
     import torch
-    
+
     cache_key = replace(prompt, use_adetailer=False, image=None)
 
     if cache_key in IMAGE_CACHE:
@@ -431,8 +431,8 @@ def callback_factory(callback: Callable) -> Callable:
         return callback_kwargs
 
     return callback_wrap
-    
-    
+
+
 def callback_adetailer_factory(callback: Callable) -> Callable:
     def callback_wrap(
             pipe: StableDiffusionXLInpaintPipeline,
@@ -489,28 +489,28 @@ def get_scheduler(
 
     print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=} and {use_vpred=}")
     return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
-    
-    
+
+
 def fix_by_adetailer(
-    image: Image.Image, 
-    model_path: str, 
-    callback: Callable, 
+    image: Image.Image,
+    model_path: str,
+    callback: Callable,
     callback_step: Callable,
 ) -> Image.Image | None:
     import torch
     from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
     from ..settings import ADetailerSettings
-    
+
     s: ADetailerSettings = settings.adetailer
-    
+
     pipe = load_pipeline(model_path)
     ad_components = pipe.components
     ad_pipe = AdPipelineBase(**ad_components)
-    
+
     common = {
         "prompt": s.prompt,
-        "n_prompt" : s.n_prompt, 
-        "num_inference_steps": s.inference_steps, 
+        "n_prompt" : s.n_prompt,
+        "num_inference_steps": s.inference_steps,
         # "target_size" : image.size
         "target_size" : s.target_size
     }
