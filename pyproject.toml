@@ -10,7 +10,7 @@ Desktop UI application designed to simplify and enhance the process of
 generating images using Stable Diffusion.
 """
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10, <3.12"
 keywords = ["AI", "Stable Diffusion"]
 license = { text = "Apache-2.0" }
 classifiers = [
