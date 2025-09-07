@@ -80,7 +80,7 @@ class GenerationCommandMixin:
 
     def handle_fix(self):
         if not self._validate_data_for_generation_method():
-            self.show_modal_dialog()
+            self.show_error_modal_dialog()
             return
 
         self.disable_command_buttons_on_inference()
@@ -88,7 +88,7 @@ class GenerationCommandMixin:
         try:
             self._fix_method()
         except ValueError as e:
-            self.show_modal_dialog(str(e))
+            self.show_error_modal_dialog(str(e))
             self.reset_command_buttons()
 
     def handle_interrupt(self):
