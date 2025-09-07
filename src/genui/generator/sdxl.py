@@ -497,6 +497,7 @@ def fix_by_adetailer(
     callback: Callable, 
     callback_step: Callable,
 ) -> Image.Image | None:
+    import torch
     from adetailer_sdxl.asdff.base import AdPipelineBase, ADOutput
     from ..settings import ADetailerSettings
     
@@ -514,16 +515,17 @@ def fix_by_adetailer(
         "target_size" : s.target_size
     }
     inpaint_only = {'strength': s.inpaint_strength}
-    
-    result: ADOutput = ad_pipe(
-        common=common, 
-        inpaint_only=inpaint_only, 
-        images=[image],
-        mask_dilation=s.mask_dilation, 
-        mask_blur=s.mask_blur, 
-        mask_padding=s.mask_padding, 
-        model_path=str(s.yolov_model_path),
-        rect_callback=callback,
-        callback=callback_adetailer_factory(callback_step),
-    )
+
+    with torch.inference_mode():
+        result: ADOutput = ad_pipe(
+            common=common,
+            inpaint_only=inpaint_only,
+            images=[image],
+            mask_dilation=s.mask_dilation,
+            mask_blur=s.mask_blur,
+            mask_padding=s.mask_padding,
+            model_path=str(s.yolov_model_path),
+            rect_callback=callback,
+            callback=callback_adetailer_factory(callback_step),
+        )
     return result.images[0] if result.images else None
