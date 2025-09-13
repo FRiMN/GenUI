@@ -51,7 +51,7 @@ def pipeline_cache_callback(cache: FIFODict):
     empty_cache()
 
 
-IMAGE_CACHE = FIFODict(maxsize=3)
+IMAGE_CACHE = FIFODict(maxsize=5)
 PIPELINE_CACHE = FIFODict(maxsize=1, remove_callback=pipeline_cache_callback)
 
 
