@@ -54,6 +54,11 @@ class ImageSizeMixin:
         bse.valueChanged.connect(self.handle_change_base_size)
 
         self.label_size = QtWidgets.QLabel()
+        self.label_resolution_mpx = QtWidgets.QLabel()
+        self.sub_label_mpx = QtWidgets.QLabel("Mpx")
+        self.sub_label_mpx.setStyleSheet("color: gray;")
+
+        bse.valueChanged.connect(self.handle_change_base_size)
 
         self.size_aspect_ratio = sar = QtWidgets.QComboBox()
         sar.addItems(ASPECT_RATIOS_LABELS)
@@ -73,6 +78,9 @@ class ImageSizeMixin:
         size_toolbar.addWidget(self.size_aspect_ratio)
         size_toolbar.addSeparator()
         size_toolbar.addWidget(self.label_size)
+        size_toolbar.addSeparator()
+        size_toolbar.addWidget(self.label_resolution_mpx)
+        size_toolbar.addWidget(self.sub_label_mpx)
         return size_toolbar
 
     def handle_change_size_aspect_ratio(self, text: str):
@@ -100,11 +108,12 @@ class ImageSizeMixin:
             self.image_size = (w, h)
 
         self.label_size.setText(f"{self.image_size[0]} x {self.image_size[1]}")
+        self.label_resolution_mpx.setText(f"{self.image_size[0] * self.image_size[1] / 1e6:.2f}")
 
     def handle_change_base_size(self, val: int):
         t = self.size_aspect_ratio.currentText()
         self.handle_change_size_aspect_ratio(t)
-        
+
     def set_image_size(self, size: tuple[int, int]):
         """Correctly set the image size on all widgets."""
         base_size = max(size)
@@ -112,6 +121,6 @@ class ImageSizeMixin:
         aspect_ratio = round(h / w, 2)
         closest = min(ASPECT_RATIOS_VALUES, key=lambda x: abs(x - aspect_ratio))
         aspect_ratio_label = next(iter([label for label, value in ASPECT_RATIOS if value == closest]))
-        
+
         self.base_size_editor.setValue(base_size)
         self.size_aspect_ratio.setCurrentText(aspect_ratio_label)

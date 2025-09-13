@@ -13,6 +13,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Added support LoRA.
 - Added generation information in title.
 - Added ADetailer support.
+- Added megapixel resolution display in image size toolbar.
 
 ### Changed
 

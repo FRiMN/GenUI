@@ -137,7 +137,7 @@ class Window(
         self.button_generate.setDisabled(False)
 
         self.reset_command_buttons()
-        
+
         pipe = load_pipeline(self.model_path)
         if pipe._interrupt:
             self.label_status.setText("Interrupted")
@@ -148,7 +148,7 @@ class Window(
         self.button_generate.setDisabled(False)
 
         self.reset_command_buttons()
-        
+
         self.show_error_modal_dialog(error)
 
     def repaint_image(  # noqa: PLR0913
@@ -193,20 +193,20 @@ class Window(
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
 
-                
+
     def show_adetailer_rect(self, x: int, y: int, x2: int, y2: int):
         width = x2 - x
         height = y2 - y
         rects = [QRectF(x, y, width, height)]
         self.viewer.set_rects(rects)
         self.label_status.setText(f"Found {len(self.viewer.rects)} rects. Inpainting...")
-        
+
     def update_adetailer_progress(self, progress: int, total: int):
         multiplier = len(self.viewer.rects)
         all_total = total * multiplier
         self.label_process.setMaximum(all_total)
         self.label_process.setValue(progress)
-  
+
     def get_prompt(self) -> GenerationPrompt:
         prompt = GenerationPrompt(
             model_path=self.model_path,
@@ -233,7 +233,7 @@ class Window(
         self.prompt = self.get_prompt()
         # Send prompt to worker for start of generation.
         self.gen_worker.parent_conn.send(self.prompt)
-        
+
     def threaded_fix(self):
         self.label_status.setText("Adetailer fix...")
         self.label_process.setMaximum(self.fix_steps)
@@ -242,7 +242,7 @@ class Window(
         self.viewer.clear_rects()
 
         self.prompt = self.get_prompt()
-        
+
         if self.viewer.prompt:
             is_same_model = self.viewer.prompt.model_path == self.prompt.model_path
             is_empty_model = self.viewer.prompt.model_path == ""
@@ -250,11 +250,11 @@ class Window(
 
             if not is_same_model and (is_empty_model or is_same_pathless_model):
                 self.viewer.prompt.model_path = self.prompt.model_path
-                
+
             if self.prompt == self.viewer.prompt:
                 print("same prompt")
                 self.prompt.image = pixmap_to_bytes(self.viewer._photo.pixmap())
-                
+
         self.prompt.use_adetailer = True
         # Send prompt to worker for start of fixing image.
         self.gen_worker.parent_conn.send(self.prompt)
