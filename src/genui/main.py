@@ -328,11 +328,17 @@ class Window(
 
         self.label_image_path.setText(f"Loaded Image: `{image_path}`")
 
+    def load_model(self, model_path: str):
+        self.set_model(model_path)
+
     def dropEvent(self, event: QDropEvent):
         if event.mimeData().hasUrls():
             url = event.mimeData().urls()[0]
-            image_path = url.toLocalFile()
-            self.load_image(image_path)
+            file_path = url.toLocalFile()
+            if file_path.lower().endswith(".safetensors"):
+                self.load_model(file_path)
+            else:
+                self.load_image(file_path)
 
         event.accept()
 

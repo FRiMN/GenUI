@@ -77,6 +77,10 @@ class SchedulerMixin:
         return scheduler_toolbar
 
     def handle_change_model(self):
-        self.model_path = QFileDialog.getOpenFileName(self, "Model")[0]
+        model_path = QFileDialog.getOpenFileName(self, "Model")[0]
+        self.set_model(model_path)
+
+    def set_model(self, model_path: str):
+        self.model_path = model_path
         self.model_name = self.model_path.split("/")[-1].split(".")[0]
         self.model_path_btn.setText(self.model_name)

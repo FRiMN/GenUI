@@ -51,7 +51,6 @@ class ImageSizeMixin:
         bse.setSingleStep(128)
         bse.setValue(1024)
         bse.setToolTip("Base size")
-        bse.valueChanged.connect(self.handle_change_base_size)
 
         self.label_size = QtWidgets.QLabel()
         self.label_resolution_mpx = QtWidgets.QLabel()
