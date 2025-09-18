@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class Worker(QObject):
     """Worker runs a generation task in a separate thread."""
 
-    finished = pyqtSignal()  # Worker is finished and starts to close (close the main application).
+    finished = pyqtSignal()  # Worker is finished and starts to close.
     done = pyqtSignal()  # Worker is done with the generation task.
     error = pyqtSignal(str)  # Worker encountered an error.
     progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)

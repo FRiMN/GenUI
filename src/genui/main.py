@@ -65,6 +65,16 @@ class Window(
 
         self.gen_thread.start()
 
+    def _rebuild_threaded_worker(self):
+        print("Rebuild worker...")
+        self.gen_worker.stop()
+        # self.gen_thread.quit()
+
+        del self.gen_worker
+        del self.gen_thread
+
+        self._build_threaded_worker()
+
     def _build_widgets(self):
         self.viewer = PhotoViewer(self)
         self.viewer.setZoomPinned(True)
@@ -225,6 +235,11 @@ class Window(
         return prompt
 
     def threaded_generate(self):
+        past_model_path = self.prompt.model_path
+        self.prompt = self.get_prompt()
+        if self.prompt.model_path != past_model_path:
+            self._rebuild_threaded_worker()
+
         self.label_status.setText("Generation...")
         self.label_process.setMaximum(self.steps_editor.value())
         self.label_process.setValue(0)
