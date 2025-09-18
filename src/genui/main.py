@@ -245,9 +245,8 @@ class Window(
         self.label_process.setValue(0)
         self.label_image_path.setText("")
 
-        self.prompt = self.get_prompt()
         # Send prompt to worker for start of generation.
-        self.gen_worker.parent_conn.send(self.prompt)
+        self.gen_worker.send_task(self.prompt)
 
     def threaded_fix(self):
         self.label_status.setText("Adetailer fix...")
@@ -272,7 +271,7 @@ class Window(
 
         self.prompt.use_adetailer = True
         # Send prompt to worker for start of fixing image.
-        self.gen_worker.parent_conn.send(self.prompt)
+        self.gen_worker.send_task(self.prompt)
 
     def validate_data_for_generation(self) -> bool:
         return bool(
