@@ -424,9 +424,10 @@ def callback_factory(callback: Callable) -> Callable:
         if pipe._interrupt: return callback_kwargs
 
         latents = callback_kwargs["latents"]
+        total_steps = pipe._num_timesteps
 
         image = latents_to_rgb(latents[0])
-        callback(image, step + 1)
+        callback(image, step + 1, total_steps)
 
         return callback_kwargs
 

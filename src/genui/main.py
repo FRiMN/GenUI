@@ -15,7 +15,7 @@ from .ui_widgets.window_mixins.scheduler import SchedulerMixin
 from .ui_widgets.window_mixins.seed import SeedMixin
 from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
-from .operations import ImageGenerationOperation
+from .operations import ImageGenerationOperation, OperationWorker
 
 # from .worker import Worker
 from .settings import settings
@@ -38,6 +38,8 @@ class Window(
         self._fix_method = self.threaded_fix
         self._validate_data_for_generation_method = self.validate_data_for_generation
         self._load_image = self.load_image
+        
+        self.gen_operation = ImageGenerationOperation()
 
         self._build_threaded_worker()
         self._build_widgets()
@@ -51,16 +53,16 @@ class Window(
 
     def _build_threaded_worker(self):
         self.gen_thread = QThread(parent=self)
-        self.gen_worker = ImageGenerationOperation()
+        self.gen_worker = OperationWorker(self.gen_operation)
         self.gen_worker.moveToThread(self.gen_thread)
 
-        self.gen_thread.started.connect(self.gen_worker.start)
+        self.gen_thread.started.connect(self.gen_worker.run)
         self.gen_worker.finished.connect(self.gen_thread.quit)
         self.gen_worker.finished.connect(self.gen_worker.deleteLater)
         self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
-        self.gen_worker.generation_complete.connect(self.handle_done)
-        self.gen_worker.preview_image.connect(self.repaint_image)
+        self.gen_operation.signals.done.connect(self.handle_done)
+        self.gen_operation.signals.progress_preview.connect(self.repaint_image)
 
         self.gen_worker.error.connect(self.handle_error)
         # self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
@@ -68,15 +70,15 @@ class Window(
 
         self.gen_thread.start()
 
-    def _rebuild_threaded_worker(self):
-        print("Rebuild worker...")
-        self.gen_worker.stop()
-        # self.gen_thread.quit()
+    # def _rebuild_threaded_worker(self):
+    #     print("Rebuild worker...")
+    #     self.gen_worker.stop()
+    #     # self.gen_thread.quit()
 
-        del self.gen_worker
-        del self.gen_thread
+    #     del self.gen_worker
+    #     del self.gen_thread
 
-        self._build_threaded_worker()
+    #     self._build_threaded_worker()
 
     def _build_widgets(self):
         self.viewer = PhotoViewer(self)
@@ -238,10 +240,10 @@ class Window(
         return prompt
 
     def threaded_generate(self):
-        past_model_path = self.prompt.model_path
+        # past_model_path = self.prompt.model_path
         self.prompt = self.get_prompt()
-        if self.prompt.model_path != past_model_path:
-            self._rebuild_threaded_worker()
+        # if self.prompt.model_path != past_model_path:
+        #     self._rebuild_threaded_worker()
 
         self.label_status.setText("Generation...")
         self.label_process.setMaximum(self.steps_editor.value())
@@ -249,7 +251,7 @@ class Window(
         self.label_image_path.setText("")
 
         # Send prompt to worker for start of generation.
-        self.gen_worker.send_task(self.prompt)
+        self.gen_worker.queue.put(self.prompt)
 
     def threaded_fix(self):
         self.label_status.setText("Adetailer fix...")

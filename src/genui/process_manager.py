@@ -108,13 +108,17 @@ class ProcessManager:
         Returns:
             True if sent successfully, False otherwise
         """
+        print(f"Sending data to child process: {data}")
         if not self._is_running or not self.parent_conn:
+            print("Process not running or connection closed")
             return False
 
         try:
             self.parent_conn.send(data)
+            print("Data sent successfully")
             return True
         except Exception:
+            print("Failed to send data")
             return False
 
     def recv(self, timeout: Optional[float] = None) -> Any:
