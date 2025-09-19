@@ -15,7 +15,9 @@ from .ui_widgets.window_mixins.scheduler import SchedulerMixin
 from .ui_widgets.window_mixins.seed import SeedMixin
 from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
-from .worker import Worker
+from .operations import ImageGenerationOperation
+
+# from .worker import Worker
 from .settings import settings
 from .__version__ import __version__
 
@@ -43,25 +45,26 @@ class Window(
         self.setAcceptDrops(True)
 
     def closeEvent(self, event: QCloseEvent):
+        print("Closing window...")
         self.gen_worker.stop()
         event.accept()  # Close the app
 
     def _build_threaded_worker(self):
         self.gen_thread = QThread(parent=self)
-        self.gen_worker = Worker()
+        self.gen_worker = ImageGenerationOperation()
         self.gen_worker.moveToThread(self.gen_thread)
 
-        self.gen_thread.started.connect(self.gen_worker.run)
+        self.gen_thread.started.connect(self.gen_worker.start)
         self.gen_worker.finished.connect(self.gen_thread.quit)
         self.gen_worker.finished.connect(self.gen_worker.deleteLater)
         self.gen_thread.finished.connect(self.gen_thread.deleteLater)
 
-        self.gen_worker.done.connect(self.handle_done)
-        self.gen_worker.progress_preview.connect(self.repaint_image)
+        self.gen_worker.generation_complete.connect(self.handle_done)
+        self.gen_worker.preview_image.connect(self.repaint_image)
 
         self.gen_worker.error.connect(self.handle_error)
-        self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
-        self.gen_worker.progress_adetailer.connect(self.update_adetailer_progress)
+        # self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
+        # self.gen_worker.progress_adetailer.connect(self.update_adetailer_progress)
 
         self.gen_thread.start()
 
