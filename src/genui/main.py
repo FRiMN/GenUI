@@ -38,7 +38,7 @@ class Window(
         self._fix_method = self.threaded_fix
         self._validate_data_for_generation_method = self.validate_data_for_generation
         self._load_image = self.load_image
-        
+
         self.gen_operation = ImageGenerationOperation()
 
         self._build_threaded_worker()

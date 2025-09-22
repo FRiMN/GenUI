@@ -75,7 +75,7 @@ class OperationWorker(QObject):
             sleep(0.1)
 
         self.finished.emit()
-        
+
     def stop(self):
         print("stopping")
         self.finished.emit()
@@ -93,8 +93,9 @@ class ImageGenerationOperation(BaseOperation):
             if connection.closed:
                 print("Connection closed")
                 break
-                
+
             is_data_exist = connection.poll()
+
             if is_data_exist:
                 msg = connection.recv()
                 self.generate_image(msg)

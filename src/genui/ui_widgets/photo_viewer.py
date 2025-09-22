@@ -145,7 +145,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self._scene = QtWidgets.QGraphicsScene(self)
         self._scene.addItem(self._photo)
         self.setScene(self._scene)
-        
+
         self.rects = []
 
         va = QtWidgets.QGraphicsView.ViewportAnchor
@@ -336,7 +336,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
             self.setDragMode(dm.NoDrag)
         elif not self._photo.pixmap().isNull():
             self.setDragMode(dm.ScrollHandDrag)
-            
+
     def set_rects(self, rects: list[QRectF]):
         rect_items = [QtWidgets.QGraphicsRectItem(rect) for rect in rects]
         for item in rect_items:
@@ -347,7 +347,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
     def hide_rects(self):
         for item in self.rects:
             item.hide()
-            
+
     def show_rects(self):
         for item in self.rects:
             item.show()

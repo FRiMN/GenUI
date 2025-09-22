@@ -1,7 +1,7 @@
 """
 ProcessManager class for managing child processes with Pipe communication.
 
-We need using child process for working with models, because CUDA driver does not release memory until the process is terminated.
+We need using child process for working with models, because CUDA driver does not release memory until the process is terminated. Every time a new model is loaded, it causes memory leaks.
 
 From <https://github.com/tensorflow/tensorflow/issues/1727>:
 > currently the Allocator in the GPUDevice belongs to the ProcessState, which is essentially a global singleton. The first session using GPU initializes it, and frees itself when the process shuts down.
@@ -210,7 +210,7 @@ class ProcessManager:
         try:
             self.stop()
         except Exception:
-            pass
+            print("Error stopping process")
 
     def __enter__(self):
         """Context manager entry."""
