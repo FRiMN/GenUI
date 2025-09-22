@@ -327,10 +327,12 @@ def generate(
         # }
 
         pipeline.scheduler = get_scheduler(
-            prompt.scheduler_name,
-            get_scheduler_config(prompt.model_path),
-            use_karras_sigmas=prompt.use_karras_sigmas,
-            use_vpred=prompt.use_vpred,
+            ModelSchedulerConfig(
+                name=prompt.scheduler_name,
+                model_path=prompt.model_path,
+                use_karras_sigmas=prompt.use_karras_sigmas,
+                use_vpred=prompt.use_vpred,
+            )
         )
 
         # We prepare latents for reproducible (bug in diffusers lib?).
@@ -472,24 +474,29 @@ def get_schedulers_map() -> dict:
     return result
 
 
+@dataclass(unsafe_hash=True)
+class ModelSchedulerConfig:
+    name: str
+    model_path: str
+    use_karras_sigmas: bool
+    use_vpred: bool
+
+
 @lru_cache(maxsize=1)
 def get_scheduler(
-    scheduler_name: str,
-    scheduler_config: frozenset[tuple],
-    *,
-    use_karras_sigmas: bool,
-    use_vpred: bool,
+    sc: ModelSchedulerConfig,
 ):
     schedulers_map = get_schedulers_map()
-    scheduler_class = schedulers_map[scheduler_name]
+    scheduler_class = schedulers_map[sc.name]
+    config = get_scheduler_config(sc.model_path)
 
     # frozenset convert to dict
-    scheduler_config = {k: v for k, v in scheduler_config}
-    if use_vpred:
+    scheduler_config = {k: v for k, v in config}
+    if sc.use_vpred:
         scheduler_config["prediction_type"] = "v_prediction"
 
-    print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {use_karras_sigmas=} and {use_vpred=}")
-    return scheduler_class.from_config(scheduler_config, use_karras_sigmas=use_karras_sigmas)
+    print(f"Get new scheduler {scheduler_class} with {scheduler_config=} and {sc.use_karras_sigmas=} and {sc.use_vpred=}")
+    return scheduler_class.from_config(scheduler_config, use_karras_sigmas=sc.use_karras_sigmas)
 
 
 def fix_by_adetailer(

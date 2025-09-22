@@ -6,7 +6,7 @@ from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize, QRectF
 from PyQt6.QtGui import QCloseEvent, QDropEvent
 
-from .generator.sdxl import GenerationPrompt, load_pipeline
+from .generator.sdxl import GenerationPrompt, ModelSchedulerConfig
 from .ui_widgets.photo_viewer import PhotoViewer, FastViewer
 from .ui_widgets.window_mixins.generation_command import GenerationCommandMixin
 from .ui_widgets.window_mixins.image_size import ImageSizeMixin
@@ -63,6 +63,7 @@ class Window(
 
         self.gen_operation.signals.done.connect(self.handle_done)
         self.gen_operation.signals.progress_preview.connect(self.repaint_image)
+        self.gen_operation.signals.scheduler_config.connect(self.update_scheduler_config)
 
         self.gen_worker.error.connect(self.handle_error)
         # self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)
@@ -153,10 +154,10 @@ class Window(
 
         self.reset_command_buttons()
 
-        pipe = load_pipeline(self.model_path)
-        if pipe._interrupt:
-            self.label_status.setText("Interrupted")
-            self.preview_viewer.set_pixmap(None)
+        # pipe = load_pipeline(self.model_path)
+        # if pipe._interrupt:
+        #     self.label_status.setText("Interrupted")
+        #     self.preview_viewer.set_pixmap(None)
 
     def handle_error(self, error: str):
         self.button_interrupt.setDisabled(True)
@@ -165,6 +166,9 @@ class Window(
         self.reset_command_buttons()
 
         self.show_error_modal_dialog(error)
+        
+    def update_scheduler_config(self, config: frozenset):
+        self.scheduler_config = config
 
     def repaint_image(  # noqa: PLR0913
             self,
@@ -201,7 +205,7 @@ class Window(
         if is_latent_image:
             self.preview_viewer.set_pixmap(pixmap)
         else:
-            self.viewer.setPhoto(pixmap, self.prompt)
+            self.viewer.setPhoto(pixmap, prompt=self.prompt, scheduler_config=self.scheduler_config)
             self.preview_viewer.set_pixmap(None)
 
             if settings.autosave_image.enabled:
@@ -241,7 +245,7 @@ class Window(
 
     def threaded_generate(self):
         # past_model_path = self.prompt.model_path
-        self.prompt = self.get_prompt()
+        self.prompt = p = self.get_prompt()
         # if self.prompt.model_path != past_model_path:
         #     self._rebuild_threaded_worker()
 
@@ -249,8 +253,16 @@ class Window(
         self.label_process.setMaximum(self.steps_editor.value())
         self.label_process.setValue(0)
         self.label_image_path.setText("")
+        
+        scheduler_conf_request = ModelSchedulerConfig(
+            name=p.scheduler_name,
+            model_path=p.model_path,
+            use_karras_sigmas=p.use_karras_sigmas,
+            use_vpred=p.use_vpred
+        )
 
         # Send prompt to worker for start of generation.
+        self.gen_worker.queue.put(scheduler_conf_request)
         self.gen_worker.queue.put(self.prompt)
 
     def threaded_fix(self):

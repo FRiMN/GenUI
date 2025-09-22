@@ -16,15 +16,28 @@ Also links:
 """
 
 import multiprocessing as mp
-import threading
+# import threading
 from typing import Callable, Any, Optional
 from multiprocessing.connection import Connection
+from contextlib import suppress
+
+import torch
+
+
+# See: 
+#   - <https://github.com/pytorch/pytorch/issues/40403>
+#   - <https://stackoverflow.com/questions/72779926/gunicorn-cuda-cannot-re-initialize-cuda-in-forked-subprocess>
+#   - <https://stackoverflow.com/questions/61939952/mp-set-start-methodspawn-triggered-an-error-saying-the-context-is-already-be>
+with suppress(RuntimeError):
+   # mp.set_start_method('spawn', force=True)
+   torch.multiprocessing.set_start_method("spawn", force=True)
+   print("spawned")
 
 
 class ProcessManager:
     """Simple ProcessManager that runs a function in a child process with Pipe communication."""
 
-    def __init__(self, target_function: Callable[[Connection], None]):
+    def __init__(self, target_function: Callable[[Connection, Connection], None]):
         """Initialize and start the child process.
 
         Args:
@@ -36,68 +49,71 @@ class ProcessManager:
         self.child_conn: Optional[Connection] = None
         self.process: Optional[mp.Process] = None
         self._is_running = False
-        self._lock = threading.Lock()
+        # self._lock = threading.Lock()
 
         # Start the process immediately
         self.start()
 
     def start(self) -> bool:
         """Start the child process."""
-        with self._lock:
-            if self._is_running:
-                return True
+        # with self._lock:
+        if self._is_running:
+            return True
 
-            try:
-                # Create pipe for communication
-                self.parent_conn, self.child_conn = mp.Pipe()
+        try:
+            # Create pipe for communication
+            self.parent_conn, self.child_conn = mp.Pipe()
 
-                # Create and start process
-                self.process = mp.Process(
-                    target=self._run_target_function,
-                    args=(self.child_conn,)
-                )
-                self.process.start()
+            # Create and start process
+            self.process = mp.Process(
+                target=self._run_target_function,
+                args=(self.child_conn, self.parent_conn)
+            )
+            self.process.start()
 
-                # Close child connection in parent process
-                self.child_conn.close()
-                self.child_conn = None
+            # Close child connection in parent process
+            # self.child_conn.close()
+            # self.child_conn = None
 
-                self._is_running = True
-                return True
+            self._is_running = True
+            return True
 
-            except Exception as e:
-                self._cleanup()
-                raise RuntimeError(f"Failed to start process: {e}")
+        except Exception as e:
+            self._cleanup()
+            raise RuntimeError(f"Failed to start process: {e}")
 
     def stop(self, timeout: float = 5.0) -> None:
         """Stop the child process gracefully."""
-        with self._lock:
-            if not self._is_running:
-                return
+        print("Stopping process")
+        # with self._lock:
+        if not self._is_running:
+            return
 
-            try:
-                # Close parent connection to signal shutdown
-                if self.parent_conn:
-                    self.parent_conn.close()
+        try:
+            # Close parent connection to signal shutdown
+            if self.parent_conn:
+                self.parent_conn.close()
 
-                # Wait for process to finish
-                if self.process and self.process.is_alive():
-                    self.process.join(timeout)
+            # Wait for process to finish
+            if self.process and self.process.is_alive():
+                self.process.join(timeout)
 
-                    # Terminate if still alive
+                # Terminate if still alive
+                if self.process.is_alive():
+                    print("Terminating process")
+                    self.process.terminate()
+                    self.process.join(2.0)
+
+                    # Kill as last resort
                     if self.process.is_alive():
-                        self.process.terminate()
-                        self.process.join(2.0)
+                        print("Killing process")
+                        self.process.kill()
+                        self.process.join(1.0)
 
-                        # Kill as last resort
-                        if self.process.is_alive():
-                            self.process.kill()
-                            self.process.join(1.0)
-
-            except Exception as e:
-                print(f"Error stopping process: {e}")
-            finally:
-                self._cleanup()
+        except Exception as e:
+            print(f"Error stopping process: {e}")
+        finally:
+            self._cleanup()
 
     def send(self, data: Any) -> bool:
         """Send data to the child process.
@@ -142,12 +158,10 @@ class ProcessManager:
                 if self.parent_conn.poll(timeout):
                     return self.parent_conn.recv()
                 else:
-                    raise TimeoutError("Receive timeout exceeded")
+                    return None
             else:
                 return self.parent_conn.recv()
         except Exception as e:
-            if isinstance(e, TimeoutError):
-                raise
             raise RuntimeError(f"Failed to receive data: {e}")
 
     def poll(self, timeout: float = 0) -> bool:
@@ -173,10 +187,10 @@ class ProcessManager:
             return False
         return self.process.is_alive()
 
-    def _run_target_function(self, child_conn: Connection) -> None:
+    def _run_target_function(self, child_conn: Connection, parent_conn: Connection) -> None:
         """Wrapper to run the target function in child process."""
         try:
-            self.target_function(child_conn)
+            self.target_function(child_conn, parent_conn)
         except Exception as e:
             print(f"Error in child process: {e}")
         finally:

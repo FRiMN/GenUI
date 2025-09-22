@@ -4,11 +4,11 @@ import dataclasses
 import json
 
 from ..__version__ import __version__
-from ..generator.sdxl import GenerationPrompt, LoRASettings, load_pipeline
+from ..generator.sdxl import GenerationPrompt, LoRASettings
 from ..settings import settings
 
 
-def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
+def get_metadata_from_prompt(prompt: GenerationPrompt, scheduler_config: frozenset) -> dict:
     """Return metadata from a GenerationPrompt object.
     
     This function extracts relevant information from the prompt object and returns it as a dictionary.
@@ -31,8 +31,7 @@ def get_metadata_from_prompt(prompt: GenerationPrompt) -> dict:
         d_loras.append(d_lora)
     d["loras"] = d_loras
     
-    pipeline = load_pipeline(model_path)
-    scheduler_config = pipeline.scheduler.config
+    scheduler_config = tuple(scheduler_config)
     
     # with safe_open(model_path, framework="pt", device="cuda") as f:
     #     for key, value in f.metadata().items():

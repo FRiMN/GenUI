@@ -131,6 +131,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.prompt: GenerationPrompt | None = None
+        self.scheduler_config: frozenset | None = None
         self.metadata: dict | None = None
 
         self._zoom = 0
@@ -191,7 +192,7 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         return str(file_path)
 
     def _save_metadata_to_image(self, file_path: Path | str):
-        metadata = self.metadata or get_metadata_from_prompt(self.prompt)
+        metadata = self.metadata or get_metadata_from_prompt(self.prompt, self.scheduler_config)
 
         with pyexiv2.Image(str(file_path)) as img:
             img.modify_xmp(metadata)
@@ -256,10 +257,12 @@ class PhotoViewer(QtWidgets.QGraphicsView, PropagateEventsMixin):
         self,
         pixmap: QPixmap | None = None,
         prompt: GenerationPrompt | None = None,
-        metadata: dict | None = None
+        metadata: dict | None = None,
+        scheduler_config: frozenset | None = None,
     ):
         self.prompt = prompt
         self.metadata = metadata
+        self.scheduler_config = scheduler_config
 
         self._pixmap = pixmap
 
