@@ -62,6 +62,7 @@ class BaseOperation(object):
         self.process_manager = ProcessManager(self.run)
 
     def is_new_process_need(self, model_path: str) -> bool:
+        """See `process_manager.py` for more info"""
         return model_path != self.model_path
 
     def run(self, connection: Connection, back_connection: Connection):
