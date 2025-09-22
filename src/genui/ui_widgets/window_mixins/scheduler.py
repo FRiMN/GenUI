@@ -11,7 +11,7 @@ class SchedulerMixin:
         self.model_path = None  # Path to the model file
         self.model_name = None
 
-        self.model_path_btn = QPushButton("Model", self)
+        self.model_path_btn = QPushButton("Model", parent=self)
         self.model_path_btn.setToolTip("Model")
         self.model_path_btn.clicked.connect(self.handle_change_model)
 
