@@ -2,10 +2,8 @@ from queue import Empty, Queue
 from multiprocessing.connection import Connection
 from time import sleep
 import datetime
-# import inspect
 from functools import partial
 from contextlib import suppress
-from copy import deepcopy
 from collections import OrderedDict
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtBoundSignal
@@ -58,6 +56,7 @@ class BaseOperation(object):
 
     def start_process(self):
         if self.process_manager:
+            self.process_manager.stop()
             del self.process_manager
         self.process_manager = ProcessManager(self.run)
 
@@ -76,6 +75,23 @@ class BaseOperation(object):
 
         return self.process_manager.send(message)
 
+    def cleanup(self):
+        """Clean up the process manager and resources."""
+        if self.process_manager:
+            try:
+                self.process_manager.stop()
+            except Exception as e:
+                print(f"Error stopping process manager: {e}")
+            finally:
+                self.process_manager = None
+
+    def __del__(self):
+        """Destructor to ensure cleanup on object destruction."""
+        try:
+            self.cleanup()
+        except Exception:
+            pass
+
 
 class OperationWorker(QObject):
     finished = pyqtSignal()  # Worker is finished and starts to close.
@@ -90,32 +106,54 @@ class OperationWorker(QObject):
 
         self.queue = Queue()
         self.operation = operation
+        self._running = False
 
     def run(self):
         """Run in thread"""
         print("starting")
+        self._running = True
 
-        while True:
-            with suppress(Empty):
-                message = self.queue.get(block=False)
-                print(f"processing {message}")
-                i = 0
-                while not self.operation.exec(message):
-                    if i > 10:
-                        raise TimeoutError("Operation timed out")
-                    sleep(0.1)
+        try:
+            while self._running:
+                with suppress(Empty):
+                    message = self.queue.get(block=False)
+                    print(f"processing {message}")
+                    i = 0
+                    while not self.operation.exec(message):
+                        if i > 10:
+                            raise TimeoutError("Operation timed out")
+                        if not self._running:  # Check if we should stop
+                            break
+                        sleep(0.1)
+                        i += 1
 
-            message = self.operation.process_manager.recv(timeout=0.1)
-            if isinstance(message, dict):
-                if "signal" in message.keys():
-                    self.operation.signals.emit(message["signal"], *message["args"])
-            sleep(0.1)
+                if not self._running:  # Check if we should stop
+                    break
 
-        self.finished.emit()
+                message = self.operation.process_manager.recv(timeout=0.1)
+                if isinstance(message, dict):
+                    if "signal" in message.keys():
+                        self.operation.signals.emit(message["signal"], *message["args"])
+                sleep(0.1)
+        except Exception as e:
+            print(f"Worker error: {e}")
+            self.error.emit(str(e))
+        finally:
+            self._cleanup()
+            self.finished.emit()
 
     def stop(self):
-        print("stopping")
-        self.finished.emit()
+        print("stopping worker")
+        self._running = False
+
+    def _cleanup(self):
+        """Clean up resources"""
+        try:
+            if hasattr(self.operation, 'process_manager') and self.operation.process_manager:
+                print("Cleaning up process manager...")
+                self.operation.process_manager.stop()
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
 
 
 class ImageGenerationSignalHolder(BaseSignalHolder):
@@ -147,6 +185,7 @@ class ImageGenerationOperation(BaseOperation):
                         self.generate_image(msg, connection)
                     case _:
                         print(f"Unknown message type: {msg}")
+            sleep(0.1)
 
     def generate_image(self, prompt: GenerationPrompt, back_connection: Connection):
         from .generator.sdxl import generate

@@ -48,7 +48,29 @@ class Window(
 
     def closeEvent(self, event: QCloseEvent):
         print("Closing window...")
-        self.gen_worker.stop()
+
+        # Stop the worker first
+        if hasattr(self, 'gen_worker') and self.gen_worker:
+            self.gen_worker.stop()
+
+        # Stop and cleanup the operation
+        if hasattr(self, 'gen_operation') and self.gen_operation:
+            try:
+                self.gen_operation.cleanup()
+            except Exception as e:
+                print(f"Error cleaning up operation: {e}")
+
+        # Wait for thread to finish properly
+        if hasattr(self, 'gen_thread') and self.gen_thread and self.gen_thread.isRunning():
+            print("Waiting for thread to finish...")
+            self.gen_thread.quit()
+            if not self.gen_thread.wait(3000):  # Wait up to 3 seconds
+                print("Warning: Thread did not finish gracefully, terminating...")
+                self.gen_thread.terminate()
+                if not self.gen_thread.wait(1000):  # Wait up to 1 second for termination
+                    print("Warning: Thread termination failed")
+
+        print("Window cleanup complete")
         event.accept()  # Close the app
 
     def _build_threaded_worker(self):

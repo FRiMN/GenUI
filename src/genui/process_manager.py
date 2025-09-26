@@ -93,7 +93,7 @@ class ProcessManager:
             # Send shutdown signal to child process first
             if self.parent_conn and not self.parent_conn.closed:
                 try:
-                    self.parent_conn.send("SHUTDOWN")
+                    self.parent_conn.send(None)
                 except Exception:
                     pass
 
@@ -110,7 +110,8 @@ class ProcessManager:
 
             # Wait for process to finish
             if self.process and self.process.is_alive():
-                self.process.join(timeout)
+                remaining_timeout = max(timeout - 2.0, 1.0)
+                self.process.join(remaining_timeout)
 
                 # Terminate if still alive
                 if self.process.is_alive():
@@ -201,15 +202,37 @@ class ProcessManager:
             return False
         return self.process.is_alive()
 
-    def _run_target_function(self, child_conn: Connection, parent_conn: Connection) -> None:
+    def _run_target_function(self, child_conn: Connection, parent_conn: Connection):
         """Wrapper to run the target function in child process."""
         try:
+            # Set up signal handler for graceful shutdown
+            import signal
+            import sys
+
+            def signal_handler(signum, frame):
+                print(f"Child process received signal {signum}, shutting down...")
+                child_conn.close()
+                parent_conn.close()
+                sys.exit(0)
+
+            signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGINT, signal_handler)
+
             self.target_function(child_conn, parent_conn)
+        except KeyboardInterrupt:
+            print("Child process interrupted")
         except Exception as e:
             print(f"Error in child process: {e}")
         finally:
+            # Clean up connections in child process
             try:
-                child_conn.close()
+                if not child_conn.closed:
+                    child_conn.close()
+            except Exception:
+                pass
+            try:
+                if not parent_conn.closed:
+                    parent_conn.close()
             except Exception:
                 pass
 
@@ -217,26 +240,39 @@ class ProcessManager:
         """Clean up resources."""
         self._is_running = False
 
-        if self.parent_conn:
+        # Close connections
+        if self.parent_conn and not self.parent_conn.closed:
             try:
                 self.parent_conn.close()
             except Exception:
                 pass
-            self.parent_conn = None
+        self.parent_conn = None
 
-        if self.child_conn:
+        if self.child_conn and not self.child_conn.closed:
             try:
                 self.child_conn.close()
             except Exception:
                 pass
-            self.child_conn = None
+        self.child_conn = None
 
+        # Clean up process reference
+        if self.process:
+            try:
+                # Force cleanup of any remaining process resources
+                if self.process.is_alive():
+                    self.process.terminate()
+                    self.process.join(timeout=1.0)
+                    if self.process.is_alive():
+                        self.process.kill()
+                        self.process.join(timeout=0.5)
+            except Exception as e:
+                print(f"Warning: Error during process cleanup: {e}")
         self.process = None
 
     def __del__(self):
         """Stop the process when object is destroyed."""
         try:
-            self.stop()
+            self.stop(timeout=1.0)
         except Exception:
             print("Error stopping process")
 
