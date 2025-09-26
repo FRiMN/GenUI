@@ -235,7 +235,7 @@ class ProcessManager:
                 self.child_conn.close()
         self.child_conn = None
 
-        # Clean up process reference
+        # Clean up process reference. Only join a child process!
         if self.process:
             try:
                 # Force cleanup of any remaining process resources
