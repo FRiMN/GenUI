@@ -17,7 +17,6 @@ from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
 from .operations import ImageGenerationOperation, OperationWorker
 
-# from .worker import Worker
 from .settings import settings
 from .__version__ import __version__
 
@@ -92,16 +91,6 @@ class Window(
         # self.gen_worker.progress_adetailer.connect(self.update_adetailer_progress)
 
         self.gen_thread.start()
-
-    # def _rebuild_threaded_worker(self):
-    #     print("Rebuild worker...")
-    #     self.gen_worker.stop()
-    #     # self.gen_thread.quit()
-
-    #     del self.gen_worker
-    #     del self.gen_thread
-
-    #     self._build_threaded_worker()
 
     def _build_widgets(self):
         self.viewer = PhotoViewer(self)
@@ -266,10 +255,7 @@ class Window(
         return prompt
 
     def threaded_generate(self):
-        # past_model_path = self.prompt.model_path
         self.prompt = p = self.get_prompt()
-        # if self.prompt.model_path != past_model_path:
-        #     self._rebuild_threaded_worker()
 
         self.label_status.setText("Generation...")
         self.label_process.setMaximum(self.steps_editor.value())

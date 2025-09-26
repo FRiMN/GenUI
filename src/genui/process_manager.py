@@ -16,7 +16,6 @@ Also links:
 """
 
 import multiprocessing as mp
-# import threading
 from typing import Callable, Any, Optional
 from multiprocessing.connection import Connection
 from contextlib import suppress
@@ -49,14 +48,12 @@ class ProcessManager:
         self.child_conn: Optional[Connection] = None
         self.process: Optional[mp.Process] = None
         self._is_running = False
-        # self._lock = threading.Lock()
 
         # Start the process immediately
         self.start()
 
     def start(self) -> bool:
         """Start the child process."""
-        # with self._lock:
         if self._is_running:
             return True
 
@@ -85,17 +82,14 @@ class ProcessManager:
     def stop(self, timeout: float = 5.0) -> None:
         """Stop the child process gracefully."""
         print("Stopping process")
-        # with self._lock:
         if not self._is_running:
             return
 
         try:
             # Send shutdown signal to child process first
             if self.parent_conn and not self.parent_conn.closed:
-                try:
+                with suppress(Exception):
                     self.parent_conn.send(None)
-                except Exception:
-                    pass
 
             # Give process a moment to shutdown gracefully
             if self.process and self.process.is_alive():
@@ -103,32 +97,35 @@ class ProcessManager:
 
             # Close parent connection after signaling
             if self.parent_conn and not self.parent_conn.closed:
-                try:
+                with suppress(Exception):
                     self.parent_conn.close()
-                except Exception:
-                    pass
 
             # Wait for process to finish
-            if self.process and self.process.is_alive():
-                remaining_timeout = max(timeout - 2.0, 1.0)
-                self.process.join(remaining_timeout)
-
-                # Terminate if still alive
-                if self.process.is_alive():
-                    print("Terminating process")
-                    self.process.terminate()
-                    self.process.join(2.0)
-
-                    # Kill as last resort
-                    if self.process.is_alive():
-                        print("Killing process")
-                        self.process.kill()
-                        self.process.join(1.0)
+            self.finish_process(timeout)
 
         except Exception as e:
             print(f"Error stopping process: {e}")
         finally:
             self._cleanup()
+            
+    def finish_process(self, timeout: float = 5.0):
+        if self.process and self.process.is_alive():
+            remaining_timeout = max(timeout, 1.0)
+            self.process.join(remaining_timeout)
+
+            # Terminate if still alive
+            if self.process.is_alive():
+                print("Terminating process")
+                self.process.terminate()
+                self.process.join(2.0)
+
+                # Kill as last resort
+                if self.process.is_alive():
+                    print("Killing process")
+                    self.process.kill()
+                    self.process.join(1.0)
+            
+            self.process = None
 
     def send(self, data: Any) -> bool:
         """Send data to the child process.
@@ -146,7 +143,6 @@ class ProcessManager:
 
         try:
             self.parent_conn.send(data)
-            print("Data sent successfully")
             return True
         except Exception:
             print("Failed to send data")
@@ -219,22 +215,10 @@ class ProcessManager:
             signal.signal(signal.SIGINT, signal_handler)
 
             self.target_function(child_conn, parent_conn)
-        except KeyboardInterrupt:
-            print("Child process interrupted")
         except Exception as e:
             print(f"Error in child process: {e}")
         finally:
-            # Clean up connections in child process
-            try:
-                if not child_conn.closed:
-                    child_conn.close()
-            except Exception:
-                pass
-            try:
-                if not parent_conn.closed:
-                    parent_conn.close()
-            except Exception:
-                pass
+            self._cleanup()
 
     def _cleanup(self) -> None:
         """Clean up resources."""
@@ -242,17 +226,13 @@ class ProcessManager:
 
         # Close connections
         if self.parent_conn and not self.parent_conn.closed:
-            try:
+            with suppress(Exception):
                 self.parent_conn.close()
-            except Exception:
-                pass
         self.parent_conn = None
 
         if self.child_conn and not self.child_conn.closed:
-            try:
+            with suppress(Exception):
                 self.child_conn.close()
-            except Exception:
-                pass
         self.child_conn = None
 
         # Clean up process reference
@@ -276,10 +256,10 @@ class ProcessManager:
         except Exception:
             print("Error stopping process")
 
-    def __enter__(self):
-        """Context manager entry."""
-        return self
+    # def __enter__(self):
+    #     """Context manager entry."""
+    #     return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.stop()
+    # def __exit__(self, exc_type, exc_val, exc_tb):
+    #     """Context manager exit."""
+    #     self.stop()

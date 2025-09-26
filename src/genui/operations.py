@@ -210,7 +210,6 @@ class ImageGenerationOperation(BaseOperation):
 
     @staticmethod
     def progress_callback(back_connection: Connection, image: Image.Image, step, total_steps):
-        print(f"Progress: {step}/{total_steps}")
         signal_send(
             back_connection, "progress_preview",
             image.tobytes(),
