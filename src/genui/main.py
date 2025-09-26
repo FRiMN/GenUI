@@ -166,7 +166,7 @@ class Window(
         self.reset_command_buttons()
 
         self.show_error_modal_dialog(error)
-        
+
     def update_scheduler_config(self, config: frozenset):
         self.scheduler_config = config
 
@@ -253,7 +253,7 @@ class Window(
         self.label_process.setMaximum(self.steps_editor.value())
         self.label_process.setValue(0)
         self.label_image_path.setText("")
-        
+
         scheduler_conf_request = ModelSchedulerConfig(
             name=p.scheduler_name,
             model_path=p.model_path,

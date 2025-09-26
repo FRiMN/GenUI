@@ -24,7 +24,7 @@ from contextlib import suppress
 import torch
 
 
-# See: 
+# See:
 #   - <https://github.com/pytorch/pytorch/issues/40403>
 #   - <https://stackoverflow.com/questions/72779926/gunicorn-cuda-cannot-re-initialize-cuda-in-forked-subprocess>
 #   - <https://stackoverflow.com/questions/61939952/mp-set-start-methodspawn-triggered-an-error-saying-the-context-is-already-be>
@@ -90,9 +90,23 @@ class ProcessManager:
             return
 
         try:
-            # Close parent connection to signal shutdown
-            if self.parent_conn:
-                self.parent_conn.close()
+            # Send shutdown signal to child process first
+            if self.parent_conn and not self.parent_conn.closed:
+                try:
+                    self.parent_conn.send("SHUTDOWN")
+                except Exception:
+                    pass
+
+            # Give process a moment to shutdown gracefully
+            if self.process and self.process.is_alive():
+                self.process.join(timeout=min(timeout/2, 2.0))
+
+            # Close parent connection after signaling
+            if self.parent_conn and not self.parent_conn.closed:
+                try:
+                    self.parent_conn.close()
+                except Exception:
+                    pass
 
             # Wait for process to finish
             if self.process and self.process.is_alive():
