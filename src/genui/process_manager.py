@@ -227,12 +227,12 @@ class ProcessManager:
         if self.parent_conn and not self.parent_conn.closed:
             with suppress(Exception):
                 self.parent_conn.close()
-        self.parent_conn = None
+        # self.parent_conn = None
 
         if self.child_conn and not self.child_conn.closed:
             with suppress(Exception):
                 self.child_conn.close()
-        self.child_conn = None
+        # self.child_conn = None
 
         # Clean up process reference. Only join a child process!
         if self.process:
