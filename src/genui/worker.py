@@ -217,6 +217,6 @@ class Worker(QObject):
                             print(f"Error killing process: {e}")
 
             except Exception as e:
-                print(f"Warning: Error during process cleanup: {e}")
+                print(f"Warning: Error during process cleanup in worker: {e}")
             finally:
                 self._process_manager = None

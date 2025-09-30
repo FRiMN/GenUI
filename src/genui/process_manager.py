@@ -244,8 +244,13 @@ class ProcessManager:
                     if self.process.is_alive():
                         self.process.kill()
                         self.process.join(timeout=0.5)
+            except AttributeError:
+                print("Warning: AttributeError during process cleanup")
+                pass
             except Exception as e:
                 print(f"Warning: Error during process cleanup: {e}")
+                raise e
+        print("Process cleaned up")
         self.process = None
 
     def __del__(self):
