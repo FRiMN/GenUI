@@ -85,6 +85,7 @@ class Window(
         self.gen_operation.signals.done.connect(self.handle_done)
         self.gen_operation.signals.progress_preview.connect(self.repaint_image)
         self.gen_operation.signals.scheduler_config.connect(self.update_scheduler_config)
+        self.gen_operation.signals.gpu_memory_info.connect(self.update_gpu_memory_display)
 
         self.gen_worker.error.connect(self.handle_error)
         # self.gen_worker.show_adetailer_rect.connect(self.show_adetailer_rect)

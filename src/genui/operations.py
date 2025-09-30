@@ -5,6 +5,7 @@ import datetime
 from functools import partial
 from contextlib import suppress
 from collections import OrderedDict
+from typing import Dict, Tuple, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtBoundSignal
 from PIL import Image
@@ -14,6 +15,37 @@ from diffusers.configuration_utils import FrozenDict
 from .process_manager import ProcessManager
 from .generator.sdxl import GenerationPrompt, get_scheduler, ModelSchedulerConfig
 from .common.trace import Timer
+
+
+def get_gpu_memory_info() -> Optional[Dict]:
+    """Get GPU memory information from torch.cuda"""
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            return None
+
+        # Get memory info
+        device = torch.cuda.current_device()
+        free_mem, total_mem = torch.cuda.mem_get_info(device)
+        used_mem = total_mem - free_mem
+
+        # Get memory summary (as string)
+        memory_summary = torch.cuda.memory_summary(device=device)
+
+        return {
+            'device': device,
+            'free_mem': free_mem,
+            'total_mem': total_mem,
+            'used_mem': used_mem,
+            'memory_summary': memory_summary,
+            'allocated': torch.cuda.memory_allocated(device),
+            'reserved': torch.cuda.memory_reserved(device),
+            'max_allocated': torch.cuda.max_memory_allocated(device),
+            'max_reserved': torch.cuda.max_memory_reserved(device)
+        }
+    except Exception as e:
+        print(f"Error getting GPU memory info: {e}")
+        return None
 
 
 def signal_send(conn: Connection, signal_name: str, *args):
@@ -159,6 +191,7 @@ class OperationWorker(QObject):
 class ImageGenerationSignalHolder(BaseSignalHolder):
     progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)
     scheduler_config = pyqtSignal(frozenset)
+    gpu_memory_info = pyqtSignal(dict)
 
 
 class ImageGenerationOperation(BaseOperation):
@@ -198,6 +231,8 @@ class ImageGenerationOperation(BaseOperation):
         # TODO: interrupt
 
         print(f"Image generated in {timer.delta}")
+
+        gpu_info = get_gpu_memory_info()
         signal_send(
             back_connection, "progress_preview",
             image.tobytes(),
@@ -206,6 +241,10 @@ class ImageGenerationOperation(BaseOperation):
             image.width, image.height,
             timer.delta
         )
+
+        if gpu_info:
+            signal_send(back_connection, "gpu_memory_info", gpu_info)
+
         signal_send(back_connection, "done")
 
     @staticmethod
@@ -218,6 +257,10 @@ class ImageGenerationOperation(BaseOperation):
             image.width, image.height,
             datetime.timedelta()
         )
+
+        gpu_info = get_gpu_memory_info()
+        if gpu_info:
+            signal_send(back_connection, "gpu_memory_info", gpu_info)
 
     def get_scheduler_config(self, command: ModelSchedulerConfig, back_connection: Connection):
         scheduler: SchedulerMixin = get_scheduler(command)
