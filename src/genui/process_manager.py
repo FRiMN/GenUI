@@ -267,3 +267,7 @@ class ProcessManager:
     # def __exit__(self, exc_type, exc_val, exc_tb):
     #     """Context manager exit."""
     #     self.stop()
+
+    def __bool__(self):
+        """Return True if the process is running."""
+        return self._is_running

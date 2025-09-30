@@ -94,7 +94,11 @@ class BaseOperation(object):
 
     def is_new_process_need(self, model_path: str) -> bool:
         """See `process_manager.py` for more info"""
-        return model_path != self.model_path
+        return (
+            not model_path
+            or model_path != self.model_path
+            or not self.process_manager
+        )
 
     def run(self, connection: Connection, back_connection: Connection):
         """Run in child process"""
