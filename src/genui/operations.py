@@ -149,7 +149,6 @@ class OperationWorker(QObject):
             while self._running:
                 with suppress(Empty):
                     message = self.queue.get(block=False)
-                    print(f"processing {message}")
                     i = 0
                     while not self.operation.exec(message):
                         if i > 10:

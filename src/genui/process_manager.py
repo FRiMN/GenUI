@@ -107,7 +107,7 @@ class ProcessManager:
             print(f"Error stopping process: {e}")
         finally:
             self._cleanup()
-            
+
     def finish_process(self, timeout: float = 5.0):
         if self.process and self.process.is_alive():
             remaining_timeout = max(timeout, 1.0)
@@ -124,7 +124,7 @@ class ProcessManager:
                     print("Killing process")
                     self.process.kill()
                     self.process.join(1.0)
-            
+
             self.process = None
 
     def send(self, data: Any) -> bool:
@@ -136,7 +136,6 @@ class ProcessManager:
         Returns:
             True if sent successfully, False otherwise
         """
-        print(f"Sending data to child process: {data}")
         if not self._is_running or not self.parent_conn:
             print("Process not running or connection closed")
             return False
