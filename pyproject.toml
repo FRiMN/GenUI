@@ -38,6 +38,7 @@ dependencies = [
     "pyexiv2",
     "peft>=0.15.1",
     "torchsde>=0.2.6",
+    "psutil",
 ]
 dynamic = ["version"]
 

@@ -14,6 +14,7 @@ from .ui_widgets.window_mixins.prompt import PromptMixin
 from .ui_widgets.window_mixins.scheduler import SchedulerMixin
 from .ui_widgets.window_mixins.seed import SeedMixin
 from .ui_widgets.window_mixins.status_bar import StatusBarMixin
+from .ui_widgets.window_mixins.system_monitor import SystemMonitorMixin
 from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
 from .operations import ImageGenerationOperation, OperationWorker
 
@@ -28,7 +29,8 @@ class Window(
     GenerationCommandMixin,
     PromptMixin,
     SchedulerMixin,
-    StatusBarMixin
+    StatusBarMixin,
+    SystemMonitorMixin
 ):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,6 +49,12 @@ class Window(
 
     def closeEvent(self, event: QCloseEvent):
         print("Closing window...")
+
+        # Stop system monitoring
+        try:
+            self.stop_system_monitoring()
+        except Exception as e:
+            print(f"Error stopping system monitoring: {e}")
 
         # Stop the worker first
         if hasattr(self, 'gen_worker') and self.gen_worker:

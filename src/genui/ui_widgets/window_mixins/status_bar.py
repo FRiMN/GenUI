@@ -32,7 +32,7 @@ class StatusBarMixin:
         self.label_viewer_image_size = QLabel()
 
         self.label_gpu_memory = QLabel()
-        self.label_gpu_memory.setToolTip("GPU Memory Usage: Used/Total")
+        self.label_gpu_memory.setToolTip("Waiting GPU Memory Usage")
         self.label_gpu_memory.setText("GPU: N/A")
 
         self.load_image_button = QPushButton()
@@ -54,6 +54,7 @@ class StatusBarMixin:
         spacer = QWidget()
         status_bar.addWidget(spacer, 1)
 
+        status_bar.addWidget(self.label_memory_usage)
         status_bar.addWidget(self.label_gpu_memory)
         status_bar.addWidget(self.label_viewer_image_size)
         status_bar.addWidget(self.zoom_label)
@@ -82,7 +83,8 @@ class StatusBarMixin:
             reserved_gb = gpu_info['reserved'] / (1024**3)  # Convert to GB
 
             # Format display text
-            display_text = f"GPU: {used_gb:.1f} / {total_gb:.1f}GB"
+            percent = (used_gb / total_gb) * 100
+            display_text = f"GPU: {percent:.1f}%"
 
             # Create detailed tooltip
             tooltip_text = (
