@@ -33,7 +33,7 @@ class StatusBarMixin:
 
         self.label_gpu_memory = QLabel()
         self.label_gpu_memory.setToolTip("Waiting GPU Memory Usage")
-        self.label_gpu_memory.setText("GPU: N/A")
+        self.label_gpu_memory.setText("VRAM: N/A")
 
         self.load_image_button = QPushButton()
         self.load_image_button.setToolTip("Load image and read metadata")
@@ -72,7 +72,7 @@ class StatusBarMixin:
     def update_gpu_memory_display(self, gpu_info: Optional[Dict] = None):
         """Update GPU memory display in status bar"""
         if not gpu_info:
-            self.label_gpu_memory.setText("GPU: N/A")
+            self.label_gpu_memory.setText("VRAM: N/A")
             self.label_gpu_memory.setToolTip("GPU Memory Usage: N/A")
             return
 
@@ -84,7 +84,7 @@ class StatusBarMixin:
 
             # Format display text
             percent = (used_gb / total_gb) * 100
-            display_text = f"GPU: {percent:.1f}%"
+            display_text = f"VRAM: {percent:.1f}%"
 
             # Create detailed tooltip
             tooltip_text = (
@@ -109,9 +109,9 @@ class StatusBarMixin:
             elif usage_percent > 75:
                 self.label_gpu_memory.setStyleSheet("color: orange")
             else:
-                self.label_gpu_memory.setStyleSheet("color: green")
+                self.label_gpu_memory.setStyleSheet(None)
 
         except (KeyError, TypeError, ZeroDivisionError) as e:
             print(f"Error updating GPU memory display: {e}")
-            self.label_gpu_memory.setText("GPU: Error")
+            self.label_gpu_memory.setText("VRAM: Error")
             self.label_gpu_memory.setToolTip("Error reading GPU memory info")
