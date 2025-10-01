@@ -8,7 +8,7 @@ from diffusers.loaders.lora_pipeline import StableDiffusionXLLoraLoaderMixin
 from ...settings import settings
 
 
-class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
+class CompelPipeline(StableDiffusionXLPipeline):
     """
     Pipeline that uses Compel to condition the Stable Diffusion XL model.
 
@@ -45,7 +45,7 @@ class CompelStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         )
 
 
-class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
+class CachedPipeline(StableDiffusionXLPipeline):
     deep_cache_enabled: bool = False
 
     @cached_property
@@ -82,7 +82,7 @@ class CachedStableDiffusionXLPipeline(StableDiffusionXLPipeline):
         return res
 
 
-class LoraStableDiffusionXLPipeline(StableDiffusionXLLoraLoaderMixin):
+class LoraPipeline(StableDiffusionXLLoraLoaderMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__loras = set([])
@@ -109,9 +109,9 @@ class LoraStableDiffusionXLPipeline(StableDiffusionXLLoraLoaderMixin):
 
 
 class GenUIStableDiffusionXLPipeline(
-    CachedStableDiffusionXLPipeline,
-    CompelStableDiffusionXLPipeline,
-    LoraStableDiffusionXLPipeline,
+    CachedPipeline,
+    CompelPipeline,
+    LoraPipeline,
 ):
     # Bug in diffusers library.
     _interrupt = False
