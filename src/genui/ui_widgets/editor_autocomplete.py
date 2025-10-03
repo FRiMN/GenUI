@@ -22,8 +22,8 @@ def load_words() -> list[str]:
         words.append(word)
 
     return words
-    
-    
+
+
 class PromptHighlighter(QSyntaxHighlighter):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -31,6 +31,8 @@ class PromptHighlighter(QSyntaxHighlighter):
 
         # self.add_rule(r"\,", Qt.GlobalColor.green, None)
         # self.add_rule(r"\.", Qt.GlobalColor.green, None)
+        # case: `BREAK` keyword
+        self.add_rule(r"\bBREAK\b", Qt.GlobalColor.gray, None)
         # case: `apricots+`
         self.add_rule(r"\b\S+[\+\-]+", None, settings.prompt_editor.compel_font_weight)
         # case: `(picking apricots)++`
@@ -38,19 +40,19 @@ class PromptHighlighter(QSyntaxHighlighter):
         # case: `(picking (apricots)1.3)1.1, (apricots)1.1`
         self.add_rule(r"\([^,]+\)\d\.\d\b", None, settings.prompt_editor.compel_font_weight)
         # TODO: case: `off-topic,`
-        # TODO: case: 
-            # `(koseki bijou), (ixy)0.7, (kanzarin)0.85, healthyman+, (quasarcake)0.5, (jonpei)0.9, 
+        # TODO: case:
+            # `(koseki bijou), (ixy)0.7, (kanzarin)0.85, healthyman+, (quasarcake)0.5, (jonpei)0.9,
             # (jima)1.1, realistic, (hi res)1.2, hololive, hololive english, (dongtan dress)1.3, (chest jewel)+`
-        
+
     def add_rule(self, pattern: str, color: Qt.GlobalColor | None, weight: int | None):
         regex = QRegularExpression(pattern)
         format_rule = QTextCharFormat()
-        
+
         if weight is not None:
             format_rule.setFontWeight(weight)
         if color:
             format_rule.setForeground(QColor(color))
-            
+
         self.highlighting_rules.append((regex, format_rule))
 
     def highlightBlock(self, text: str):
@@ -60,28 +62,28 @@ class PromptHighlighter(QSyntaxHighlighter):
             while match_iterator.hasNext():
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), format_rule)
-    
-    
+
+
 class WordsCompleter(QCompleter):
     words = load_words()
     completer_model = QStringListModel(words)
-    
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(self.completer_model, parent)
-        
+
         self.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setFilterMode(Qt.MatchFlag.MatchContains)
 
 
 class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
     min_word_length = 2
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setup_font()
         self.setup_completer()
         self.highlighter = PromptHighlighter(self.document())
-        
+
         palette = self.palette()
         palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Base, QColor.fromString(BACKGROUND_COLOR_HEX))
         self.setPalette(palette)
@@ -92,21 +94,21 @@ class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
 
         self.completer.activated.connect(self.insert_completion)
         self.textChanged.connect(self.updateCompleter)
-        
+
     def setup_font(self):
         s = settings.prompt_editor
-        
+
         font = QFont()
         font.setFamily(s.font_family or self.font().family())
         font.setPointSize(s.font_size)
         font.setWeight(s.font_weight)
-        
+
         self.setFont(font)
-        
+
     def fix_special_symbols_selected(self, cursor: QTextCursor) -> None:
         """
         Fixes the error when selecting word before a comma or Compel operator (+ or -).
-        
+
         Example:
             Expected: "<start selection>selected_word<cursor_position><end selection>,"
             Actual: "selected_word<start selection><cursor_position>,<end selection>"
@@ -148,15 +150,15 @@ class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
         exist_prefix = self.completer.completionPrefix()
         if word_under_cursor != exist_prefix:
             self.completer.setCompletionPrefix(word_under_cursor)
-            
+
         if self.completer.completionCount() == 0:
             self.reset_completer()
             return
-            
+
         indx = self.completer.completionModel().index(0, 0) # First item
-        
+
         if (
-            self.completer.completionCount() == 1 and 
+            self.completer.completionCount() == 1 and
             indx.data() == word_under_cursor
         ):
             """Completion already accepted"""
@@ -164,25 +166,25 @@ class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
             return
 
         popup.setCurrentIndex(indx) # Select first item
-        
+
         cr = self.cursorRect()
         cr.setWidth(
             popup.sizeHintForColumn(0)
             + popup.verticalScrollBar().sizeHint().width()
         )
         self.completer.complete(cr) # Show popup
-        
+
     def insertFromMimeData(self, source: QMimeData, src_type: str = ""):
         """Insert text via drag&drop, Ctrl+V, menu and etc."""
         if not source.hasText():
             super().insertFromMimeData(source)
-            
+
         self.insertPlainText(source.text())
-            
-        
+
+
     def keyPressEvent(self, e: QKeyEvent):
         if self.completer.popup().isVisible() and e.key() == Qt.Key.Key_Return:
             e.ignore()
             return
-                
+
         super().keyPressEvent(e)
