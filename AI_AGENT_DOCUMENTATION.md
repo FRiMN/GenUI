@@ -52,10 +52,11 @@ genui/
 ### 3. AI Generation (`generator/sdxl.py`)
 - **Primary Model**: Stable Diffusion XL (SDXL)
 - **Pipeline Extensions**: 
-  - CompelStableDiffusionXLPipeline (enhanced prompt processing)
+  - CompelPipeline (enhanced prompt processing with conjunction support)
   - CachedStableDiffusionXLPipeline (DeepCache integration)
-- **Optimization**: DeepCache for faster inference
-- **Memory Management**: FIFO caches with automatic cleanup
+- **Prompt Processing**: Advanced Compel syntax with BREAK conjunction handling
+- **Optimization**: DeepCache for faster inference, disabled prompt truncation
+- **Memory Management**: FIFO caches with automatic cleanup and GPU/system monitoring
 
 ### 4. Settings System (`settings.py`)
 - **Configuration Format**: TOML-based configuration
@@ -73,8 +74,9 @@ genui/
 ## Core Features
 
 ### Image Generation
-- **Prompt Processing**: Support for positive and negative prompts
-- **Advanced Syntax**: Compel library for enhanced prompt weighting
+- **Prompt Processing**: Support for positive and negative prompts with advanced conjunction
+- **Advanced Syntax**: Enhanced Compel library with BREAK syntax and longer prompt support
+- **Prompt Features**: No truncation limits, proper handling of "BREAK," cases
 - **Parameters**: Configurable steps, CFG scale, seed, dimensions
 - **Schedulers**: Multiple sampling methods (DPM++, Euler, etc.)
 - **LoRA Support**: Dynamic LoRA loading and weight adjustment
@@ -88,7 +90,9 @@ genui/
 - **Real-time Preview**: Live generation progress with latent preview
 - **Auto-save**: Configurable automatic image saving
 - **Metadata Loading**: Load generation parameters from saved images
-- **Model Management**: Drag-and-drop model loading
+- **Model Management**: Drag-and-drop model loading with auto-find feature
+- **System Monitoring**: Real-time GPU and system memory usage in status bar
+- **Memory Alerts**: Color-coded warnings and detailed tooltips for resource usage
 
 ## Generation Process Workflow
 
@@ -128,12 +132,14 @@ The image generation process follows a complex multi-threaded, multi-process arc
 - **Pipeline Loading**: Loads and caches SDXL pipeline with appropriate settings
 
 #### 5. SDXL Pipeline Generation (`generator/sdxl.py:generate()`)
-- **Model Loading**: Loads/caches Stable Diffusion XL pipeline
+- **Model Loading**: Loads/caches Stable Diffusion XL pipeline with CompelPipeline enhancements
 - **Configuration**: Applies scheduler, LoRA weights, optimization settings
+- **Prompt Processing**: Enhanced conjunction handling with loop-based processing for both positive and negative prompts
 - **Generation Parameters**:
   - Prepares latents for reproducible generation
   - Sets up progress callbacks for real-time updates
   - Configures DeepCache if enabled
+  - Processes BREAK syntax with proper comma handling
 
 #### 6. Real-time Progress Updates
 - **Latent Preview**: Converts intermediate latents to RGB images
@@ -196,11 +202,15 @@ The image generation process follows a complex multi-threaded, multi-process arc
 - **Solution**: Process isolation with automatic cleanup
 - **Implementation**: Child processes terminated after model changes
 - **Cache Management**: FIFO caches with memory cleanup callbacks
+- **Monitoring**: Real-time GPU memory usage display with color-coded warnings
+- **System Resources**: System memory monitoring with detailed allocation stats
 
 ### Performance Optimizations
 - **DeepCache**: Accelerated inference through caching
 - **Pipeline Caching**: Model reuse across generations
-- **Memory Monitoring**: Automatic garbage collection and cache clearing
+- **Memory Monitoring**: Real-time GPU and system memory tracking with automatic garbage collection
+- **Prompt Processing**: Optimized CompelPipeline with no truncation limits and efficient conjunction handling
+- **Process Management**: Enhanced cleanup logic with better error handling
 
 ## Installation & Distribution
 
@@ -232,9 +242,9 @@ The image generation process follows a complex multi-threaded, multi-process arc
 ## Integration Points
 
 ### AI Model Integration
-- **Hugging Face Hub**: Model loading and management
-- **Diffusers Pipeline**: Standard diffusion model interface
-- **Custom Extensions**: Compel for prompt enhancement
+- **Hugging Face Hub**: Model loading and management with auto-find capabilities
+- **Diffusers Pipeline**: Enhanced diffusion model interface with CompelPipeline improvements
+- **Custom Extensions**: Advanced Compel integration with conjunction support and no truncation limits
 
 ### File System Integration
 - **Configuration**: Platform-specific config directories
