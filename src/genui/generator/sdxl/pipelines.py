@@ -22,7 +22,7 @@ class CompelPipeline(StableDiffusionXLPipeline):
             text_encoder=[self.text_encoder, self.text_encoder_2],
             returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
             requires_pooled=[False, True],
-            truncate_long_prompts=True,
+            truncate_long_prompts=False,
         )
 
     @staticmethod
@@ -59,10 +59,9 @@ class CompelPipeline(StableDiffusionXLPipeline):
         neg_prompt = self.remove_newlines(neg_prompt)
         neg_conditioning, neg_pooled = self.compel(neg_prompt)
 
-        # if need_conjunction:
-        #     conditioning, neg_conditioning = self.compel.pad_conditioning_tensors_to_same_length(
-        #         [conditioning, neg_conditioning]
-        #     )
+        conditioning, neg_conditioning = self.compel.pad_conditioning_tensors_to_same_length(
+            [conditioning, neg_conditioning]
+        )
 
         return super().__call__(
             *args,
