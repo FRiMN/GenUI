@@ -316,7 +316,6 @@ class Window(
 
     def load_image(self, image_path: str):
         from .common.metadata import get_prompt_from_metadata
-        from .generator.sdxl import LoRASettings
         import pyexiv2
         import traceback
 
