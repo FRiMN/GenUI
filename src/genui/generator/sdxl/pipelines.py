@@ -22,7 +22,23 @@ class CompelPipeline(StableDiffusionXLPipeline):
             text_encoder=[self.text_encoder, self.text_encoder_2],
             returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
             requires_pooled=[False, True],
+            truncate_long_prompts=True,
         )
+
+    @staticmethod
+    def is_need_conjunction(prompt: str) -> bool:
+        return "BREAK" in prompt
+
+    @staticmethod
+    def split_prompt(prompt: str) -> str:
+        """See <https://github.com/damian0815/compel/blob/main/doc/syntax.md#conjunction> and `Compel.pad_conditioning_tensors_to_same_length`"""
+        p = tuple(prompt.split("BREAK"))
+        return f"{p}.and()"
+
+    @staticmethod
+    def remove_newlines(prompt: str) -> str:
+        """removes newline character sequences from text"""
+        return prompt.replace("\n", " ").replace("\r", " ")
 
     def __call__(self, *args, **kwargs):
         """
@@ -30,10 +46,23 @@ class CompelPipeline(StableDiffusionXLPipeline):
         See: <https://github.com/huggingface/diffusers/issues/5718>.
         """
         prompt = kwargs.pop("prompt")
+        prompt = self.remove_newlines(prompt)
+        need_conjunction = self.is_need_conjunction(prompt)
+
+        if need_conjunction:
+            prompt = self.split_prompt(prompt)
+            print(prompt)
+
         conditioning, pooled = self.compel(prompt)
 
         neg_prompt = kwargs.pop("negative_prompt")
+        neg_prompt = self.remove_newlines(neg_prompt)
         neg_conditioning, neg_pooled = self.compel(neg_prompt)
+
+        # if need_conjunction:
+        #     conditioning, neg_conditioning = self.compel.pad_conditioning_tensors_to_same_length(
+        #         [conditioning, neg_conditioning]
+        #     )
 
         return super().__call__(
             *args,
