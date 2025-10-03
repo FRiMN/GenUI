@@ -16,17 +16,24 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Added megapixel resolution display in image size toolbar.
 - Added support for loading models by dropping safetensors files.
 - Added auto-find model feature that automatically searches for and loads the correct model when loading images with embedded metadata.
+- Added system memory monitoring to status bar with real-time usage display.
+- Added GPU memory usage monitoring to status bar with color-coded warnings and detailed tooltips.
+- Added AI agent documentation for developers working with the codebase.
 
 ### Changed
 
 - Now image changing is smooth.
 - Change focus after push "generate" button to positive prompt editor.
+- Enhanced prompt processing to support longer and more complex prompts without automatic truncation.
+- Improved handling of advanced prompt syntax including better support for prompt combinations using "BREAK" keyword.
+- Better reliability when using weighted prompts and complex prompt structures.
 
 ### Fixed
 
 - Fixed rich text paste handling in prompt editors - formatting (bold/italic/colors/size) is now dropped during clipboard operations.
 - Fixed CUDA cache leak where model data persisted after change model.
 - Fixed potential file overwrite during automatic image saving.
+- Fixed prompt processing issues with advanced syntax and improved reliability of prompt weighting features.
 
 ## [v2025.3.2] - 2025-03-18
 
