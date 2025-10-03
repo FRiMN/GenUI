@@ -49,18 +49,23 @@ class CompelPipeline(StableDiffusionXLPipeline):
         Diffusers lib do not allow to mix and match `prompt_2` and `prompt_embeds`.
         See: <https://github.com/huggingface/diffusers/issues/5718>.
         """
-        prompt = kwargs.pop("prompt")
-        prompt = self.remove_newlines(prompt)
-        need_conjunction = self.is_need_conjunction(prompt)
-
-        if need_conjunction:
-            prompt = self.split_prompt(prompt)
-
-        conditioning, pooled = self.compel(prompt)
-
+        pos_prompt = kwargs.pop("prompt")
         neg_prompt = kwargs.pop("negative_prompt")
-        neg_prompt = self.remove_newlines(neg_prompt)
-        neg_conditioning, neg_pooled = self.compel(neg_prompt)
+
+        prompts = [pos_prompt, neg_prompt]
+        embeds = []
+        for prompt in prompts:
+            prompt = self.remove_newlines(prompt)
+            if self.is_need_conjunction(prompt):
+                prompt = self.split_prompt(prompt)
+
+            conditioning, pooled = self.compel(prompt)
+            embeds.append([conditioning, pooled])
+
+        # Unpack
+        pos_embeds, neg_embeds = embeds
+        conditioning, pooled = pos_embeds
+        neg_conditioning, neg_pooled = neg_embeds
 
         conditioning, neg_conditioning = self.compel.pad_conditioning_tensors_to_same_length(
             [conditioning, neg_conditioning]
