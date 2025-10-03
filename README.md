@@ -73,3 +73,7 @@ genui
 ## Configuration
 
 See [docs/settings.md](docs/settings.md) for details on how to configure GenUI.
+
+## Prompt Syntax Guide
+
+GenUI supports advanced prompt syntax including weight adjustment with parentheses and the BREAK keyword for combining concepts. See the **[Prompt Syntax Guide](docs/prompt-syntax-guide.md)** for complete usage instructions.
