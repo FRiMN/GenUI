@@ -59,6 +59,21 @@ font_size = 10
 font_weight = 200
 ```
 
+### 4. Auto-Find Model
+This section allows you to configure automatic model discovery when loading images with embedded metadata. When enabled, the application will search for models referenced in image metadata within a specified directory.
+
+- **enabled**: A boolean value that determines whether auto-find model is enabled (`False` by default).
+- **path**: The directory where the application will search for models recursively. This should be the root directory containing your model files. The path may be relative to the current directory or an absolute path. This defaults to `None` (not set).
+
+When you load an image that contains model information in its metadata, and the current model doesn't match the one used to generate the image, this feature will automatically search for and load the correct model if found in the specified path.
+
+Example:
+```toml
+[autofind_model]
+enabled = true
+path = "/path/to/models/directory"
+```
+
 ## Configuration File Location
 The location of the configuration file can be overridden by setting the environment variable `GENUI_CONFIG_FILE` before running the application. If this variable is set, it will point to a different path for the configuration file.
 
@@ -85,4 +100,8 @@ skip_mode = "uniform"
 font_family = None
 font_size = 10
 font_weight = 400
+
+[autofind_model]
+enabled = false
+path = None
 ```

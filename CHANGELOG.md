@@ -15,6 +15,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Added ADetailer support.
 - Added megapixel resolution display in image size toolbar.
 - Added support for loading models by dropping safetensors files.
+- Added auto-find model feature that automatically searches for and loads the correct model when loading images with embedded metadata.
 
 ### Changed
 
