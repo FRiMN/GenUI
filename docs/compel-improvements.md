@@ -27,7 +27,7 @@ for prompt in prompts:
     prompt = self.remove_newlines(prompt)
     if self.is_need_conjunction(prompt):
         prompt = self.split_prompt(prompt)
-    
+
     conditioning, pooled = self.compel(prompt)
     embeds.append([conditioning, pooled])
 ```
@@ -109,9 +109,8 @@ This creates separate conditioning for each segment while maintaining their rela
 ### Advanced Compel Syntax
 
 GenUI supports the full Compel syntax including:
-- Weight adjustments: `(word:1.2)` or `(word)++`
-- Attention reduction: `(word:0.8)` or `(word)--`
-- Blending: `(word1:word2:0.5)`
+- Weight adjustments: `(word)1.2` or `(word)++`
+- Attention reduction: `(word)0.8` or `(word)--`
 - Conjunctions: `BREAK` statements
 
 ## Technical Architecture
@@ -180,7 +179,7 @@ The CompelPipeline extends the standard StableDiffusionXLPipeline with:
    ```
    # Good
    portrait of a woman BREAK in a forest setting
-   
+
    # Avoid
    portrait BREAK of BREAK a BREAK woman
    ```
@@ -194,7 +193,7 @@ The CompelPipeline extends the standard StableDiffusionXLPipeline with:
 
 1. **Weight Important Elements**: Use Compel weighting for emphasis
    ```
-   (beautiful portrait:1.2) BREAK (detailed background:0.8)
+   (beautiful portrait)1.2 BREAK (detailed background)0.8
    ```
 
 2. **Balance Conjunctions**: Ensure each BREAK section contributes meaningfully
