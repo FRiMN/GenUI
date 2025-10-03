@@ -314,6 +314,17 @@ class Window(
             and self.image_size
         )
 
+    def find_local_model(self, path: str) -> str | None:
+        """Find a model by its file name (like `model.safetensors`) in directory recursively."""
+        import os
+
+        assert settings.autofind_model.path, "Auto-find model path is not set"
+        for root, dirs, files in os.walk(settings.autofind_model.path):
+            for file in files:
+                if file == path:
+                    return os.path.join(root, file)
+        return None
+
     def load_image(self, image_path: str):
         from .common.metadata import get_prompt_from_metadata
         import pyexiv2
@@ -345,6 +356,12 @@ class Window(
         errors = []
 
         orig_model_name = prompt.model_path.split(".safetensors")[0]
+
+        if settings.autofind_model.enabled and self.model_path is None:
+            exist_local_model = self.find_local_model(prompt.model_path)
+            if exist_local_model:
+                self.set_model(exist_local_model)
+
         if orig_model_name != self.model_name:
             prompt.model_path = self.model_path or ""
             errors.append(

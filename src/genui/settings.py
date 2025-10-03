@@ -45,15 +45,15 @@ class DeepCacheSettings(BaseModel):
     cache_interval: StrictInt = 3
     cache_branch_id: StrictInt = 0
     skip_mode: str = "uniform"
-    
-    
+
+
 class PromptEditorSettings(BaseModel):
     font_family: str | None = None
     font_size: int = 10
     font_weight: int = QFont.Weight.Normal
     compel_font_weight: int = QFont.Weight.Bold
-    
-    
+
+
 class ADetailerSettings(BaseModel):
     yolov_model_path: FilePath | None = None
     prompt: str = ""
@@ -64,15 +64,21 @@ class ADetailerSettings(BaseModel):
     mask_dilation: int = 4
     mask_blur: int = 4
     mask_padding: int = 32
-    
+
+
+class AutoFindModelSettings(BaseModel):
+    enabled: bool = False
+    path: DirectoryPath | None = None
+
 
 class Settings(BaseGenUISettings):
     autosave_image: AutoSaveImageSettings = AutoSaveImageSettings()
     deep_cache: DeepCacheSettings = DeepCacheSettings()
     prompt_editor: PromptEditorSettings = PromptEditorSettings()
     adetailer: ADetailerSettings = ADetailerSettings()
-    
-    
+    autofind_model: AutoFindModelSettings = AutoFindModelSettings()
+
+
 def reload_settings():
     settings = Settings()
     print(f"SETTINGS={settings.json()}")
