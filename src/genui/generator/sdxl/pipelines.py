@@ -31,13 +31,17 @@ class CompelPipeline(StableDiffusionXLPipeline):
 
     @staticmethod
     def split_prompt(prompt: str) -> str:
-        """See <https://github.com/damian0815/compel/blob/main/doc/syntax.md#conjunction> and `Compel.pad_conditioning_tensors_to_same_length`"""
-        p = tuple(prompt.split("BREAK"))
+        """See <https://github.com/damian0815/compel/blob/main/doc/syntax.md#conjunction> and `Compel.pad_conditioning_tensors_to_same_length`."""
+        p = tuple([
+            x.lstrip(',')   # for `BREAK,` case
+            for x in
+            prompt.split("BREAK")
+        ])
         return f"{p}.and()"
 
     @staticmethod
     def remove_newlines(prompt: str) -> str:
-        """removes newline character sequences from text"""
+        """Removes newline character sequences from text"""
         return prompt.replace("\n", " ").replace("\r", " ")
 
     def __call__(self, *args, **kwargs):
@@ -51,7 +55,6 @@ class CompelPipeline(StableDiffusionXLPipeline):
 
         if need_conjunction:
             prompt = self.split_prompt(prompt)
-            print(prompt)
 
         conditioning, pooled = self.compel(prompt)
 
