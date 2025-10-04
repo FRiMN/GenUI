@@ -1,6 +1,7 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from contextlib import suppress
 from importlib.resources import open_text
-from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView, QWidget
 from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression, QMimeData
