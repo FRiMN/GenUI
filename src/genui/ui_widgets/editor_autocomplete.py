@@ -1,13 +1,19 @@
+from contextlib import suppress
 from importlib.resources import open_text
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QCompleter, QTextEdit, QAbstractItemView, QWidget
 from PyQt6.QtCore import Qt, QStringListModel, QRegularExpression, QMimeData
 from PyQt6.QtGui import QTextCursor, QPalette, QColor, QKeyEvent, QSyntaxHighlighter, QTextCharFormat, QFont
+from compel.prompt_parser import PromptParser
 
 from ..utils import BACKGROUND_COLOR_HEX
 from ..common.trace import Timer
 from ..settings import settings
 from .window_mixins.propagate_events import PropagateEventsMixin
+
+if TYPE_CHECKING:
+    from compel.prompt_parser import Conjunction, Prompt, FlattenedPrompt, Fragment
 
 
 @Timer("Autocomplete words loader")
@@ -24,44 +30,105 @@ def load_words() -> list[str]:
     return words
 
 
-class PromptHighlighter(QSyntaxHighlighter):
+class CompelPromptHighlighter(QSyntaxHighlighter):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.highlighting_rules = []
+        self.parser = PromptParser()
+        self.setup_highlighting_rules()
 
-        # self.add_rule(r"\,", Qt.GlobalColor.green, None)
-        # self.add_rule(r"\.", Qt.GlobalColor.green, None)
-        # case: `BREAK` keyword
-        self.add_rule(r"\bBREAK\b", Qt.GlobalColor.gray, None)
-        # case: `apricots+`
-        self.add_rule(r"\b\S+[\+\-]+", None, settings.prompt_editor.compel_font_weight)
-        # case: `(picking apricots)++`
-        self.add_rule(r"\(.+?\)[\+\-]+", None, settings.prompt_editor.compel_font_weight)
-        # case: `(picking (apricots)1.3)1.1, (apricots)1.1`
-        self.add_rule(r"\([^,]+\)\d\.\d\b", None, settings.prompt_editor.compel_font_weight)
-        # TODO: case: `off-topic,`
-        # TODO: case:
-            # `(koseki bijou), (ixy)0.7, (kanzarin)0.85, healthyman+, (quasarcake)0.5, (jonpei)0.9,
-            # (jima)1.1, realistic, (hi res)1.2, hololive, hololive english, (dongtan dress)1.3, (chest jewel)+`
+    def setup_highlighting_rules(self):
+        # Базовые правила для ключевых слов и операторов
+        self.break_highlight_rule = bh = QTextCharFormat()
+        bh.setForeground(QColor(Qt.GlobalColor.gray))
+        bh.setFontItalic(True)
+        self.break_regex = QRegularExpression(r"\bBREAK\b")
 
-    def add_rule(self, pattern: str, color: Qt.GlobalColor | None, weight: int | None):
-        regex = QRegularExpression(pattern)
-        format_rule = QTextCharFormat()
+        self.pos_highlight_rule = ph = QTextCharFormat()
+        ph.setForeground(QColor(Qt.GlobalColor.green))
 
-        if weight is not None:
-            format_rule.setFontWeight(weight)
-        if color:
-            format_rule.setForeground(QColor(color))
-
-        self.highlighting_rules.append((regex, format_rule))
+        self.neg_highlight_rule = nh = QTextCharFormat()
+        nh.setForeground(QColor(Qt.GlobalColor.red))
 
     def highlightBlock(self, text: str):
         """Apply highlighting rules to the current block of text."""
-        for regex, format_rule in self.highlighting_rules:
-            match_iterator = regex.globalMatch(text)
-            while match_iterator.hasNext():
-                match = match_iterator.next()
-                self.setFormat(match.capturedStart(), match.capturedLength(), format_rule)
+        self.highlight_syntax(text)
+        self.highlight_break(text)
+
+    def highlight_break(self, text: str):
+        match_iterator = self.break_regex.globalMatch(text)
+        while match_iterator.hasNext():
+            match = match_iterator.next()
+            self.setFormat(match.capturedStart(), match.capturedLength(), self.break_highlight_rule)
+
+    def highlight_syntax(self, text: str) -> None:
+        """Расширенная подсветка на основе синтаксического анализа"""
+        with suppress(Exception):
+            # Парсим промпт для получения структуры
+            conjunction = self.parser.parse_conjunction(text, verbose=False)
+            # Рекурсивно обходим структуру для подсветки
+            self.highlight_conjunction(conjunction, text)
+
+    def highlight_conjunction(self, conjunction: Conjunction, full_text: str) -> None:
+        """Подсвечивает элементы конъюнкции"""
+        # Скользящий курсор. Необходим для повторяющихся слов в тексте.
+        # Кейс: `<start_hl>word<end_hl>+, (more <start_hl>word<end_hl>s)`.
+        global_pos = 0
+
+        for prompt in conjunction.prompts:
+            if hasattr(prompt, 'children'):
+                self.highlight_prompt_fragments(prompt, full_text, global_pos)
+
+    def highlight_prompt_fragments(
+        self,
+        prompt: Prompt | FlattenedPrompt,
+        full_text: str,
+        global_pos: int
+    ) -> None:
+        """Подсвечивает элементы промпта"""
+        for fragment in prompt.children:
+            self.highlight_fragment(fragment, full_text, global_pos)
+
+    def highlight_fragment(self, fragment: Fragment, full_text: str, global_pos: int) -> None:
+        """Подсвечивает конкретный элемент синтаксиса"""
+        fragment_text = self.get_fragment_text(fragment)
+        # if not element_text:
+        #     return
+
+        elements = fragment_text.split(",")
+        for element_text in elements:
+            element_text = element_text.strip()
+            # Находим позиции элемента в тексте
+            pos = full_text.find(element_text, global_pos)
+            if pos == -1:
+                print(f"Warning: Element '{fragment}' not found in text")
+                return
+
+            if hasattr(fragment, 'weight') and fragment.weight != 1.0:
+                format_rule = (
+                    self.pos_highlight_rule
+                    if fragment.weight > 1.0
+                    else self.neg_highlight_rule
+                )
+                self.setFormat(pos, len(element_text), format_rule)
+
+            global_pos = pos + len(element_text)
+
+    def get_fragment_text(self, fragment: Fragment) -> str:
+        """Извлекает текстовое представление элемента"""
+        text = ""
+
+        if hasattr(fragment, 'text'):
+            text = fragment.text
+
+        elif hasattr(fragment, '__repr__'):
+            # TODO: may be not need.
+            repr_text = repr(fragment)
+            # Извлекаем текст из repr представления
+            if 'Fragment:' in repr_text:
+                text = repr_text.split("'")[1] if "'" in repr_text else repr_text.split(':')[1]
+
+        text = text.strip(",").strip()
+        return text
 
 
 class WordsCompleter(QCompleter):
@@ -82,7 +149,7 @@ class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
         super().__init__(*args, **kwargs)
         self.setup_font()
         self.setup_completer()
-        self.highlighter = PromptHighlighter(self.document())
+        self.highlighter = CompelPromptHighlighter(self.document())
 
         palette = self.palette()
         palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Base, QColor.fromString(BACKGROUND_COLOR_HEX))
@@ -180,7 +247,6 @@ class AutoCompleteTextEdit(QTextEdit, PropagateEventsMixin):
             super().insertFromMimeData(source)
 
         self.insertPlainText(source.text())
-
 
     def keyPressEvent(self, e: QKeyEvent):
         if self.completer.popup().isVisible() and e.key() == Qt.Key.Key_Return:
