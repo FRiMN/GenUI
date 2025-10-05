@@ -45,11 +45,6 @@ dynamic = ["version"]
 [tool.setuptools_scm]
 write_to = "src/genui/__version__.py"
 
-[project.optional-dependencies]
-dev = [
-    "ruff",
-    #    "uv",
-]
 
 [project.urls]
 Homepage = "https://github.com/FRiMN/GenUI"
@@ -66,6 +61,12 @@ explicit = true
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[dependency-groups]
+dev = [
+    "mock>=5.2.0",
+    "pytest>=8.4.2",
 ]
 #torchvision = [
 #  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
