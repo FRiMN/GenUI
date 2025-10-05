@@ -71,38 +71,40 @@ class CompelPromptHighlighter(QSyntaxHighlighter):
 
     def highlight_conjunction(self, conjunction: Conjunction, full_text: str) -> None:
         """Подсвечивает элементы конъюнкции"""
-        # Скользящий курсор. Необходим для повторяющихся слов в тексте.
+        # Глобальный курсор. Необходим для повторяющихся слов в тексте.
         # Кейс: `<start_hl>word<end_hl>+, (more <start_hl>word<end_hl>s)`.
         global_pos = 0
 
         for prompt in conjunction.prompts:
             if hasattr(prompt, 'children'):
-                self.highlight_prompt_fragments(prompt, full_text, global_pos)
+                global_pos = self.highlight_prompt_fragments(prompt, full_text, global_pos)
 
     def highlight_prompt_fragments(
         self,
         prompt: Prompt | FlattenedPrompt,
         full_text: str,
         global_pos: int
-    ) -> None:
+    ) -> int:
         """Подсвечивает элементы промпта"""
         for fragment in prompt.children:
-            self.highlight_fragment(fragment, full_text, global_pos)
+            global_pos = self.highlight_fragment(fragment, full_text, global_pos)
+        return global_pos
 
-    def highlight_fragment(self, fragment: Fragment, full_text: str, global_pos: int) -> None:
+    def highlight_fragment(self, fragment: Fragment, full_text: str, global_pos: int) -> int:
         """Подсвечивает конкретный элемент синтаксиса"""
         fragment_text = self.get_fragment_text(fragment)
-        # if not element_text:
-        #     return
 
         elements = fragment_text.split(",")
         for element_text in elements:
             element_text = element_text.strip()
-            # Находим позиции элемента в тексте
-            pos = full_text.find(element_text, global_pos)
+            if not element_text:
+                print(f"Warning: Empty element found in fragment '{fragment}'")
+                continue
+
+            pos, global_pos = self.find_element_in_text(full_text, element_text, global_pos)
             if pos == -1:
                 print(f"Warning: Element '{fragment}' not found in text")
-                return
+                return global_pos
 
             if hasattr(fragment, 'weight') and fragment.weight != 1.0:
                 format_rule = (
@@ -112,7 +114,7 @@ class CompelPromptHighlighter(QSyntaxHighlighter):
                 )
                 self.setFormat(pos, len(element_text), format_rule)
 
-            global_pos = pos + len(element_text)
+        return global_pos
 
     def get_fragment_text(self, fragment: Fragment) -> str:
         """Извлекает текстовое представление элемента"""
@@ -130,6 +132,26 @@ class CompelPromptHighlighter(QSyntaxHighlighter):
 
         text = text.strip(",").strip()
         return text
+        
+    def find_element_in_text(self, full_text: str, element: str, global_pos: int) -> tuple[int, int]:
+        while global_pos < len(full_text):
+            pos = full_text.find(element, global_pos)
+            if pos == -1:
+                break
+            
+            if pos > 0:
+                if full_text[pos - 1] not in ("(", " ", ","):
+                    global_pos += len(element)
+                    continue
+                    
+            if pos < len(full_text)-1:
+                if full_text[pos + len(element)] not in (")", " ", ",", "+", "-"):
+                    global_pos += len(element)
+                    continue
+
+            global_pos += len(element)
+            return pos, global_pos
+        return -1, global_pos
 
 
 class WordsCompleter(QCompleter):
