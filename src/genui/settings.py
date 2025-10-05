@@ -21,7 +21,7 @@ class BaseGenUISettings(BaseSettings):
     model_config = SettingsConfigDict(
         toml_file=CONFIG_FILE_PATH,
         env_prefix="genui_",
-        cli_parse_args=True,
+        cli_parse_args=False,
     )
 
     @classmethod
