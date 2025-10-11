@@ -142,14 +142,21 @@ class Window(
         self.deepcache_enabled_editor = dce = QtWidgets.QCheckBox()
         dce.setChecked(True)
 
+    def _build_neg_condition_widgets(self):
+        self.neg_condition_divider_editor = QtWidgets.QComboBox()
+        self.neg_condition_divider_editor.addItems(["0", "1", "2", "3", "4"])
+        self.neg_condition_divider_editor.setCurrentText("0")
+
     def _create_tool_bars(self):
         deepcache_toolbar = self._create_deepcache_toolbar()
+        neg_condition_toolbar = self._create_neg_condition_toolbar()
 
         self.addToolBar(self.action_toolbar)
         self.addToolBar(self.seed_toolbar)
         self.addToolBar(self.size_toolbar)
         self.addToolBar(self.scheduler_toolbar)
         self.addToolBar(deepcache_toolbar)
+        self.addToolBar(neg_condition_toolbar)
 
     def _create_deepcache_toolbar(self):
         cache_label = QtWidgets.QLabel("DeepCache:")
@@ -159,6 +166,17 @@ class Window(
         deepcache_toolbar.addWidget(cache_label)
         deepcache_toolbar.addWidget(self.deepcache_enabled_editor)
         return deepcache_toolbar
+
+    def _create_neg_condition_toolbar(self):
+        self._build_neg_condition_widgets()
+
+        neg_condition_label = QtWidgets.QLabel("Neg Condition Divider:")
+        neg_condition_label.setContentsMargins(*TOOLBAR_MARGIN)
+
+        neg_condition_toolbar = QtWidgets.QToolBar("Neg Condition Divider", self)
+        neg_condition_toolbar.addWidget(neg_condition_label)
+        neg_condition_toolbar.addWidget(self.neg_condition_divider_editor)
+        return neg_condition_toolbar
 
     def handle_zoomed(self):
         prct = int(self.viewer.zoom_image_level() * 100)
@@ -260,6 +278,7 @@ class Window(
             use_karras_sigmas=self.karras_sigmas_editor.isChecked(),
             use_vpred=self.vpred_editor.isChecked(),
             loras=frozenset(self.get_loras()),
+            neg_condition_divider=int(self.neg_condition_divider_editor.currentText()),
         )
         return prompt
 
@@ -352,6 +371,7 @@ class Window(
         self.deepcache_enabled_editor.setChecked(prompt.deepcache_enabled)
         self.karras_sigmas_editor.setChecked(prompt.use_karras_sigmas)
         self.vpred_editor.setChecked(prompt.use_vpred)
+        self.neg_condition_divider_editor.setCurrentText(str(prompt.neg_condition_divider))
 
         errors = []
 
