@@ -39,6 +39,7 @@ dependencies = [
     "peft>=0.15.1",
     "torchsde>=0.2.6",
     "psutil",
+    "opencv-python-headless",
 ]
 dynamic = ["version"]
 
