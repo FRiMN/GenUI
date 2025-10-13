@@ -132,22 +132,28 @@ class CompelPromptHighlighter(QSyntaxHighlighter):
 
         text = text.strip(",").strip()
         return text
+        
+    def is_this_whole_word(self, full_text: str, pos: int, element: str) -> bool:
+        """Проверяет, является ли элемент целым словом в тексте"""
+        if pos > 0:
+            if full_text[pos - 1] not in ("(", " ", ","):
+                return False
+
+        if pos < len(full_text)-1:
+            if full_text[pos + len(element)] not in (")", " ", ",", "+", "-"):
+                return False
+                
+        return True
 
     def find_element_in_text(self, full_text: str, element: str, global_pos: int) -> tuple[int, int]:
         while global_pos < len(full_text):
             pos = full_text.find(element, global_pos)
             if pos == -1:
                 break
-
-            if pos > 0:
-                if full_text[pos - 1] not in ("(", " ", ","):
-                    global_pos = pos + len(element)
-                    continue
-
-            if pos < len(full_text)-1:
-                if full_text[pos + len(element)] not in (")", " ", ",", "+", "-"):
-                    global_pos = pos + len(element)
-                    continue
+                
+            if not self.is_this_whole_word(full_text, pos, element):
+                global_pos = pos + len(element)
+                continue
 
             global_pos = pos + len(element)
             return pos, global_pos
