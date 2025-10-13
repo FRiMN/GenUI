@@ -98,7 +98,7 @@ class CompelPromptHighlighter(QSyntaxHighlighter):
         for element_text in elements:
             element_text = element_text.strip()
             if not element_text:
-                print(f"Warning: Empty element found in fragment '{fragment}'")
+                # print(f"Warning: Empty element found in fragment '{fragment}'")
                 continue
 
             pos, global_pos = self.find_element_in_text(full_text, element_text, global_pos)
@@ -132,24 +132,24 @@ class CompelPromptHighlighter(QSyntaxHighlighter):
 
         text = text.strip(",").strip()
         return text
-        
+
     def find_element_in_text(self, full_text: str, element: str, global_pos: int) -> tuple[int, int]:
         while global_pos < len(full_text):
             pos = full_text.find(element, global_pos)
             if pos == -1:
                 break
-            
+
             if pos > 0:
                 if full_text[pos - 1] not in ("(", " ", ","):
-                    global_pos += len(element)
-                    continue
-                    
-            if pos < len(full_text)-1:
-                if full_text[pos + len(element)] not in (")", " ", ",", "+", "-"):
-                    global_pos += len(element)
+                    global_pos = pos + len(element)
                     continue
 
-            global_pos += len(element)
+            if pos < len(full_text)-1:
+                if full_text[pos + len(element)] not in (")", " ", ",", "+", "-"):
+                    global_pos = pos + len(element)
+                    continue
+
+            global_pos = pos + len(element)
             return pos, global_pos
         return -1, global_pos
 

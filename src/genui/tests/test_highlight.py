@@ -31,10 +31,10 @@ test_data = [
     ("(accurate, correct)1.5", [(1, 8, pos), (11, 7, pos)]),
     ("word+, word+word", [(0, 4, pos)]),
     ("word+, word-word", [(0, 4, pos)]),
-    ("word+, word++word", [(0, 4, pos)]),
-    ("word+, word--word", [(0, 4, pos)]),
-    ("word+, word+-word", [(0, 4, pos)]),
-    ("word+, word-+word", [(0, 4, pos)]),
+    ("word+, word++word", [(0, 4, pos), (7, 4, pos)]),
+    ("word+, word--word", [(0, 4, pos), (7, 4, neg)]),
+    ("word+, word+-word", [(0, 4, pos), (7, 4, pos)]),
+    ("word+, word-+word", [(0, 4, pos), (7, 4, neg)]),
 ]
 
 @pytest.mark.parametrize(("text", "expected"), test_data)
@@ -71,7 +71,5 @@ def test_long_text(mocked_setFormat: Mock):
     hl.highlightBlock(text)
 
     assert mocked_setFormat.call_count == len(formats)
-    print(mocked_setFormat.call_args_list)
     for i, call in enumerate(mocked_setFormat.call_args_list):
-        print(formats[i], i)
         assert call.args == formats[i]
