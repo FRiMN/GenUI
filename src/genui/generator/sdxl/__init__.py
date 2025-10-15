@@ -50,7 +50,7 @@ class GenerationPrompt:
     neg_prompt: str
     seed: int
     size: tuple[int, int]
-    guidance_scale: int
+    guidance_scale: float
     inference_steps: int
     deepcache_enabled: bool
     use_karras_sigmas: bool

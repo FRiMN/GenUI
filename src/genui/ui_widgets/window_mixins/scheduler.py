@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QComboBox, QSpinBox, QCheckBox, QLabel, QToolBar, QPushButton, QFileDialog
+from PyQt6.QtWidgets import QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox, QLabel, QToolBar, QPushButton, QFileDialog
 
 from ...generator.sdxl.schedulers import get_schedulers_map
 from ...utils import TOOLBAR_MARGIN
@@ -22,9 +22,11 @@ class SchedulerMixin:
         schedulers = sorted(schedulers_map.keys())
         ss.addItems(schedulers)
 
-        self.cfg_editor = cfg = QSpinBox()
+        self.cfg_editor = cfg = QDoubleSpinBox()
         cfg.setMaximum(10)
         cfg.setMinimum(0)
+        cfg.setSingleStep(0.1)
+        cfg.setDecimals(1)
         cfg.setValue(0)
         cfg.setToolTip("Guidance scale. 0 value is auto.")
 
