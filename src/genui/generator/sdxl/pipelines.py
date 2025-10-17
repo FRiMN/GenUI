@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from compel import Compel, ReturnedEmbeddingsType
+from compel import Compel, ReturnedEmbeddingsType, CompelForSDXL, LabelledConditioning
 from DeepCache import DeepCacheSDHelper
 from diffusers import StableDiffusionXLPipeline
 from diffusers.loaders.lora_pipeline import StableDiffusionXLLoraLoaderMixin
@@ -17,13 +17,8 @@ class CompelPipeline(StableDiffusionXLPipeline):
 
     @cached_property
     def compel(self):
-        return Compel(
-            tokenizer=[self.tokenizer, self.tokenizer_2],
-            text_encoder=[self.text_encoder, self.text_encoder_2],
-            returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
-            requires_pooled=[False, True],
-            truncate_long_prompts=False,
-        )
+        print("build compel")
+        return CompelForSDXL(self)
 
     @staticmethod
     def is_need_conjunction(prompt: str) -> bool:
@@ -53,31 +48,22 @@ class CompelPipeline(StableDiffusionXLPipeline):
         neg_prompt = kwargs.pop("negative_prompt")
 
         prompts = [pos_prompt, neg_prompt]
-        embeds = []
-        for prompt in prompts:
+        for i, prompt in enumerate(prompts):
             prompt = self.remove_newlines(prompt)
             if self.is_need_conjunction(prompt):
                 prompt = self.split_prompt(prompt)
-
-            conditioning, pooled = self.compel(prompt)
-            embeds.append([conditioning, pooled])
-
-        # Unpack
-        pos_embeds, neg_embeds = embeds
-        conditioning, pooled = pos_embeds
-        neg_conditioning, neg_pooled = neg_embeds
-
-        conditioning, neg_conditioning = self.compel.pad_conditioning_tensors_to_same_length(
-            [conditioning, neg_conditioning]
-        )
+            prompts[i] = prompt
+            
+        labelled_cond: LabelledConditioning = self.compel(main_prompt=prompts[0], negative_prompt=prompts[1])
+        print(f"{labelled_cond=}")
 
         return super().__call__(
             *args,
             **kwargs,
-            prompt_embeds=conditioning,
-            pooled_prompt_embeds=pooled,
-            negative_prompt_embeds=neg_conditioning,
-            negative_pooled_prompt_embeds=neg_pooled,
+            prompt_embeds=labelled_cond.embeds,
+            pooled_prompt_embeds=labelled_cond.pooled_embeds,
+            negative_prompt_embeds=labelled_cond.negative_embeds,
+            negative_pooled_prompt_embeds=labelled_cond.negative_pooled_embeds,
         )
 
 
