@@ -216,6 +216,8 @@ class ProcessManager:
             self.target_function(child_conn, parent_conn)
         except Exception as e:
             print(f"Error in child process: {e}")
+            # TODO: Change to print traceback.
+            raise e
         finally:
             self._cleanup()
 
