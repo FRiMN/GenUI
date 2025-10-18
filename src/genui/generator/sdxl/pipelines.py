@@ -60,7 +60,9 @@ class CompelPipeline(StableDiffusionXLPipeline):
                 prompt = self.split_prompt(prompt)
             prompts[i] = prompt
 
+        # AI: Get print of types for prompt_embeds and pooled_prompt_embeds...
         prompt_embeds, pooled_prompt_embeds = self.compel(prompts)
+        # ... here, ai!
 
         # Unpack
         # pos_embeds, neg_embeds = embeds
