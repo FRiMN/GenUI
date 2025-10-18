@@ -26,7 +26,7 @@ dependencies = [
     "diffusers >= 0.12.0",
     "torch >= 2.5.1",
     "transformers",
-    "accelerate >= 0.17.0",
+    # "accelerate >= 0.17.0",
     "invisible-watermark >= 0.2.0",
     "DeepCache",
     "compel >= 2.2.0",
@@ -68,6 +68,7 @@ torch = [
 dev = [
     "mock>=5.2.0",
     "pytest>=8.4.2",
+    "pip-audit",
 ]
 #torchvision = [
 #  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
