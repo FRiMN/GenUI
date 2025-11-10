@@ -89,10 +89,10 @@ class StatusBarMixin:
             return
 
         try:
-            used_gb = gpu_info['used_mem'] / (1024**3)  # Convert to GB
-            total_gb = gpu_info['total_mem'] / (1024**3)  # Convert to GB
-            allocated_gb = gpu_info['allocated'] / (1024**3)  # Convert to GB
-            reserved_gb = gpu_info['reserved'] / (1024**3)  # Convert to GB
+            used_gb = gpu_info['used_mem'] / (1024**3)
+            total_gb = gpu_info['total_mem'] / (1024**3)
+            allocated_gb = gpu_info['allocated'] / (1024**3)
+            reserved_gb = gpu_info['reserved'] / (1024**3)
 
             # Format display text
             percent = (used_gb / total_gb) * 100
