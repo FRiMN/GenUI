@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "genui"
 authors = [{ name = "Nikolay Volkov", email = "freezemandix@ya.ru" }]
@@ -10,7 +6,8 @@ Desktop UI application designed to simplify and enhance the process of
 generating images using Stable Diffusion.
 """
 readme = "README.md"
-requires-python = ">=3.10, <3.12"
+# requires-python = ">=3.10, <3.12"
+requires-python = ">=3.10"
 keywords = ["AI", "Stable Diffusion"]
 license = { text = "Apache-2.0" }
 classifiers = [
@@ -23,29 +20,31 @@ classifiers = [
 dependencies = [
     "PyQt6",
     "pillow",
-    "diffusers >= 0.12.0",
-    "torch >= 2.5.1",
-    "transformers",
-    # "accelerate >= 0.17.0",
+    "diffusers[torch] >= 0.19.3",
+    "torch >= 2.6.0",
+    "transformers >= 4.27.1",
+    "accelerate >= 0.17.0",
     "invisible-watermark >= 0.2.0",
     "DeepCache",
-    "compel >= 2.2.0",
+    "compel >= 2.3.1",
     "pydantic-settings[toml]",
     #    "xformers >= 0.0.29.post1",
     "platformdirs",
     "torchvision >= 0.15.1",
     "ultralytics >= 8.2.32",
     "pyexiv2",
-    "peft>=0.15.1",
-    "torchsde>=0.2.6",
+    "peft >= 0.15.1",
+    "torchsde >= 0.2.6",
     "psutil",
     "opencv-python-headless",
+    # "hidiffusion",
+    # "triton >= 2.1.0",
+    # "optimum[onnxruntime]",
+    # "onnx",
+    # "onnxruntime-gpu",
+    # "pruna[full]",
 ]
 dynamic = ["version"]
-
-[tool.setuptools_scm]
-write_to = "src/genui/__version__.py"
-
 
 [project.urls]
 Homepage = "https://github.com/FRiMN/GenUI"
@@ -54,15 +53,30 @@ Issues = "https://github.com/FRiMN/GenUI/issues"
 [project.scripts]
 genui = "genui.main:main"
 
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/genui/__version__.py"
+
 [[tool.uv.index]]
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
+# [[tool.uv.index]]
+# name = "oneflow"
+# url = "https://github.com/siliconflow/oneflow_releases/releases/expanded_assets/community_cu121"
+# explicit = true
+
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
+#torchvision = [
+#  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+#]
 
 [dependency-groups]
 dev = [
@@ -70,6 +84,3 @@ dev = [
     "pytest>=8.4.2",
     "pip-audit",
 ]
-#torchvision = [
-#  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-#]
