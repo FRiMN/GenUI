@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from compel import Compel, ReturnedEmbeddingsType
+from compel import CompelForSDXL
 from DeepCache import DeepCacheSDHelper
 from diffusers import StableDiffusionXLPipeline
 from diffusers.loaders.lora_pipeline import StableDiffusionXLLoraLoaderMixin
@@ -17,14 +17,7 @@ class CompelPipeline(StableDiffusionXLPipeline):
 
     @cached_property
     def compel(self):
-        return Compel(
-            tokenizer=[self.tokenizer, self.tokenizer_2],
-            text_encoder=[self.text_encoder, self.text_encoder_2],
-            returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED,
-            requires_pooled=[False, True],
-            truncate_long_prompts=False,
-            device="cuda",
-        )
+        return CompelForSDXL(self, device="cuda")
 
     @staticmethod
     def is_need_conjunction(prompt: str) -> bool:
@@ -60,26 +53,15 @@ class CompelPipeline(StableDiffusionXLPipeline):
                 prompt = self.split_prompt(prompt)
             prompts[i] = prompt
 
-        # AI: Get print of types for prompt_embeds and pooled_prompt_embeds...
-        prompt_embeds, pooled_prompt_embeds = self.compel(prompts)
-        # ... here, ai!
-
-        # Unpack
-        # pos_embeds, neg_embeds = embeds
-        # conditioning, pooled = pos_embeds
-        # neg_conditioning, neg_pooled = neg_embeds
-
-        # conditioning, neg_conditioning = self.compel.pad_conditioning_tensors_to_same_length(
-        #     [conditioning, neg_conditioning]
-        # )
+        cond = self.compel(main_prompt=prompts[0], negative_prompt=prompts[1])
 
         return super().__call__(
             *args,
             **kwargs,
-            prompt_embeds=prompt_embeds[0:1],
-            pooled_prompt_embeds=pooled_prompt_embeds[0:1],
-            negative_prompt_embeds=prompt_embeds[1:2],
-            negative_pooled_prompt_embeds=pooled_prompt_embeds[1:2],
+            prompt_embeds=cond.embeds,
+            pooled_prompt_embeds=cond.pooled_embeds,
+            negative_prompt_embeds=cond.negative_embeds,
+            negative_pooled_prompt_embeds=cond.negative_pooled_embeds,
         )
 
 
