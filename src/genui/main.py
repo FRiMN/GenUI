@@ -281,7 +281,7 @@ class Window(
             use_karras_sigmas=self.karras_sigmas_editor.isChecked(),
             use_vpred=self.vpred_editor.isChecked(),
             loras=frozenset(self.get_loras()),
-            neg_condition_divider=int(self.neg_condition_divider_editor.currentText()),
+            # neg_condition_divider=int(self.neg_condition_divider_editor.currentText()),
         )
         return prompt
 
@@ -374,7 +374,7 @@ class Window(
         self.deepcache_enabled_editor.setChecked(prompt.deepcache_enabled)
         self.karras_sigmas_editor.setChecked(prompt.use_karras_sigmas)
         self.vpred_editor.setChecked(prompt.use_vpred)
-        self.neg_condition_divider_editor.setCurrentText(str(prompt.neg_condition_divider))
+        # self.neg_condition_divider_editor.setCurrentText(str(prompt.neg_condition_divider))
 
         errors = []
 
