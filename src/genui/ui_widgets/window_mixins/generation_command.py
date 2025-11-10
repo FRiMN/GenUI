@@ -43,8 +43,8 @@ class GenerationCommandMixin:
         action_toolbar = QtWidgets.QToolBar("Action", self)
         action_toolbar.addWidget(self.button_generate)
         action_toolbar.addWidget(self.button_interrupt)
-        action_toolbar.addWidget(self.button_fix)
-        action_toolbar.addWidget(self.button_show_rects)
+        # action_toolbar.addWidget(self.button_fix)
+        # action_toolbar.addWidget(self.button_show_rects)
         return action_toolbar
 
     def reset_command_buttons(self):
