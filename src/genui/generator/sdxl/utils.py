@@ -70,6 +70,7 @@ def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
             model_path,
             torch_dtype=torch.float16,
             local_files_only=True,
+            use_safetensors=True,
             # device_map="auto",
             # max_memory={0: "512MB", 1: "8GB"},
         )
