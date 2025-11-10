@@ -144,6 +144,10 @@ def generate(
 
         pipeline.deep_cache_enabled = prompt.deepcache_enabled
 
+        # apply_hidiffusion(pipeline)
+
+        torch.backends.cuda.preferred_linalg_library(backend="magma")
+
         image = pipeline(**data).images[0]
 
     if not pipeline._interrupt:
