@@ -41,10 +41,10 @@ def empty_cache():
 def accelerate(pipe: GenUIStableDiffusionXLPipeline):
     import torch
 
-    # pipe.enable_model_cpu_offload()
-    pipe.enable_sequential_cpu_offload()
-    pipe.enable_vae_tiling()
-    pipe.enable_attention_slicing()
+    pipe.enable_model_cpu_offload()
+    # pipe.enable_sequential_cpu_offload()
+    # pipe.enable_vae_tiling()
+    # pipe.enable_attention_slicing()
     # FIXME: In fact, not a significant acceleration of generation. Do really need it?
     # WARN: Change generated image.
     # pipe.enable_xformers_memory_efficient_attention()
