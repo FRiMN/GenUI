@@ -66,8 +66,8 @@ class LoraTable(QWidget):
         
     def _build_weight_spinbox(self) -> QDoubleSpinBox:
         spinbox = QDoubleSpinBox()
-        spinbox.setMinimum(0)
-        spinbox.setMaximum(1)
+        spinbox.setMinimum(-5)
+        spinbox.setMaximum(5)
         spinbox.setValue(1.0)
         spinbox.setSingleStep(0.05)
         return spinbox
