@@ -134,13 +134,13 @@ def generate(
         
         if prompt.guidance_scale:
             data["guidance_scale"] = prompt.guidance_scale
-            
-        if prompt.neg_condition_divider:
-            data["negative_original_size"] = (
-                int(prompt.size[0] / prompt.neg_condition_divider),
-                int(prompt.size[1] / prompt.neg_condition_divider)
-            )
-            data["negative_target_size"] = prompt.size
+
+        # if prompt.neg_condition_divider:
+        #     data["negative_original_size"] = (
+        #         int(prompt.size[0] / prompt.neg_condition_divider),
+        #         int(prompt.size[1] / prompt.neg_condition_divider)
+        #     )
+        #     data["negative_target_size"] = prompt.size
 
         pipeline.deep_cache_enabled = prompt.deepcache_enabled
 
