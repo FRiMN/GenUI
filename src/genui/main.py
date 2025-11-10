@@ -17,6 +17,7 @@ from .ui_widgets.window_mixins.status_bar import StatusBarMixin
 from .ui_widgets.window_mixins.system_monitor import SystemMonitorMixin
 from .utils import TOOLBAR_MARGIN, pixmap_to_bytes
 from .operations import ImageGenerationOperation, OperationWorker
+from .utils import processing_time_estimator
 
 from .settings import settings
 from .__version__ import __version__
@@ -224,6 +225,8 @@ class Window(
             # TODO: extract to signal.
             self.label_status.setText(f"Done in {gen_time.seconds} sec.")
             self.setWindowTitle(None)
+            processing_time_estimator.update((width, height), gen_time)
+            self.update_eta(width * height / 1e6)
 
         # FIXME: base size can changed.
         base_size = self.base_size_editor.value()

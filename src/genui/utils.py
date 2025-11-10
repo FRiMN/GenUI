@@ -1,6 +1,7 @@
 from pathlib import Path
 import collections
 import time
+import datetime
 from typing import Any
 import gc
 import os.path
@@ -60,3 +61,21 @@ def pixmap_to_bytes(pixmap: QtGui.QPixmap) -> bytes:
     pixmap.save(buffer, "PNG")
     buffer.close()
     return buffer.data().data()
+    
+    
+class ProcessingTimeEstimator(object):
+    memoized_sec_for_mpx: float
+    
+    def __init__(self):
+        self.memoized_sec_for_mpx = 1
+    
+    def eta(self, mpx: float) -> datetime.timedelta:
+        return datetime.timedelta(seconds=self.memoized_sec_for_mpx * mpx)
+        
+    def update(self, image_size: tuple[int, int], processing_time: datetime.timedelta):
+        mpx = image_size[0] * image_size[1] / 1e6
+        self.memoized_sec_for_mpx = processing_time.seconds / mpx
+        print(f"{self.memoized_sec_for_mpx=}")
+        
+        
+processing_time_estimator = ProcessingTimeEstimator()
