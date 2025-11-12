@@ -204,7 +204,8 @@ class ProcessManager:
             import signal
             import sys
 
-            def signal_handler(signum, frame):
+            def signal_handler(signum: int, frame):
+                """ Example, OOM-Killer, etc... """
                 print(f"Child process received signal {signum}, shutting down...")
                 child_conn.close()
                 parent_conn.close()

@@ -5,7 +5,8 @@ import datetime
 from functools import partial
 from contextlib import suppress
 from collections import OrderedDict
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional
+import traceback
 
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtBoundSignal
 from PIL import Image
@@ -171,7 +172,8 @@ class OperationWorker(QObject):
                         self.operation.signals.emit(message["signal"], *message["args"])
                 sleep(0.1)
         except Exception as e:
-            print(f"Worker error: {e}")
+            tb = traceback.format_exc()
+            print(f"Worker error: {e}\n{tb}")
             self.error.emit(str(e))
         finally:
             self._cleanup()
