@@ -77,6 +77,8 @@ def load_pipeline(model_path: str) -> GenUIStableDiffusionXLPipeline:
         # pipe.to("cuda")
 
     accelerate(pipe)
+    
+    pipe.set_progress_bar_config(disable=True)
 
     PIPELINE_CACHE[model_path] = pipe
     return pipe
