@@ -46,5 +46,5 @@ typing_extensions==4.9.0
 tzdata==2024.1
 ultralytics==8.2.32
 ultralytics-thop==0.2.8
-urllib3==1.26.13
+urllib3==2.5.0
 zipp==3.19.2
