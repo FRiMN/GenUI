@@ -228,8 +228,6 @@ class Window(
             processing_time_estimator.update((width, height), gen_time)
             self.update_eta(width * height / 1e6)
 
-        # FIXME: base size can changed.
-        base_size = self.base_size_editor.value()
         image = Image.frombytes(
             "RGB",
             (width, height),
@@ -241,7 +239,7 @@ class Window(
         pixmap = pixmap.copy()
 
         # Latent image smaller (~103x128) than result image.
-        is_latent_image = image.width < base_size and image.height < base_size
+        is_latent_image = image.width < 500 and image.height < 500
 
         if is_latent_image:
             self.preview_viewer.set_pixmap(pixmap)
