@@ -36,17 +36,22 @@ with suppress(RuntimeError):
 class ProcessManager:
     """Simple ProcessManager that runs a function in a child process with Pipe communication."""
 
-    def __init__(self, target_function: Callable[[Connection, Connection], None]):
+    def __init__(self, 
+        target_function: Callable[[Connection, Connection, list[mp.Event] | None], None], 
+        events: list[mp.Event] | None = None
+    ):
         """Initialize and start the child process.
 
         Args:
             target_function: Function to run in child process.
                            Must accept a Connection object as first parameter.
+            events: List of multiprocessing.Event for forvarding signals.
         """
         self.target_function = target_function
         self.parent_conn: Optional[Connection] = None
         self.child_conn: Optional[Connection] = None
         self.process: Optional[mp.Process] = None
+        self.events = events
         self._is_running = False
 
         # Start the process immediately
@@ -64,7 +69,7 @@ class ProcessManager:
             # Create and start process
             self.process = mp.Process(
                 target=self._run_target_function,
-                args=(self.child_conn, self.parent_conn)
+                args=(self.child_conn, self.parent_conn, self.events)
             )
             self.process.start()
 
@@ -197,7 +202,7 @@ class ProcessManager:
             return False
         return self.process.is_alive()
 
-    def _run_target_function(self, child_conn: Connection, parent_conn: Connection):
+    def _run_target_function(self, child_conn: Connection, parent_conn: Connection, events: list[mp.Event] | None):
         """Wrapper to run the target function in child process."""
         try:
             # Set up signal handler for graceful shutdown
@@ -214,7 +219,7 @@ class ProcessManager:
             signal.signal(signal.SIGTERM, signal_handler)
             signal.signal(signal.SIGINT, signal_handler)
 
-            self.target_function(child_conn, parent_conn)
+            self.target_function(child_conn, parent_conn, events=events)
         except Exception as e:
             print(f"Error in child process: {e}")
             # TODO: Change to print traceback.

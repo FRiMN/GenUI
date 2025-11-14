@@ -190,10 +190,10 @@ class Window(
     def handle_done(self):
         self.reset_command_buttons()
 
-        # pipe = load_pipeline(self.model_path)
-        # if pipe._interrupt:
-        #     self.label_status.setText("Interrupted")
-        #     self.preview_viewer.set_pixmap(None)
+        is_interrupted = self.label_status.text().startswith("Interrupt") and not self.preview_viewer.isHidden()
+        if is_interrupted:
+            self.label_status.setText("Interrupted")
+            self.preview_viewer.set_pixmap(None)
 
     def handle_error(self, error: str):
         self.button_interrupt.setDisabled(True)
@@ -247,7 +247,6 @@ class Window(
             if settings.autosave_image.enabled:
                 filepath = self.viewer.save_image()
                 self.label_image_path.setText(f"Image saved to `{filepath}`")
-
 
     def show_adetailer_rect(self, x: int, y: int, x2: int, y2: int):
         width = x2 - x

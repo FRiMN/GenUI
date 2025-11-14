@@ -2,8 +2,6 @@ from collections.abc import Callable
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import Qt
 
-from ...generator.sdxl import interrupt
-
 
 class GenerationCommandMixin:
     _generate_method: Callable
@@ -95,8 +93,7 @@ class GenerationCommandMixin:
         self.button_interrupt.setDisabled(True)
         self.label_status.setText("Interrupting...")
         self.setWindowTitle(None)
-        # FIXME: `self.model_path` can be changed. Need using prompt.
-        interrupt(self.model_path)
+        self.gen_operation.signals.interrupt.emit()
 
     def show_error_modal_dialog(self, err_data: str | None = None):
         """Show a modal dialog with an error message."""

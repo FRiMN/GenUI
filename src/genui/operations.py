@@ -1,5 +1,6 @@
 from queue import Empty, Queue
 from multiprocessing.connection import Connection
+from multiprocessing import Event
 from time import sleep
 import datetime
 from functools import partial
@@ -79,19 +80,24 @@ class BaseSignalHolder(QObject):
 
 class BaseOperation(object):
     signals: BaseSignalHolder = BaseSignalHolder()
-    process_manager: ProcessManager
-    model_path: str
+    process_manager: Optional[ProcessManager]
+    model_path: Optional[str]
+    events: Optional[list[Event]]
 
     def __init__(self):
         self.process_manager = None
         self.model_path = None
+        self.events = self.init_events()
         self.start_process()
+        
+    def init_events(self) -> Optional[list[Event]]:
+        return None
 
     def start_process(self):
         if self.process_manager:
             self.process_manager.stop()
             del self.process_manager
-        self.process_manager = ProcessManager(self.run)
+        self.process_manager = ProcessManager(self.run, self.events)
 
     def is_new_process_need(self, model_path: str) -> bool:
         """See `process_manager.py` for more info"""
@@ -197,12 +203,22 @@ class ImageGenerationSignalHolder(BaseSignalHolder):
     progress_preview = pyqtSignal(bytes, int, int, int, int, datetime.timedelta)
     scheduler_config = pyqtSignal(frozenset)
     gpu_memory_info = pyqtSignal(dict)
+    
+    # Forward signals
+    interrupt = pyqtSignal()
 
 
 class ImageGenerationOperation(BaseOperation):
     signals = ImageGenerationSignalHolder()
+    interrupt_event: Event        
+        
+    def init_events(self) -> Optional[list[Event]]:
+        self.interrupt_event = Event()
+        self.signals.interrupt.connect(lambda: self.interrupt_event.set())
+        
+        return [self.interrupt_event]
 
-    def run(self, connection: Connection, back_connection: Connection):
+    def run(self, connection: Connection, back_connection: Connection, events: list[Event]):
         while True:
             if connection.closed:
                 print("Connection closed")
@@ -220,40 +236,51 @@ class ImageGenerationOperation(BaseOperation):
                     case obj if isinstance(obj, ModelSchedulerConfig):
                         self.get_scheduler_config(msg, connection)
                     case obj if isinstance(obj, GenerationPrompt):
-                        self.generate_image(msg, connection)
+                        self.generate_image(msg, connection, events[0])
                     case _:
                         print(f"Unknown message type: {msg}")
             sleep(0.1)
 
-    def generate_image(self, prompt: GenerationPrompt, back_connection: Connection):
+    def generate_image(self, prompt: GenerationPrompt, back_connection: Connection, interrupt_event: Event):
         from .generator.sdxl import generate
 
-        prompt.callback = partial(self.progress_callback, back_connection)
+        prompt.callback = partial(self.progress_callback, back_connection, interrupt_event, prompt)
 
         with Timer("Image generation") as timer:
             image = generate(prompt)
 
-        # TODO: interrupt
-
-        print(f"Image generated in {timer.delta}")
-
-        gpu_info = get_gpu_memory_info()
-        signal_send(
-            back_connection, "progress_preview",
-            image.tobytes(),
-            prompt.inference_steps,
-            prompt.inference_steps,
-            image.width, image.height,
-            timer.delta
-        )
-
-        if gpu_info:
-            signal_send(back_connection, "gpu_memory_info", gpu_info)
-
+        if not interrupt_event.is_set():
+            print(f"Image generated in {timer.delta}")
+    
+            gpu_info = get_gpu_memory_info()
+            signal_send(
+                back_connection, "progress_preview",
+                image.tobytes(),
+                prompt.inference_steps,
+                prompt.inference_steps,
+                image.width, image.height,
+                timer.delta
+            )
+    
+            if gpu_info:
+                signal_send(back_connection, "gpu_memory_info", gpu_info)
+    
         signal_send(back_connection, "done")
+        interrupt_event.clear()
 
     @staticmethod
-    def progress_callback(back_connection: Connection, image: Image.Image, step, total_steps):
+    def progress_callback(
+        back_connection: Connection, 
+        interrupt_event: Event, 
+        prompt: GenerationPrompt, 
+        image: Image.Image, 
+        step, 
+        total_steps
+    ):
+        if interrupt_event.is_set():
+            from .generator.sdxl import interrupt
+            interrupt(prompt.model_path)
+        
         signal_send(
             back_connection, "progress_preview",
             image.tobytes(),
