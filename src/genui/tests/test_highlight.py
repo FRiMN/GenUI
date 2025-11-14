@@ -35,6 +35,11 @@ test_data = [
     ("word+, word--word", [(0, 4, pos), (7, 4, neg)]),
     ("word+, word+-word", [(0, 4, pos), (7, 4, pos)]),
     ("word+, word-+word", [(0, 4, pos), (7, 4, neg)]),
+    ("lineart++, (accurate photorealistic referenced fujifilm sketch)++, graphite_(medium)++", [
+        (0, 6, pos),
+        (12, 61, pos),
+        (67, 83, pos),
+    ]),
 ]
 
 @pytest.mark.parametrize(("text", "expected"), test_data)
