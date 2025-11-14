@@ -188,9 +188,6 @@ class Window(
         self.label_viewer_image_size.setText(f"{s.width()} x {s.height()}")
 
     def handle_done(self):
-        self.button_interrupt.setDisabled(True)
-        self.button_generate.setDisabled(False)
-
         self.reset_command_buttons()
 
         # pipe = load_pipeline(self.model_path)
