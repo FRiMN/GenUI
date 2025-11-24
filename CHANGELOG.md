@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to **date based releases** from [PEP 440](https://peps.python.org/pep-0440/).
 Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`.
 
+
 ## [Unreleased]
 
 ### Added
@@ -48,6 +49,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 - Fixed error on generation after CUDA OutOfMemoryError. Clearing pipeline cache after OutOfMemoryError.
 
+
 ## [v2025.3.1] - 2025-03-13
 
 ### Added
@@ -65,6 +67,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 - Changed place of configuration file.
 - Improved documentation.
+
 
 ## [v2025.3.0] - 2025-03-06
 
