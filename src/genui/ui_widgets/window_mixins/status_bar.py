@@ -43,14 +43,14 @@ class StatusBarMixin:
         self.load_image_button.setIcon(icon)
         self.load_image_button.clicked.connect(self.load_image_button_clicked)
 
-        eta_label = QLabel("ETA:")
-        self.eta_secs = QLabel()
-        # Create a combined widget for ETA display
-        self.eta = QWidget()
-        eta_layout = QHBoxLayout(self.eta)
-        eta_layout.setContentsMargins(0, 0, 0, 0)
-        eta_layout.addWidget(eta_label)
-        eta_layout.addWidget(self.eta_secs)
+        # eta_label = QLabel("ETA:")
+        # self.eta_secs = QLabel()
+        # # Create a combined widget for ETA display
+        # self.eta = QWidget()
+        # eta_layout = QHBoxLayout(self.eta)
+        # eta_layout.setContentsMargins(0, 0, 0, 0)
+        # eta_layout.addWidget(eta_label)
+        # eta_layout.addWidget(self.eta_secs)
 
         self.status_bar = self._create_status_bar()
         self.setStatusBar(self.status_bar)
@@ -65,7 +65,7 @@ class StatusBarMixin:
         spacer = QWidget()
         status_bar.addWidget(spacer, 1)
 
-        status_bar.addWidget(self.eta)
+        # status_bar.addWidget(self.eta)
         status_bar.addWidget(self.label_memory_usage)
         status_bar.addWidget(self.label_gpu_memory)
         status_bar.addWidget(self.label_viewer_image_size)
@@ -128,5 +128,5 @@ class StatusBarMixin:
             self.label_gpu_memory.setText("VRAM: Error")
             self.label_gpu_memory.setToolTip("Error reading GPU memory info")
             
-    def update_eta(self, mpx: float):
-        self.eta_secs.setText(f"{processing_time_estimator.eta(mpx).seconds:.2f} sec")
+    # def update_eta(self, mpx: float):
+    #     self.eta_secs.setText(f"{processing_time_estimator.eta(mpx).seconds:.2f} sec")

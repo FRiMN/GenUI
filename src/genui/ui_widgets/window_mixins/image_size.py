@@ -64,7 +64,7 @@ class ImageSizeMixin:
         sar.currentTextChanged.connect(self.handle_change_size_aspect_ratio)
         sar.setCurrentText("P 4:5")
 
-        self.update_eta(self.image_mpx)
+        # self.update_eta(self.image_mpx)
 
         self.size_toolbar = self._create_size_toolbar()
 
@@ -114,7 +114,7 @@ class ImageSizeMixin:
 
         self.label_size.setText(f"{self.image_size[0]} x {self.image_size[1]}")
         self.label_resolution_mpx.setText(f"{self.image_mpx:.2f}")
-        self.update_eta(self.image_mpx)
+        # self.update_eta(self.image_mpx)
 
     def handle_change_base_size(self, val: int):
         t = self.size_aspect_ratio.currentText()
