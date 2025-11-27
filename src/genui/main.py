@@ -222,7 +222,7 @@ class Window(
             # TODO: extract to signal.
             self.label_status.setText(f"Done in {gen_time.seconds} sec.")
             self.setWindowTitle(None)
-            processing_time_estimator.update((width, height), gen_time)
+            # processing_time_estimator.update((width, height), gen_time)
             # self.update_eta(width * height / 1e6)
 
         image = Image.frombytes(
