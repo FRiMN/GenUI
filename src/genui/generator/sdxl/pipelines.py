@@ -120,7 +120,7 @@ class LoraPipeline(StableDiffusionXLLoraLoaderMixin):
     def delete_adapters(self, adapter_names: list[str] | str) -> None:
         an = adapter_names if isinstance(adapter_names, list) else [adapter_names]
         for a in an:
-            print(f"Deleting LoRA {a}...")
+            print(f"Unloading LoRA {a}...")
         self.__loras.remove(*an)
         return super().delete_adapters(adapter_names)
 
