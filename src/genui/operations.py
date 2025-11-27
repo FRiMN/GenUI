@@ -249,9 +249,7 @@ class ImageGenerationOperation(BaseOperation):
         with Timer("Image generation") as timer:
             image = generate(prompt)
 
-        if not interrupt_event.is_set():
-            print(f"Image generated in {timer.delta}")
-    
+        if not interrupt_event.is_set():    
             gpu_info = get_gpu_memory_info()
             signal_send(
                 back_connection, "progress_preview",
