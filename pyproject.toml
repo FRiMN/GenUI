@@ -60,20 +60,24 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 write_to = "src/genui/__version__.py"
 
-[[tool.uv.index]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
-explicit = true
+# [[tool.uv.index]]
+# name = "pytorch-cu124"
+# url = "https://download.pytorch.org/whl/cu124"
+# explicit = true
+
+[tool.uv.pip]
+index-url = "https://download.pytorch.org/whl/cu124"
+extra-index-url = ["https://pypi.org/simple"]
 
 # [[tool.uv.index]]
 # name = "oneflow"
 # url = "https://github.com/siliconflow/oneflow_releases/releases/expanded_assets/community_cu121"
 # explicit = true
 
-[tool.uv.sources]
-torch = [
-    { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-]
+# [tool.uv.sources]
+# torch = [
+#     { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+# ]
 #torchvision = [
 #  { index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 #]
