@@ -74,16 +74,6 @@ enabled = true
 path = "/path/to/models/directory"
 ```
 
-## Configuration File Location
-The location of the configuration file can be overridden by setting the environment variable `GENUI_CONFIG_FILE` before running the application. If this variable is set, it will point to a different path for the configuration file.
-
-## Environment Variables
-To modify settings through environment variables, prefix the parameter names with `genui_`. For example:
-- To change the auto-save image setting, you can use an environment variable like `GENUI_AUTOSAVE_IMAGE_ENABLED`.
-
-## Command Line Interface (CLI)
-Genui supports command line interface options to modify settings. For see allowed options, run `genui --help`. Settings setted by CLI will override settings setted by configuration file.
-
 ## Example Configuration File
 Here is an example of how the configuration file (`config.toml`) might look:
 ```toml
