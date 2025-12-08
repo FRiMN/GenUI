@@ -90,3 +90,4 @@ class SchedulerMixin:
         self.model_path = model_path
         self.model_name = self.model_path.split("/")[-1].split(".")[0]
         self.model_path_btn.setText(self.model_name)
+        self.model_path_btn.setToolTip(f"Model: {self.model_path}")
