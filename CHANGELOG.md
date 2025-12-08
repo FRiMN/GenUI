@@ -22,6 +22,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Added `.python-version` file.
 - Added new directories to `.gitignore`.
 - Added splitting‑prompt support via the `BREAK` keyword.
+- Added tooltip to model-path button showing the full path to the currently loaded model.
 
 ### Changed
 
@@ -46,34 +47,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Fixed several prompt‑highlighting bugs.
 - Fixed metadata loading/saving for JPEG/XMP files.
 - Fixed CUDA memory leak.
-
-
-## [v2025.4.0] - 2025-04-28
-
-### Added
-
-- Added ADetailer integration for SDXL, enabling automatic inpainting of detected regions (face, hands, etc.) after the main generation.
-- Added “Inpaint only” mode to run ADetailer on existing images (drop an image to start).
-- Added new UI controls: mask dilation, blur, padding and confidence threshold for ADetailer.
-- Added support for custom YOLO detection models; ships with default `yolo11n-face.pt` and `yolo11n-person.pt`.
-- Added keyboard shortcut `Ctrl+R` to trigger “Inpaint only” pass.
-- Added automatic fallback to CPU if CUDA OOM occurs during ADetailer inpainting.
-- Added progress logging for detection and inpainting stages.
-- Added tooltip to model-path button showing the full path to the currently loaded model.
-
-### Changed
-
-- Refactored generation operation into reusable `ImageGenerationOperation` class.
-- Moved ADetailer settings into separate `ADetailerSettings` config section.
-- Improved memory management: explicit cache clearing after each ADetailer run.
-- Consolidated worker error handling; full traceback is now logged and displayed.
-
-### Fixed
-
-- Fixed race condition between image drop and model loading.
-- Fixed incorrect mask padding when bounding box exceeds image borders.
-- Fixed duplicate signals emitted on rapid “Generate” clicks.
-- Fixed status-bar GPU memory tooltip showing stale data.
+- Now empty model path not set.
 
 
 ## [v2025.3.2] - 2025-03-18
