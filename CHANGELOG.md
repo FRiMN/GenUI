@@ -16,6 +16,14 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Fixed CVE-2025-66034 by upgrading the vulnerable dependency. fontTools is Vulnerable to Arbitrary File Write and XML injection in fontTools.varLib.
 - Fixed CVE-2025-3730 by upgrading the vulnerable dependency. PyTorch Improper Resource Shutdown or Release vulnerability.
 - Fixed CVE-2025-2953 by upgrading the vulnerable dependency. PyTorch susceptible to local Denial of Service.
+- Fixed CVE-2024-11393 by upgrading the vulnerable dependency. Deserialization of Untrusted Data in Hugging Face Transformers.
+- Fixed CVE-2024-11392 by upgrading the vulnerable dependency. Deserialization of Untrusted Data in Hugging Face Transformers.
+- Fixed CVE-2024-3568 by upgrading the vulnerable dependency. Transformers Deserialization of Untrusted Data vulnerability.
+- Fixed CVE-2024-11394 by upgrading the vulnerable dependency. Deserialization of Untrusted Data in Hugging Face Transformers.
+- Fixed CVE-2023-6730 by upgrading the vulnerable dependency. transformers has a Deserialization of Untrusted Data vulnerability.
+- Fixed CVE-2023-7018 by upgrading the vulnerable dependency. transformers has a Deserialization of Untrusted Data vulnerability.
+- Fixed CVE-2025-5197 by upgrading the vulnerable dependency. Hugging Face Transformers Regular Expression Denial of Service (ReDoS) vulnerability.
+- Fixed CVE-2024-12720 by upgrading the vulnerable dependency. Transformers Regular Expression Denial of Service (ReDoS) vulnerability.
 
 ### Added
 
