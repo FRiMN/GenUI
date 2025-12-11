@@ -69,6 +69,11 @@ class ADetailerSettings(BaseModel):
 class AutoFindModelSettings(BaseModel):
     enabled: bool = False
     path: DirectoryPath | None = None
+    
+    
+class AutoFindLorasSettings(BaseModel):
+    enabled: bool = False
+    path: DirectoryPath | None = None
 
 
 class Settings(BaseGenUISettings):
@@ -77,6 +82,7 @@ class Settings(BaseGenUISettings):
     prompt_editor: PromptEditorSettings = PromptEditorSettings()
     adetailer: ADetailerSettings = ADetailerSettings()
     autofind_model: AutoFindModelSettings = AutoFindModelSettings()
+    autofind_loras: AutoFindLorasSettings = AutoFindLorasSettings()
 
 
 def reload_settings():

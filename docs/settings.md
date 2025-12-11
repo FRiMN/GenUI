@@ -74,6 +74,19 @@ enabled = true
 path = "/path/to/models/directory"
 ```
 
+### 5. Auto-Find LoRAs
+This section allows you to configure automatic discovery of LoRAs when loading images with embedded metadata. When enabled, the application will recursively scan the specified directory and populate the LoRA table in the UI automatically, for LoRAs referenced in image metadata within a specified directory.
+
+- **enabled**: A boolean value that determines whether auto-find LoRAs is enabled (`False` by default).
+- **path**: The directory where the application will search for LoRA files (usually `.safetensors`). The path may be relative to the current directory or an absolute path. This defaults to `None` (not set).
+
+Example:
+```toml
+[autofind_loras]
+enabled = true
+path = "/path/to/loras/directory"
+```
+
 ## Example Configuration File
 Here is an example of how the configuration file (`config.toml`) might look:
 ```toml
@@ -94,4 +107,8 @@ font_weight = 400
 [autofind_model]
 enabled = false
 path = None
+
+[autofind_loras]
+enabled = true
+path = "/home/user/models/loras"
 ```

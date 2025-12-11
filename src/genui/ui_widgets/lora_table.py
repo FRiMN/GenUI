@@ -64,11 +64,11 @@ class LoraTable(QWidget):
     def _build_name(self, filepath: Path) -> str:
         return filepath.name.split(".")[0]
         
-    def _build_weight_spinbox(self) -> QDoubleSpinBox:
+    def _build_weight_spinbox(self, value: float) -> QDoubleSpinBox:
         spinbox = QDoubleSpinBox()
         spinbox.setMinimum(-5)
         spinbox.setMaximum(5)
-        spinbox.setValue(1.0)
+        spinbox.setValue(value)
         spinbox.setSingleStep(0.05)
         return spinbox
         
@@ -89,7 +89,7 @@ class LoraTable(QWidget):
         total_rows = self.table.rowCount()
         self.updated.emit(len(active_rows), total_rows)
         
-    def add_lora(self, filepath: Path):
+    def add_lora(self, filepath: Path, weight: float = 1.0):
         name = self._build_name(filepath)
         if name in self.files_paths:
             return
@@ -100,7 +100,7 @@ class LoraTable(QWidget):
         
         self.table.setCellWidget(next_row, self.cell_active, self._build_active_checkbox())
         self.table.setItem(next_row, self.cell_name, QTableWidgetItem(name))
-        self.table.setCellWidget(next_row, self.cell_weight, self._build_weight_spinbox())
+        self.table.setCellWidget(next_row, self.cell_weight, self._build_weight_spinbox(weight))
         
         self._handle_updates()
         

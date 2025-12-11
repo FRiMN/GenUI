@@ -1,12 +1,13 @@
 import datetime
 import sys
+from pathlib import Path
 
 from PIL import Image
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QThread, QSize, QRectF
 from PyQt6.QtGui import QCloseEvent, QDropEvent
 
-from .generator.sdxl import GenerationPrompt, ModelSchedulerConfig
+from .generator.sdxl import GenerationPrompt, ModelSchedulerConfig, LoRASettings
 from .ui_widgets.photo_viewer import PhotoViewer, FastViewer
 from .ui_widgets.window_mixins.generation_command import GenerationCommandMixin
 from .ui_widgets.window_mixins.image_size import ImageSizeMixin
@@ -334,10 +335,22 @@ class Window(
         """Find a model by its file name (like `model.safetensors`) in directory recursively."""
         import os
 
+        # TODO: перенести проверку в settings
         assert settings.autofind_model.path, "Auto-find model path is not set"
         for root, dirs, files in os.walk(settings.autofind_model.path):
             for file in files:
                 if file == path:
+                    return os.path.join(root, file)
+        return None
+
+    def find_local_lora(self, name: str) -> str | None:
+        import os
+
+        # TODO: перенести проверку в settings
+        assert settings.autofind_loras.path, "Auto-find LoRA path is not set"
+        for root, dirs, files in os.walk(settings.autofind_loras.path):
+            for file in files:
+                if file.lower().endswith(".safetensors") and Path(file).stem == name:
                     return os.path.join(root, file)
         return None
 
@@ -348,8 +361,7 @@ class Window(
 
         try:
             with pyexiv2.Image(image_path) as img:
-                metadata:dict = img.read_xmp()
-
+                metadata: dict = img.read_xmp()
             prompt: GenerationPrompt = get_prompt_from_metadata(metadata)
         except Exception:   # noqa: BLE001
             print(traceback.format_exc())
@@ -387,16 +399,38 @@ class Window(
                 "Model not changed."
             )
 
-        exist_loras = frozenset(self.lora_window.lora_table.get_loras())
-        prompt_loras_names = set([(l.name, l.weight) for l in prompt.loras if l.active])
-        exist_loras_names = set([(l.name, l.weight) for l in exist_loras if l.active])
-        if len(exist_loras) != len(prompt.loras) or prompt_loras_names != exist_loras_names:
-            prompt.loras = exist_loras
-            errors.append(
-                "The LoRAs in the image do not match the current LoRAs. "
-                f"LoRAs (with weights) in image: <b>{prompt_loras_names}</b>. "
-                "LoRAs not changed."
-            )
+        if settings.autofind_loras.enabled:
+            found_loras: list[LoRASettings] = []
+            missing_loras: list[tuple[str, float]] = []
+            for lora in prompt.loras:
+                local_path = self.find_local_lora(lora.name)
+                if local_path:
+                    found_loras.append(LoRASettings(name=lora.name, weight=lora.weight, filepath=local_path, active=True))
+                else:
+                    missing_loras.append((lora.name, lora.weight))
+
+            if found_loras:
+                self.lora_window.lora_table.clear()
+                for lora in found_loras:
+                    self.lora_window.lora_table.add_lora(Path(lora.filepath), weight=lora.weight)
+
+            if missing_loras:
+                errors.append(
+                    "The following LoRAs from the image were not found locally:<br><b>"
+                    + "</b>, <b>".join([f"{l[0]} (weight={l[1]})" for l in missing_loras])
+                    + "</b>"
+                )
+        else:
+            exist_loras = frozenset(self.lora_window.lora_table.get_loras())
+            prompt_loras_names = set([(l.name, l.weight) for l in prompt.loras if l.active])
+            exist_loras_names = set([(l.name, l.weight) for l in exist_loras if l.active])
+            if len(exist_loras) != len(prompt.loras) or prompt_loras_names != exist_loras_names:
+                prompt.loras = exist_loras
+                errors.append(
+                    "The LoRAs in the image do not match the current LoRAs. "
+                    f"LoRAs (with weights) in image: <b>{prompt_loras_names}</b>. "
+                    "LoRAs not changed."
+                )
 
         if errors:
             self.show_error_modal_dialog(
