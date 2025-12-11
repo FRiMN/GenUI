@@ -9,6 +9,10 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 
 ## [Unreleased]
 
+### Security
+
+- Fixed CVE-2023-6730 by upgrading the vulnerable dependency. Deserialization of Untrusted Data in huggingface/transformers.
+
 ### Added
 
 - Added support for LoRA.
