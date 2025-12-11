@@ -1,0 +1,21 @@
+# Call [trivy](https://trivy.dev/) like this: `trivy repo .`
+timeout: 10m
+dependency-tree: true
+list-all-pkgs: true
+exit-code: 1
+severity:
+  - HIGH
+  - CRITICAL
+  
+scan:
+  skip-dirs:
+    - ./build
+
+  scanners:
+    - vuln
+    
+vulnerability:
+  type:
+    - os
+    - library
+  ignore-unfixed: true

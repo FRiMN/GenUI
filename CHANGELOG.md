@@ -41,6 +41,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Added new directories to `.gitignore`.
 - Added splitting‑prompt support via the `BREAK` keyword.
 - Added tooltip to model-path button showing the full path to the currently loaded model.
+- Added [trivy](https://trivy.dev/) as security scanner.
 
 ### Changed
 
