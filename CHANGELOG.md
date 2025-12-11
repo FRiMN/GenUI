@@ -24,6 +24,8 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Fixed CVE-2023-7018 by upgrading the vulnerable dependency. transformers has a Deserialization of Untrusted Data vulnerability.
 - Fixed CVE-2025-5197 by upgrading the vulnerable dependency. Hugging Face Transformers Regular Expression Denial of Service (ReDoS) vulnerability.
 - Fixed CVE-2024-12720 by upgrading the vulnerable dependency. Transformers Regular Expression Denial of Service (ReDoS) vulnerability.
+- Fixed CVE-2025-66418 by upgrading the vulnerable dependency. urllib3 Allocation of Resources Without Limits or Throttling.
+- Fixed CVE-2025-66471 by upgrading the vulnerable dependency. urllib3 Improper Handling of Highly Compressed Data (Data Amplification).
 
 ### Added
 

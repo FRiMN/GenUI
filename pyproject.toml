@@ -46,6 +46,7 @@ dependencies = [
     # Only security (not used directly):
     "jinja2 >= 3.1.6",
     "fonttools >= 4.60.2",
+    "urllib3 >= 2.6.0",
 ]
 dynamic = ["version"]
 
