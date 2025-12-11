@@ -15,6 +15,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 - Fixed CVE-2025-27516 by upgrading the vulnerable dependency. Jinja2 vulnerable to sandbox breakout through attr filter selecting format method.
 - Fixed CVE-2025-66034 by upgrading the vulnerable dependency. fontTools is Vulnerable to Arbitrary File Write and XML injection in fontTools.varLib.
 - Fixed CVE-2025-3730 by upgrading the vulnerable dependency. PyTorch Improper Resource Shutdown or Release vulnerability.
+- Fixed CVE-2025-2953 by upgrading the vulnerable dependency. PyTorch susceptible to local Denial of Service.
 
 ### Added
 
