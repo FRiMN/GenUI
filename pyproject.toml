@@ -43,6 +43,7 @@ dependencies = [
     # "onnx",
     # "onnxruntime-gpu",
     # "pruna[full]",
+    "jinja2 >= 3.1.6",
 ]
 dynamic = ["version"]
 

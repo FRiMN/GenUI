@@ -12,6 +12,7 @@ Scheme of releases: `v<4-digit year>.<1 or 2-digit month>.<patch starting at 0>`
 ### Security
 
 - Fixed CVE-2023-6730 by upgrading the vulnerable dependency. Deserialization of Untrusted Data in huggingface/transformers.
+- Fixed CVE-2025-27516 by upgrading the vulnerable dependency. Jinja2 vulnerable to sandbox breakout through attr filter selecting format method.
 
 ### Added
 
