@@ -11,6 +11,7 @@ Key Features:
 - **Image Preview:** Preview generated images in real-time to ensure they meet your expectations.
 - **Progress Tracking:** Monitor the progress of your image generation in real-time.
 - **Automatic Image Saving:** Images are automatically saved to a designated folder for easy access and sharing.
+- **Security Scanning:** The project code and dependencies are continuously scanned for CVEs with Trivy, helping to keep your system safe.
 
 For a detailed overview of **important changes, updates, and releases**, please refer to the **[CHANGELOG](./CHANGELOG.md)** file. This document provides a comprehensive history of significant developments in the project.
 
@@ -77,3 +78,7 @@ See [docs/settings.md](docs/settings.md) for details on how to configure GenUI.
 ## Prompt Syntax Guide
 
 GenUI supports advanced prompt syntax including weight adjustment with parentheses and the BREAK keyword for combining concepts. See the **[Prompt Syntax Guide](docs/prompt-syntax-guide.md)** for complete usage instructions.
+
+## Security
+
+GenUI integrates [Trivy](https://github.com/aquasecurity/trivy) to continuously scan the project code and dependencies for known CVEs, ensuring that vulnerable packages are identified and can be remediated before deployment. This helps keep your runtime environment safer while you experiment with AI-generated art. A full list of discovered and fixed vulnerabilities is published in [CHANGELOG.md](./CHANGELOG.md).
